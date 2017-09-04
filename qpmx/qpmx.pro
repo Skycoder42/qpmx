@@ -20,7 +20,7 @@ DEFINES += "VERSION=\\\"$$VERSION\\\""
 DEFINES += "COMPANY=\"\\\"$$QMAKE_TARGET_COMPANY\\\"\""
 DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 
-include(../subdirs/subdirs.pri)
+include(../submodules/submodules.pri)
 
 PUBLIC_HEADERS += \
 	sourceplugin.h
