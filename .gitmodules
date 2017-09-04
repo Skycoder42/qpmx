@@ -1,0 +1,3 @@
+[submodule "subdirs/qcliparser"]
+	path = subdirs/qcliparser
+	url = https://github.com/Skycoder42/QCliParser.git
