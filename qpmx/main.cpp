@@ -69,23 +69,55 @@ int main(int argc, char *argv[])
 							   QCoreApplication::translate("parser", "Force a reinstallation. If the package was already downloaded, "
 																	 "the existing sources and other artifacts will be deleted before downloading."),
 						   });
+	installNode->addOption({
+							   {QStringLiteral("c"), QStringLiteral("cache")},
+							   QCoreApplication::translate("parser", "Only download and cache the sources. Do not add the package to a qpmx.json."),
+						   });
 	installNode->addPositionalArgument(QStringLiteral("packages"),
 									   QCoreApplication::translate("parser", "The packages to be installed. The provider determines which backend to use for the download. "
 																			 "If left empty, all providers are searched for the package. If the version is left out, "
 																			 "the latest version is installed."),
 									   QStringLiteral("[<provider>::]<package>[@<version>] ..."));
 
+	//compile
+	auto compileNode = parser.addLeafNode(QStringLiteral("compile"),
+										  QCoreApplication::translate("parser", "Compile or recompile source packages to generate the precompiled libraries "
+																				"for faster building explicitly."));
+	compileNode->addOption({
+							   {QStringLiteral("m"), QStringLiteral("qmake")},
+							   QCoreApplication::translate("parser", "The different <qmake> versions to generate binaries for. Can be specified "
+																	 "multiple times. Binaries are precompiled for every qmake in the list. If "
+																	 "not specified, binaries are generated for all known qmakes."),
+							   QCoreApplication::translate("parser", "qmake")
+						   });
+	compileNode->addOption({
+							   {QStringLiteral("g"), QStringLiteral("global")},
+							   QCoreApplication::translate("parser", "Don't limit the packages to rebuild to only the ones specified in the qpmx.json. "
+																	 "Instead, build all ever cached packages (limited by the packages argument)."),
+						   });
+	compileNode->addOption({
+							   {QStringLiteral("r"), QStringLiteral("recompile")},
+							   QCoreApplication::translate("parser", "By default, compilation is skipped for unchanged packages. By specifying "
+																	 "this flags, all packages are recompiled."),
+						   });
+	compileNode->addPositionalArgument(QStringLiteral("packages"),
+									   QCoreApplication::translate("parser", "The packages to compile binaries for. Installed packages are "
+																			 "matched against those, and binaries compiled for all of them. If no "
+																			 "packages are specified, ALL INSTALLED packages will be compiled."),
+									   QStringLiteral("[[<provider>::]<package>[@<version>] ...]"));
+
 	parser.process(a, true);
 
 	//setup logging
 #ifndef Q_OS_WIN
 	if(!parser.isSet(QStringLiteral("no-color"))) {
-		qSetMessagePattern(QStringLiteral("%{if-category}%{category}: %{endif}"
-										  "%{if-debug}%{message}%{endif}"
-										  "%{if-info}\033[36m%{message}\033[0m%{endif}"
-										  "%{if-warning}\033[33m%{message}\033[0m%{endif}"
-										  "%{if-critical}\033[31m%{message}\033[0m%{endif}"
-										  "%{if-fatal}\033[35m%{message}\033[0m%{endif}"));
+		qSetMessagePattern(QStringLiteral("%{if-warning}\033[33m%{endif}"
+										  "%{if-critical}\033[31m%{endif}"
+										  "%{if-fatal}\033[35m%{endif}"
+										  "%{if-category}%{category}: %{endif}%{message}"
+										  "%{if-warning}\033[0m%{endif}"
+										  "%{if-critical}\033[0m%{endif}"
+										  "%{if-fatal}\033[0m%{endif}"));
 	}
 #endif
 	if(!parser.isSet(QStringLiteral("quiet"))) {

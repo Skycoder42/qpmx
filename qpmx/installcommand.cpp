@@ -9,6 +9,7 @@ InstallCommand::InstallCommand(QObject *parent) :
 	Command(parent),
 	_srcOnly(false),
 	_renew(false),
+	_cacheOnly(false),
 	_pkgList(),
 	_pkgIndex(0),
 	_current(),
@@ -21,6 +22,7 @@ void InstallCommand::initialize(QCliParser &parser)
 	try {
 		_srcOnly = parser.isSet(QStringLiteral("source"));
 		_renew = parser.isSet(QStringLiteral("renew"));
+		_cacheOnly = parser.isSet(QStringLiteral("cache"));
 
 		auto regex = PackageInfo::packageRegexp();
 		foreach(auto arg, parser.positionalArguments()) {
@@ -89,7 +91,10 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 void InstallCommand::getNext()
 {
 	if(_pkgIndex >= _pkgList.size()) {
-		completeInstall();
+		if(!_cacheOnly)
+			completeInstall();
+		else
+			xDebug() << tr("Skipping add to qpmx.json, only cache installs");
 		xDebug() << tr("Package installation completed");
 		qApp->quit();
 		return;
@@ -252,6 +257,7 @@ void InstallCommand::completeInstall()
 		}
 	}
 	QpmxFormat::writeDefault(format);
+	xInfo() << "Added all packages to qpmx.json";
 }
 
 

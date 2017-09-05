@@ -21,6 +21,7 @@ private slots:
 private:
 	bool _srcOnly;
 	bool _renew;
+	bool _cacheOnly;
 
 	QList<qpmx::PackageInfo> _pkgList;
 	int _pkgIndex;
