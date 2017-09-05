@@ -16,7 +16,7 @@ public:
 	GitSourcePlugin(QObject *parent = nullptr);
 
 	QString packageSyntax() const override;
-	bool packageNameValid(const QString &packageName) const override;
+	bool packageValid(const qpmx::PackageInfo &package) const override;
 
 public slots:
 	void searchPackage(int requestId, const QString &provider, const QString &query) override;

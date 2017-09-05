@@ -13,14 +13,21 @@ QString GitSourcePlugin::packageSyntax() const
 	return tr("<url>[#<prefix>]");
 }
 
-bool GitSourcePlugin::packageNameValid(const QString &packageName) const
+bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 {
-	return QUrl(packageName).isValid();
+	auto ok = false;
+
+	if(package.provider().isEmpty() ||
+	   package.provider() == QStringLiteral("git"))
+		ok = ok || QUrl(package.package()).isValid();
+
+	return ok;
 }
 
 void GitSourcePlugin::searchPackage(int requestId, const QString &provider, const QString &query)
 {
 	Q_UNUSED(query);
+	Q_UNUSED(provider);
 	//git does not support searching
 	emit searchResult(requestId, {});
 }

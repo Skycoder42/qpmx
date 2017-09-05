@@ -38,6 +38,14 @@ public:
 	inline QVersionNumber version() const {
 		return d->version;
 	}
+	inline QString toString() const {
+		auto res = d->package;
+		if(!d->provider.isNull())
+			res.prepend(d->provider + QStringLiteral("::"));
+		if(!d->version.isNull())
+			res.append(QLatin1Char('@') + d->version.toString());
+		return res;
+	}
 
 private:
 	struct Data : public QSharedData {

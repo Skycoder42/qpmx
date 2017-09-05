@@ -15,7 +15,7 @@ public:
 	virtual inline ~SourcePlugin() = default;
 
 	virtual QString packageSyntax() const = 0;
-	virtual bool packageNameValid(const QString &packageName) const = 0;
+	virtual bool packageValid(const qpmx::PackageInfo &package) const = 0;
 
 public:
 	virtual void searchPackage(int requestId, const QString &provider, const QString &query) = 0;
