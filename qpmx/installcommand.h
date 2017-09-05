@@ -11,7 +11,8 @@ public:
 	explicit InstallCommand(QObject *parent = nullptr);
 
 public slots:
-	void init(const QCliParser &parser) override;
+	void initialize(const QCliParser &parser) override;
+
 };
 
 #endif // INSTALLCOMMAND_H

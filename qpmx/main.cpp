@@ -36,11 +36,11 @@ int main(int argc, char *argv[])
 																	 "build times, but may help if a package does not work properly. Check the package "
 																	 "authors website for hints."),
 						   });
-	installNode->addPositionalArgument(QStringLiteral("package"),
-									   QCoreApplication::translate("parser", "The package to be installed. The provider determines which backend to use for the download. "
+	installNode->addPositionalArgument(QStringLiteral("packages"),
+									   QCoreApplication::translate("parser", "The packages to be installed. The provider determines which backend to use for the download. "
 																			 "If left empty, all providers are searched for the package. If the version is left out, "
 																			 "the latest version is installed."),
-									   QStringLiteral("[<provider>::]<package>[@<version>]"));
+									   QStringLiteral("[<provider>::]<package>[@<version>] ..."));
 
 	parser.process(a);
 
@@ -52,8 +52,10 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	QObject::connect(qApp, &QCoreApplication::aboutToQuit,
+					 cmd, &Command::finalize);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
-		cmd->init(parser);
+		cmd->initialize(parser);
 	});
 	return a.exec();
 }

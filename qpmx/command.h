@@ -4,6 +4,8 @@
 #include <QObject>
 #include <qcliparser.h>
 
+#include "packageinfo.h"
+
 class Command : public QObject
 {
 	Q_OBJECT
@@ -12,7 +14,8 @@ public:
 	explicit Command(QObject *parent = nullptr);
 
 public slots:
-	virtual void init(const QCliParser &parser) = 0;
+	virtual void initialize(const QCliParser &parser) = 0;
+	virtual void finalize();
 };
 
 #endif // COMMAND_H

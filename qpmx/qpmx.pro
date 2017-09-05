@@ -23,15 +23,16 @@ DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 include(../submodules/submodules.pri)
 
 PUBLIC_HEADERS += \
-	sourceplugin.h
+	sourceplugin.h \
+	packageinfo.h
 
 HEADERS += $$PUBLIC_HEADERS \
-    installcommand.h \
-    command.h
+	installcommand.h \
+	command.h
 
 SOURCES += main.cpp \
-    installcommand.cpp \
-    command.cpp
+	installcommand.cpp \
+	command.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]

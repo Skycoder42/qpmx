@@ -1,0 +1,67 @@
+#ifndef PACKAGEINFO_H
+#define PACKAGEINFO_H
+
+#include <QtCore/QVersionNumber>
+#include <QtCore/QSharedData>
+#include <QtCore/QRegularExpression>
+
+namespace qpmx {
+
+class PackageInfo
+{
+public:
+	inline static QRegularExpression packageRegexp() {
+		return QRegularExpression{
+			QStringLiteral(R"__(^(?:([^:]*)::)?(.*?)(?:@([\w\.-]*))?$)__"),
+			QRegularExpression::CaseInsensitiveOption
+		};
+	}
+
+	inline PackageInfo(QString provider = {}, QString package = {}, QVersionNumber version = {}) :
+		d(new Data(provider, package, version))
+	{}
+	inline PackageInfo(const PackageInfo &other) :
+		d(other.d)
+	{}
+
+	inline PackageInfo &operator=(const PackageInfo &other) {
+		d = other.d;
+		return *this;
+	}
+
+	inline QString provider() const {
+		return d->provider;
+	}
+	inline QString package() const {
+		return d->package;
+	}
+	inline QVersionNumber version() const {
+		return d->version;
+	}
+
+private:
+	struct Data : public QSharedData {
+		QString provider;
+		QString package;
+		QVersionNumber version;
+
+		inline Data(QString provider, QString package, QVersionNumber version) :
+			QSharedData(),
+			provider(provider),
+			package(package),
+			version(version)
+		{}
+		inline Data(const Data &other) :
+			QSharedData(other),
+			provider(other.provider),
+			package(other.package),
+			version(other.version)
+		{}
+	};
+
+	QSharedDataPointer<Data> d;
+};
+
+}
+
+#endif // PACKAGEINFO_H
