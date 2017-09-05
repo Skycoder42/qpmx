@@ -19,7 +19,11 @@ private slots:
 	void sourceError(int requestId, const QString &error);
 
 private:
+	bool _srcOnly;
+	bool _renew;
+
 	QList<qpmx::PackageInfo> _pkgList;
+	int _pkgIndex;
 	qpmx::PackageInfo _current;
 
 	struct SrcAction {
@@ -36,8 +40,9 @@ private:
 	QList<SrcAction> _resCache;
 
 	void getNext();
-	void getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
+	bool getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
+	void completeInstall();
 };
 
 #endif // INSTALLCOMMAND_H

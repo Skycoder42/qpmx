@@ -1,4 +1,5 @@
 #include "installcommand.h"
+#include "qpmxformat.h"
 #include <QDebug>
 #include <QStandardPaths>
 #include <QUrl>
@@ -6,7 +7,10 @@ using namespace qpmx;
 
 InstallCommand::InstallCommand(QObject *parent) :
 	Command(parent),
+	_srcOnly(false),
+	_renew(false),
 	_pkgList(),
+	_pkgIndex(0),
 	_current(),
 	_actionCache(),
 	_resCache()
@@ -15,6 +19,9 @@ InstallCommand::InstallCommand(QObject *parent) :
 void InstallCommand::initialize(const QCliParser &parser)
 {
 	try {
+		_srcOnly = parser.isSet(QStringLiteral("source"));
+		_renew = parser.isSet(QStringLiteral("renew"));
+
 		auto regex = PackageInfo::packageRegexp();
 		foreach(auto arg, parser.positionalArguments()) {
 			auto match = regex.match(arg);
@@ -81,19 +88,30 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 
 void InstallCommand::getNext()
 {
-	if(_pkgList.isEmpty()) {
+	if(_pkgIndex >= _pkgList.size()) {
+		completeInstall();
 		xDebug() << tr("Package installation completed");
 		qApp->quit();
 		return;
 	}
 
-	_current = _pkgList.takeFirst();
+	_current = _pkgList[_pkgIndex++];
 	if(_current.provider().isEmpty()) {
 		auto allProvs = registry()->providerNames();
+		auto any = false;
 		foreach(auto prov, allProvs) {
 			auto plugin = registry()->sourcePlugin(prov);
-			if(plugin->packageValid(_current))
-				getSource(prov, plugin, false);
+			if(plugin->packageValid(_current)) {
+				any = true;
+				if(getSource(prov, plugin, false))
+					break;
+			}
+		}
+
+		if(!any) {
+			throw tr("Unable to get sources for package \"%1\": "
+					 "Package is not valid for any provider")
+					.arg(_current.toString());
 		}
 	} else {
 		auto plugin = registry()->sourcePlugin(_current.provider());
@@ -106,16 +124,45 @@ void InstallCommand::getNext()
 	}
 }
 
-void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
+bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
+	QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+	auto subPath = QStringLiteral("src/%1/%3/%2")
+				   .arg(provider)
+				   .arg(_current.version().toString())
+				   .arg(QString::fromUtf8(QUrl::toPercentEncoding(_current.package())));
+	if(cacheDir.exists(subPath)) {
+		if(_renew) {
+			xDebug() << tr("Deleting sources for \"%1\"").arg(_current.toString());
+			auto rmDir = cacheDir;
+			rmDir.cd(subPath);
+			if(!rmDir.removeRecursively())
+				throw tr("Failed to remove old sources for \"%1\"").arg(_current.toString());
+
+			//remove compile dirs aswell
+			rmDir = cacheDir;
+			auto compPath = QStringLiteral("build/%1/%3/%2")
+							.arg(provider)
+							.arg(_current.version().toString())
+							.arg(QString::fromUtf8(QUrl::toPercentEncoding(_current.package())));
+			if(rmDir.cd(compPath)) {
+				if(!rmDir.removeRecursively())
+					throw tr("Failed to remove old compilation cache for \"%1\"").arg(_current.toString());
+			}
+		} else {
+			xDebug() << tr("Sources for package \"%1\" already exist. Skipping download").arg(_current.toString());
+			getNext();
+			return true;
+		}
+	}
+
 	int id;
 	do {
 		id = qrand();
 	} while(_actionCache.contains(id));
 
-	QDir tmpDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-	tmpDir.mkpath(QStringLiteral("tmp"));
-	auto tDir = new QTemporaryDir(tmpDir.absoluteFilePath(QStringLiteral("tmp/src.XXXXXX")));
+	cacheDir.mkpath(QStringLiteral("tmp"));
+	auto tDir = new QTemporaryDir(cacheDir.absoluteFilePath(QStringLiteral("tmp/src.XXXXXX")));
 	if(!tDir->isValid())
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
@@ -129,6 +176,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			Qt::QueuedConnection);
 
 	plugin->getPackageSource(id, _current, tDir->path());
+	return false;
 }
 
 void InstallCommand::completeSource()
@@ -180,10 +228,30 @@ void InstallCommand::completeSource()
 					.arg(_current.toString())
 					.arg(path.filePath())
 					.arg(tDir.absoluteFilePath(_current.version().toString()));
+		xInfo() << tr("Installed package \"%1\"").arg(_current.toString());
+
+		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
 		xCritical() << s;
 	}
+}
+
+void InstallCommand::completeInstall()
+{
+	auto format = QpmxFormat::readDefault();
+	foreach(auto pkg, _pkgList) {
+		QpmxDependency dep(pkg, _srcOnly);
+		auto depIndex = format.dependencies.indexOf(dep);
+		if(depIndex == -1) {
+			xDebug() << tr("Added package \"%1\" to qpmx.json").arg(pkg.toString());
+			format.dependencies.append(dep);
+		} else {
+			xWarning() << tr("Package \"%1\" is already a dependency. Replacing with this version").arg(pkg.toString());
+			format.dependencies[depIndex] = dep;
+		}
+	}
+	QpmxFormat::writeDefault(format);
 }
 
 

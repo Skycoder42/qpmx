@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += core
+QT += core jsonserializer
 QT -= gui
 
 CONFIG += c++11 onsole
@@ -29,12 +29,14 @@ PUBLIC_HEADERS += \
 HEADERS += $$PUBLIC_HEADERS \
 	installcommand.h \
 	command.h \
-    pluginregistry.h
+	pluginregistry.h \
+    qpmxformat.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
 	command.cpp \
-    pluginregistry.cpp
+	pluginregistry.cpp \
+    qpmxformat.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]

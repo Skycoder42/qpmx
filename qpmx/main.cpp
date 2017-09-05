@@ -1,9 +1,11 @@
 #include "command.h"
 #include "installcommand.h"
+#include "qpmxformat.h"
 
 #include <QCoreApplication>
 #include <QException>
 #include <QTimer>
+#include <QJsonSerializer>
 #include <qcliparser.h>
 
 #include <iostream>
@@ -19,8 +21,10 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName(QStringLiteral(COMPANY));
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
+	QJsonSerializer::registerAllConverters<QpmxDependency>();
+
 	QCliParser parser;
-	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X"));//TODO ...
+	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO ...
 	parser.addHelpOption();
 	parser.addVersionOption();
 
@@ -36,17 +40,22 @@ int main(int argc, char *argv[])
 #ifndef Q_OS_WIN
 	parser.addOption({
 						 QStringLiteral("no-color"),
-						 QCoreApplication::translate("parser", "Do not use colors to highlight output")
+						 QCoreApplication::translate("parser", "Do not use colors to highlight output.")
 					 });
 #endif
 
 	//install
 	auto installNode = parser.addLeafNode(QStringLiteral("install"), QCoreApplication::translate("parser", "Install a qpmx package for the current project."));
 	installNode->addOption({
-							   QStringLiteral("source"),
+							   {QStringLiteral("s"), QStringLiteral("source")},
 							   QCoreApplication::translate("parser", "Install the package as sources, not as precompiled static library. This will increase "
 																	 "build times, but may help if a package does not work properly. Check the package "
 																	 "authors website for hints."),
+						   });
+	installNode->addOption({
+							   {QStringLiteral("n"), QStringLiteral("renew")},
+							   QCoreApplication::translate("parser", "Force a reinstallation. If the package was already downloaded, "
+																	 "the existing sources and other artifacts will be deleted before downloading."),
 						   });
 	installNode->addPositionalArgument(QStringLiteral("packages"),
 									   QCoreApplication::translate("parser", "The packages to be installed. The provider determines which backend to use for the download. "
