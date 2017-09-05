@@ -1,4 +1,8 @@
+#include "command.h"
+#include "installcommand.h"
+
 #include <QCoreApplication>
+#include <QTimer>
 #include <qcliparser.h>
 
 int main(int argc, char *argv[])
@@ -36,8 +40,20 @@ int main(int argc, char *argv[])
 									   QCoreApplication::translate("parser", "The package to be installed. The provider determines which backend to use for the download. "
 																			 "If left empty, all providers are searched for the package. If the version is left out, "
 																			 "the latest version is installed."),
-									   QStringLiteral("[<provider>:]<package>[@<version>]"));
+									   QStringLiteral("[<provider>::]<package>[@<version>]"));
 
 	parser.process(a);
+
+	Command *cmd = nullptr;
+	if(parser.enterContext(QStringLiteral("install")))
+		cmd = new InstallCommand(qApp);
+	else {
+		Q_UNREACHABLE();
+		return EXIT_FAILURE;
+	}
+
+	QTimer::singleShot(0, qApp, [&parser, cmd](){
+		cmd->init(parser);
+	});
 	return a.exec();
 }

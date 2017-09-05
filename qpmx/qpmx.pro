@@ -25,9 +25,13 @@ include(../submodules/submodules.pri)
 PUBLIC_HEADERS += \
 	sourceplugin.h
 
-HEADERS += $$PUBLIC_HEADERS
+HEADERS += $$PUBLIC_HEADERS \
+    installcommand.h \
+    command.h
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    installcommand.cpp \
+    command.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]
