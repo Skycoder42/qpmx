@@ -16,7 +16,7 @@ public:
 	explicit Command(QObject *parent = nullptr);
 
 public slots:
-	virtual void initialize(const QCliParser &parser) = 0;
+	virtual void initialize(QCliParser &parser) = 0;
 	virtual void finalize();
 
 protected:

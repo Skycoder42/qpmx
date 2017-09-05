@@ -16,7 +16,7 @@ InstallCommand::InstallCommand(QObject *parent) :
 	_resCache()
 {}
 
-void InstallCommand::initialize(const QCliParser &parser)
+void InstallCommand::initialize(QCliParser &parser)
 {
 	try {
 		_srcOnly = parser.isSet(QStringLiteral("source"));

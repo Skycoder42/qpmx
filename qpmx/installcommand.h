@@ -12,7 +12,7 @@ public:
 	explicit InstallCommand(QObject *parent = nullptr);
 
 public slots:
-	void initialize(const QCliParser &parser) override;
+	void initialize(QCliParser &parser) override;
 
 private slots:
 	void sourceFetched(int requestId);

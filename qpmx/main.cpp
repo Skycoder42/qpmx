@@ -1,5 +1,6 @@
 #include "command.h"
 #include "installcommand.h"
+#include "listcommand.h"
 #include "qpmxformat.h"
 
 #include <QCoreApplication>
@@ -44,8 +45,19 @@ int main(int argc, char *argv[])
 					 });
 #endif
 
+	//providers
+	auto listNode = parser.addContextNode(QStringLiteral("list"),
+										  QCoreApplication::translate("parser", "List things like providers, qmake versions and other components of qpmx."));
+	auto listProvidersNode = listNode->addLeafNode(QStringLiteral("providers"),
+												   QCoreApplication::translate("parser", "List the package provider backends that are available for qpmx."));
+	listProvidersNode->addOption({
+									 QStringLiteral("short"),
+									 QStringLiteral("Only list provider names, no syntax details")
+								 });
+
 	//install
-	auto installNode = parser.addLeafNode(QStringLiteral("install"), QCoreApplication::translate("parser", "Install a qpmx package for the current project."));
+	auto installNode = parser.addLeafNode(QStringLiteral("install"),
+										  QCoreApplication::translate("parser", "Install a qpmx package for the current project."));
 	installNode->addOption({
 							   {QStringLiteral("s"), QStringLiteral("source")},
 							   QCoreApplication::translate("parser", "Install the package as sources, not as precompiled static library. This will increase "
@@ -63,13 +75,13 @@ int main(int argc, char *argv[])
 																			 "the latest version is installed."),
 									   QStringLiteral("[<provider>::]<package>[@<version>] ..."));
 
-	parser.process(a);
+	parser.process(a, true);
 
 	//setup logging
 #ifndef Q_OS_WIN
 	if(!parser.isSet(QStringLiteral("no-color"))) {
 		qSetMessagePattern(QStringLiteral("%{if-category}%{category}: %{endif}"
-										  "%{if-debug}\033[32m%{message}\033[0m%{endif}"
+										  "%{if-debug}%{message}%{endif}"
 										  "%{if-info}\033[36m%{message}\033[0m%{endif}"
 										  "%{if-warning}\033[33m%{message}\033[0m%{endif}"
 										  "%{if-critical}\033[31m%{message}\033[0m%{endif}"
@@ -90,6 +102,8 @@ int main(int argc, char *argv[])
 	Command *cmd = nullptr;
 	if(parser.enterContext(QStringLiteral("install")))
 		cmd = new InstallCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("list")))
+		cmd = new ListCommand(qApp);
 	else {
 		Q_UNREACHABLE();
 		return EXIT_FAILURE;
@@ -99,6 +113,7 @@ int main(int argc, char *argv[])
 					 cmd, &Command::finalize);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
 		cmd->initialize(parser);
+		parser.leaveContext();
 	});
 	return a.exec();
 }

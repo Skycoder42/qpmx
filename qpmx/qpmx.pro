@@ -30,13 +30,15 @@ HEADERS += $$PUBLIC_HEADERS \
 	installcommand.h \
 	command.h \
 	pluginregistry.h \
-    qpmxformat.h
+    qpmxformat.h \
+    listcommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
 	command.cpp \
 	pluginregistry.cpp \
-    qpmxformat.cpp
+    qpmxformat.cpp \
+    listcommand.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]
