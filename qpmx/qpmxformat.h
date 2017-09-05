@@ -4,8 +4,18 @@
 #include <QObject>
 #include <QVersionNumber>
 #include <QCoreApplication>
+#include <QJsonTypeConverter>
 
 #include "packageinfo.h"
+
+class VersionConverter : public QJsonTypeConverter
+{
+public:
+	bool canConvert(int metaTypeId) const override;
+	QList<QJsonValue::Type> jsonTypes() const override;
+	QJsonValue serialize(int propertyType, const QVariant &value, const SerializationHelper *helper) const override;
+	QVariant deserialize(int propertyType, const QJsonValue &value, QObject *parent, const SerializationHelper *helper) const override;
+};
 
 class QpmxDependency
 {

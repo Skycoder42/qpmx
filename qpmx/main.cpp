@@ -1,7 +1,9 @@
 #include "command.h"
-#include "installcommand.h"
-#include "listcommand.h"
 #include "qpmxformat.h"
+
+#include "listcommand.h"
+#include "installcommand.h"
+#include "compilecommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -23,6 +25,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
+	QJsonSerializer::registerAllConverters<QtKitInfo>();
 
 	QCliParser parser;
 	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO ...
@@ -132,10 +135,12 @@ int main(int argc, char *argv[])
 	qInstallMessageHandler(qpmxMessageHandler);
 
 	Command *cmd = nullptr;
-	if(parser.enterContext(QStringLiteral("install")))
-		cmd = new InstallCommand(qApp);
-	else if(parser.enterContext(QStringLiteral("list")))
+	if(parser.enterContext(QStringLiteral("list")))
 		cmd = new ListCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("install")))
+		cmd = new InstallCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("compile")))
+		cmd = new CompileCommand(qApp);
 	else {
 		Q_UNREACHABLE();
 		return EXIT_FAILURE;
