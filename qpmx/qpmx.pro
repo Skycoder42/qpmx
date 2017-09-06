@@ -50,3 +50,6 @@ unix {
 
 	INSTALLS += target tHeaders
 }
+
+RESOURCES += \
+    qpmx.qrc

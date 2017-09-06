@@ -1,7 +1,6 @@
 #include "installcommand.h"
 #include <QDebug>
 #include <QStandardPaths>
-#include <QUrl>
 using namespace qpmx;
 
 InstallCommand::InstallCommand(QObject *parent) :
@@ -213,29 +212,17 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		return false;
 	}
 
-	QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-	auto subPath = QStringLiteral("src/%1/%3/%2")
-				   .arg(provider)
-				   .arg(_current.version.toString())
-				   .arg(QString::fromUtf8(QUrl::toPercentEncoding(_current.package)));
-	if(cacheDir.exists(subPath)) {
+	auto sDir = srcDir(provider, _current.package, _current.version, false);
+	if(sDir.exists()) {
 		if(_renew) {
 			xDebug() << tr("Deleting sources for \"%1\"").arg(_current);
-			auto rmDir = cacheDir;
-			rmDir.cd(subPath);
-			if(!rmDir.removeRecursively())
+			if(!sDir.removeRecursively())
 				throw tr("Failed to remove old sources for \"%1\"").arg(_current);
 
 			//remove compile dirs aswell
-			rmDir = cacheDir;
-			auto compPath = QStringLiteral("build/%1/%3/%2")
-							.arg(provider)
-							.arg(_current.version.toString())
-							.arg(QString::fromUtf8(QUrl::toPercentEncoding(_current.package)));
-			if(rmDir.cd(compPath)) {
-				if(!rmDir.removeRecursively())
-					throw tr("Failed to remove old compilation cache for \"%1\"").arg(_current);
-			}
+			auto bDir = buildDir(provider, _current.package, _current.version, false);
+			if(!bDir.removeRecursively())
+				throw tr("Failed to remove old compilation cache for \"%1\"").arg(_current);
 		} else {
 			xDebug() << tr("Sources for package \"%1\" already exist. Skipping download").arg(_current);
 			getNext();
@@ -243,8 +230,7 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		}
 	}
 
-	cacheDir.mkpath(QStringLiteral("tmp"));
-	auto tDir = new QTemporaryDir(cacheDir.absoluteFilePath(QStringLiteral("tmp/src.XXXXXX")));
+	auto tDir = new QTemporaryDir(tmpDir().absoluteFilePath(QStringLiteral("src.XXXXXX")));
 	if(!tDir->isValid())
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
@@ -296,14 +282,7 @@ void InstallCommand::completeSource()
 		data.tDir.reset();
 		Q_ASSERT(wp.isNull());
 
-		QDir tDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-		auto subPath = QStringLiteral("src/%1/%2")
-					   .arg(data.provider)
-					   .arg(QString::fromUtf8(QUrl::toPercentEncoding(_current.package)));
-		tDir.mkpath(subPath);
-		if(!tDir.cd(subPath))
-			throw tr("Failed to move downloaded sources from temporary directory to cache directory!");
-
+		auto tDir = srcDir(data.provider, _current.package);
 		if(!path.dir().rename(path.fileName(), tDir.absoluteFilePath(_current.version.toString())))
 			throw tr("Failed to move downloaded sources from temporary directory to cache directory!");
 		xDebug() << tr("Moved sources for \"%1\" from \"%2\" to \"%3\"")

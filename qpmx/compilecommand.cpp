@@ -20,20 +20,56 @@ void CompileCommand::initialize(QCliParser &parser)
 		_global = parser.isSet(QStringLiteral("global"));
 		_recompile = parser.isSet(QStringLiteral("recompile"));
 
-		auto regex = PackageInfo::packageRegexp();
-		foreach(auto arg, parser.positionalArguments()) {
-			auto match = regex.match(arg);
-			if(!match.hasMatch())
-				throw tr("Malformed package: \"%1\"").arg(arg);
+		if(!parser.positionalArguments().isEmpty()) {
+			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
+			auto regex = PackageInfo::packageRegexp();
+			foreach(auto arg, parser.positionalArguments()) {
+				auto match = regex.match(arg);
+				if(!match.hasMatch())
+					throw tr("Malformed package: \"%1\"").arg(arg);
 
-			PackageInfo info(match.captured(1),
-							 match.captured(2),
-							 QVersionNumber::fromString(match.captured(3)));
-			_pkgList.append(info);
-			xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
-						.arg(info.package())
-						.arg(info.version().toString())
-						.arg(info.provider());
+				PackageInfo info(match.captured(1),
+								 match.captured(2),
+								 QVersionNumber::fromString(match.captured(3)));
+				_pkgList.append(info);
+				xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
+							.arg(info.package())
+							.arg(info.version().toString())
+							.arg(info.provider());
+			}
+
+			if(_pkgList.isEmpty())
+				throw tr("You must specify at least one package!");
+		} else if(_global){
+			auto wDir = srcDir();
+			foreach(auto provider, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+				if(!wDir.cd(provider))
+					continue;
+				foreach(auto package, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+					if(!wDir.cd(package))
+						continue;
+					foreach(auto version, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable))
+						_pkgList.append({provider, package, QVersionNumber::fromString(version)});
+					wDir.cdUp();
+				}
+				wDir.cdUp();
+			}
+			xDebug() << tr("Compiling all %n globally cached package(s)", "", _pkgList.size());
+		} else {
+			auto format = QpmxFormat::readDefault(true);
+			foreach(auto dep, format.dependencies) {
+				if(!dep.source)
+					_pkgList.append(dep.pkg());
+				else
+					xDebug() << tr("Skipping package \"%1\" as it's a source only dependency").arg(dep);
+			}
+
+			if(_pkgList.isEmpty()) {
+				xWarning() << tr("No dependencies to compile found in qpmx.json. Nothing will be done");
+				qApp->quit();
+				return;
+			}
+			xDebug() << tr("Compiling %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
 
 		initKits(parser.values(QStringLiteral("qmake")));

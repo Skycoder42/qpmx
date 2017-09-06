@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	compileNode->addOption({
 							   {QStringLiteral("g"), QStringLiteral("global")},
 							   QCoreApplication::translate("parser", "Don't limit the packages to rebuild to only the ones specified in the qpmx.json. "
-																	 "Instead, build all ever cached packages (limited by the packages argument)."),
+																	 "Instead, build all ever cached packages (Ignored if packages are specified as arguments)."),
 						   });
 	compileNode->addOption({
 							   {QStringLiteral("r"), QStringLiteral("recompile")},

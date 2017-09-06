@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/build">
+        <file>template_static.pro</file>
+    </qresource>
+</RCC>

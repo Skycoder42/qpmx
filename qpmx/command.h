@@ -3,10 +3,12 @@
 
 #include <QObject>
 #include <QDebug>
+#include <QDir>
 #include <qcliparser.h>
 
 #include "packageinfo.h"
 #include "pluginregistry.h"
+#include "qpmxformat.h"
 
 class Command : public QObject
 {
@@ -22,8 +24,22 @@ public slots:
 protected:
 	PluginRegistry *registry();
 
+	static QDir srcDir();
+	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);
+	static QDir srcDir(const QpmxDependency &dep, bool mkDir = true);
+	static QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+
+	static QDir buildDir();
+	static QDir buildDir(const qpmx::PackageInfo &package, bool mkDir = true);
+	static QDir buildDir(const QpmxDependency &dep, bool mkDir = true);
+	static QDir buildDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+
+	static QDir tmpDir();
+
 private:
 	PluginRegistry *_registry;
+
+	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
 };
 
 #define xDebug(...) qDebug(__VA_ARGS__).noquote()
