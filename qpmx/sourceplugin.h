@@ -19,10 +19,12 @@ public:
 
 public:
 	virtual void searchPackage(int requestId, const QString &provider, const QString &query) = 0;
+	virtual void listPackageVersions(int requestId, const qpmx::PackageInfo &package) = 0;
 	virtual void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir, const QVariantHash &extraParameters = {}) = 0;
 
 public:
 	virtual void searchResult(int requestId, const QStringList &package) = 0;
+	virtual void versionResult(int requestId, const QList<QVersionNumber> &versions) = 0;
 	virtual void sourceFetched(int requestId) = 0;
 	virtual void sourceError(int requestId, const QString &error) = 0;
 };

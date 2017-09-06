@@ -20,10 +20,12 @@ public:
 
 public slots:
 	void searchPackage(int requestId, const QString &provider, const QString &query) override;
+	void listPackageVersions(int requestId, const qpmx::PackageInfo &package) override;
 	void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir, const QVariantHash &extraParameters) override;
 
 signals:
 	void searchResult(int requestId, const QStringList &package) final;
+	void versionResult(int requestId, const QList<QVersionNumber> &versions) final;
 	void sourceFetched(int requestId) final;
 	void sourceError(int requestId, const QString &error) final;
 
@@ -31,9 +33,11 @@ private slots:
 	void finished(int exitCode, QProcess::ExitStatus exitStatus);
 	void errorOccurred(QProcess::ProcessError error);
 
-
 private:
-	QHash<QProcess*, int> _processCache;
+	QHash<QProcess*, QPair<int, bool>> _processCache;
+
+	QString pkgTag(const qpmx::PackageInfo &package);
+	QDir createLogDir(const QString &action);
 };
 
 #endif // GITSOURCEPLUGIN_H
