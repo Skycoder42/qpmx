@@ -41,12 +41,15 @@ QpmxDependency::operator QString() const
 }
 
 QpmxFormat::QpmxFormat() :
+	priFile(),
+	prcFile(),
+	source(false),
 	dependencies()
 {}
 
-QpmxFormat QpmxFormat::readDefault(bool mustExist)
+QpmxFormat QpmxFormat::readFile(const QDir &dir, bool mustExist)
 {
-	QFile qpmxFile(QStringLiteral("./qpmx.json"));
+	QFile qpmxFile(dir.absoluteFilePath(QStringLiteral("./qpmx.json")));
 	if(qpmxFile.exists()) {
 		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text))
 			throw tr("Failed to open qpmx.json with error: %1").arg(qpmxFile.errorString());
@@ -63,6 +66,11 @@ QpmxFormat QpmxFormat::readDefault(bool mustExist)
 		throw tr("qpmx.json file does not exist");
 	else
 		return {};
+}
+
+QpmxFormat QpmxFormat::readDefault(bool mustExist)
+{
+	return readFile(QDir::current(), mustExist);
 }
 
 void QpmxFormat::writeDefault(const QpmxFormat &data)

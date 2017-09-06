@@ -3,21 +3,27 @@
 
 #include <QProcess>
 #include <QStandardPaths>
+#include <QUrl>
 using namespace qpmx;
 
 CompileCommand::CompileCommand(QObject *parent) :
 	Command(parent),
-	_global(false),
 	_recompile(false),
 	_settings(new QSettings(this)),
 	_pkgList(),
-	_qtKits()
+	_qtKits(),
+	_current(),
+	_kitIndex(-1),
+	_compileDir(nullptr),
+	_format(),
+	_stage(QMake),
+	_process(nullptr)
 {}
 
 void CompileCommand::initialize(QCliParser &parser)
 {
 	try {
-		_global = parser.isSet(QStringLiteral("global"));
+		auto global = parser.isSet(QStringLiteral("global"));
 		_recompile = parser.isSet(QStringLiteral("recompile"));
 
 		if(!parser.positionalArguments().isEmpty()) {
@@ -40,19 +46,26 @@ void CompileCommand::initialize(QCliParser &parser)
 
 			if(_pkgList.isEmpty())
 				throw tr("You must specify at least one package!");
-		} else if(_global){
+		} else if(global){
 			auto wDir = srcDir();
-			foreach(auto provider, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
+			foreach(auto provider, wDir.entryList(flags)) {
 				if(!wDir.cd(provider))
 					continue;
-				foreach(auto package, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+				foreach(auto package, wDir.entryList(flags)) {
 					if(!wDir.cd(package))
 						continue;
-					foreach(auto version, wDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable))
-						_pkgList.append({provider, package, QVersionNumber::fromString(version)});
+					qDebug() << QUrl::fromPercentEncoding(package.toUtf8());
+					foreach(auto version, wDir.entryList(flags))
+						_pkgList.append({provider, QUrl::fromPercentEncoding(package.toUtf8()), QVersionNumber::fromString(version)});
 					wDir.cdUp();
 				}
 				wDir.cdUp();
+			}
+			if(_pkgList.isEmpty()) {
+				xInfo() << tr("No globally cached packages found. Nothing will be done");
+				qApp->quit();
+				return;
 			}
 			xDebug() << tr("Compiling all %n globally cached package(s)", "", _pkgList.size());
 		} else {
@@ -73,11 +86,183 @@ void CompileCommand::initialize(QCliParser &parser)
 		}
 
 		initKits(parser.values(QStringLiteral("qmake")));
-
-		qApp->quit();
+		_kitIndex = _qtKits.size();//to trigger the loop
+		compileNext();
 	} catch(QString &s) {
 		xCritical() << s;
 	}
+}
+
+void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+	if(exitStatus == QProcess::CrashExit)
+		errorOccurred(QProcess::Crashed);
+	else {
+		if(exitCode != EXIT_SUCCESS) {
+			_compileDir->setAutoRemove(false);
+			xCritical() << tr("Failed to run qmake for \"%1\" compilation. Exit code %2. Check the error logs at \"%3\"")
+						   .arg(_current.toString())
+						   .arg(exitCode)
+						   .arg(_compileDir->path());
+			_process->deleteLater();
+			_process = nullptr;
+		} else
+			makeStep();
+	}
+}
+
+void CompileCommand::errorOccurred(QProcess::ProcessError error)
+{
+	Q_UNUSED(error)
+	_compileDir->setAutoRemove(false);
+	xCritical() << tr("Failed to run qmake for \"%1\" compilation. Error: %2")
+				   .arg(_current.toString())
+				   .arg(_process->errorString());
+	_process->deleteLater();
+	_process = nullptr;
+}
+
+void CompileCommand::compileNext()
+{
+	if(++_kitIndex >= _qtKits.size()) {
+		if(_pkgList.isEmpty()) {
+			xDebug() << tr("Package compilation completed");
+			qApp->quit();
+			return;
+		}
+
+		_kitIndex = 0;
+		_current = _pkgList.takeFirst();
+	}
+
+	//create temp dir and load qpmx.json
+	_compileDir.reset(new QTemporaryDir());
+	if(!_compileDir->isValid())
+		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
+	_format = QpmxFormat::readFile(srcDir(_current), true);
+	_stage = QMake;
+
+	makeStep();
+}
+
+void CompileCommand::makeStep()
+{
+	try {
+		switch (_stage) {
+		case QMake:
+			xDebug() << tr("Beginning compilation of \"%1\" with qmake \"%2\"")
+						.arg(_current.toString())
+						.arg(_qtKits[_kitIndex].path);
+			qmake();
+			_stage = Make;
+			break;
+		case Make:
+			xDebug() << tr("Completed qmake for \"%1\". Continuing with compile (make)")
+						.arg(_current.toString());
+			make();
+			_stage = Install;
+			break;
+		case Install:
+			xDebug() << tr("Completed compile (make) for \"%1\". Installing to cache directory")
+						.arg(_current.toString());
+			install();
+			_stage = PriGen;
+			break;
+		case PriGen:
+			priGen();
+			xDebug() << tr("Completed installation for \"%1\"")
+						.arg(_current.toString());
+			xInfo() << tr("Successfully compiled \"%1\" with qmake \"%2\"")
+					   .arg(_current.toString())
+					   .arg(_qtKits[_kitIndex].path);
+			compileNext();
+			break;
+		default:
+			Q_UNREACHABLE();
+			break;
+		}
+	} catch(QString &s) {
+		xCritical() << s;
+	}
+}
+
+void CompileCommand::qmake()
+{
+	// create pro file
+	auto priBase = QFileInfo(_format.priFile).completeBaseName();
+	auto proFile = _compileDir->filePath(QStringLiteral("static.pro"));
+	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
+		throw tr("Failed to create compilation pro file");
+
+	//create compile dirs
+	auto bDir = buildDir(_current);
+	auto bPath = _qtKits[_kitIndex].id.toString();
+	if(!bDir.mkpath(bPath) || !bDir.cd(bPath))
+		throw tr("Failed to create compilation target directory");
+
+	//create qmake.conf file
+	QFile confFile(_compileDir->filePath(QStringLiteral(".qmake.conf")));
+	if(!confFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to create qmake config with error: \"%1\"").arg(confFile.errorString());
+	QTextStream stream(&confFile);
+	stream << "QPMX_TARGET=" << priBase << "\n"
+		   << "QPMX_VERSION=" << _current.version().toString() << "\n"
+		   << "QPMX_PRI_INCLUDE=\"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
+		   << "QPMX_INSTALL_LIB=\"" << bDir.absoluteFilePath(QStringLiteral("lib")) << "\"\n"
+		   << "QPMX_INSTALL_INC=\"" << bDir.absoluteFilePath(QStringLiteral("include")) << "\"\n";
+	stream.flush();
+	confFile.close();
+
+	initProcess();
+	_process->setProgram(_qtKits[_kitIndex].path);
+	_process->setArguments({
+							   //TODO extra parameters via qpmx.json
+							   proFile
+						   });
+	_process->setWorkingDirectory(_compileDir->path());
+	_process->start();
+}
+
+void CompileCommand::make()
+{
+	//just run make
+	initProcess();
+	_process->setProgram(QStandardPaths::findExecutable(QStringLiteral("make")));
+	_process->setWorkingDirectory(_compileDir->path());
+	_process->start();
+}
+
+void CompileCommand::install()
+{
+	//just run make install
+	initProcess();
+	_process->setProgram(QStandardPaths::findExecutable(QStringLiteral("make")));
+	_process->setArguments({QStringLiteral("install")});
+	_process->setWorkingDirectory(_compileDir->path());
+	_process->start();
+}
+
+void CompileCommand::priGen()
+{
+	auto bDir = buildDir(_current);
+	if(!bDir.cd(_qtKits[_kitIndex].id.toString()))
+		throw tr("Failed to find compilation target directory");
+
+	//copy include.pri
+	if(!QFile::copy(QStringLiteral(":/build/template_include.pri"),
+					bDir.absoluteFilePath(QStringLiteral("include.pri"))))
+		throw tr("Failed to library include file");
+
+	//create meta.pri file
+	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("meta.pri")));
+	if(!metaFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to create meta.pri with error: \"%1\"").arg(metaFile.errorString());
+	QTextStream stream(&metaFile);
+	if(!_format.prcFile.isEmpty())
+		stream << "include(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+	stream << "QPMX_LIBNAME=" << QFileInfo(_format.priFile).completeBaseName() << "\n";
+	stream.flush();
+	metaFile.close();
 }
 
 void CompileCommand::initKits(const QStringList &qmakes)
@@ -115,7 +300,7 @@ void CompileCommand::initKits(const QStringList &qmakes)
 				allKits[i] = nKit;
 				pathsCache.append(nKit.path);
 			} else
-				allKits.removeAt(i);
+				allKits.removeAt(i--);
 		}
 
 		//add system qmake, if valid and not already added
@@ -154,6 +339,7 @@ void CompileCommand::initKits(const QStringList &qmakes)
 
 	//save back all kits
 	kitCnt = allKits.size();
+	_settings->remove(QStringLiteral("qt-kits"));
 	_settings->beginWriteArray(QStringLiteral("qt-kits"), kitCnt);
 	for(auto i = 0; i < kitCnt; i++) {
 		_settings->setArrayIndex(i);
@@ -255,6 +441,41 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 					  .arg(s);
 		return {};
 	}
+}
+
+void CompileCommand::initProcess()
+{
+	if(_process)
+		_process->deleteLater();
+	_process = new QProcess(this);
+
+	QString logBase;
+	switch (_stage) {
+	case CompileCommand::QMake:
+		logBase = QStringLiteral("qmake");
+		break;
+	case CompileCommand::Make:
+		logBase = QStringLiteral("make");
+		break;
+	case CompileCommand::Install:
+		logBase = QStringLiteral("install");
+		break;
+	case CompileCommand::PriGen:
+		logBase = QStringLiteral("generate");
+		break;
+	default:
+		Q_UNREACHABLE();
+		break;
+	}
+	_process->setStandardOutputFile(_compileDir->filePath(QStringLiteral("%1.stdout.log").arg(logBase)));
+	_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
+
+	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+			this, &CompileCommand::finished,
+			Qt::QueuedConnection);
+	connect(_process, &QProcess::errorOccurred,
+			this, &CompileCommand::errorOccurred,
+			Qt::QueuedConnection);
 }
 
 

@@ -1,3 +1,6 @@
 [submodule "submodules/qcliparser"]
 	path = submodules/qcliparser
 	url = https://github.com/Skycoder42/QCliParser.git
+[submodule "submodules/qpmx-sample-package"]
+	path = submodules/qpmx-sample-package
+	url = https://github.com/Skycoder42/qpmx-sample-package

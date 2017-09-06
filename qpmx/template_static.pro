@@ -1,8 +1,9 @@
 # Defined in .qmake.conf: QPMX_*
 TEMPLATE = lib
 CONFIG += staticlib
+win32: CONFIG += debug_and_release
 
-TARGET = $$QPMX_TARGET
+TARGET = $$qtLibraryTarget($$QPMX_TARGET)
 VERSION = $$QPMX_VERSION
 
 CONFIG += qpmx_static

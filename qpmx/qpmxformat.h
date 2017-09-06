@@ -5,6 +5,7 @@
 #include <QVersionNumber>
 #include <QCoreApplication>
 #include <QJsonTypeConverter>
+#include <QDir>
 
 #include "packageinfo.h"
 
@@ -45,14 +46,22 @@ class QpmxFormat
 	Q_GADGET
 	Q_DECLARE_TR_FUNCTIONS(QpmxFormat)
 
+	Q_PROPERTY(QString priFile MEMBER priFile)
+	Q_PROPERTY(QString prcFile MEMBER prcFile)
+	Q_PROPERTY(bool source MEMBER source)
+
 	Q_PROPERTY(QList<QpmxDependency> dependencies MEMBER dependencies)
 
 public:
 	QpmxFormat();
 
+	static QpmxFormat readFile(const QDir &dir, bool mustExist = false);
 	static QpmxFormat readDefault(bool mustExist = false);
 	static void writeDefault(const QpmxFormat &data);
 
+	QString priFile;
+	QString prcFile;
+	bool source;
 	QList<QpmxDependency> dependencies;
 };
 
