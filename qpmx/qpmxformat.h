@@ -31,6 +31,8 @@ public:
 	QpmxDependency(const qpmx::PackageInfo &package, bool source);
 
 	bool operator==(const QpmxDependency &other) const;
+	operator QString() const;
+	qpmx::PackageInfo pkg(const QString &provider = {}) const;
 
 	QString provider;
 	QString package;
@@ -48,7 +50,7 @@ class QpmxFormat
 public:
 	QpmxFormat();
 
-	static QpmxFormat readDefault();
+	static QpmxFormat readDefault(bool mustExist = false);
 	static void writeDefault(const QpmxFormat &data);
 
 	QList<QpmxDependency> dependencies;

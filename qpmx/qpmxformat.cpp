@@ -25,11 +25,26 @@ bool QpmxDependency::operator==(const QpmxDependency &other) const
 			package == other.package;
 }
 
+qpmx::PackageInfo QpmxDependency::pkg(const QString &provider) const
+{
+	return {provider.isEmpty() ? this->provider : provider, package, version};
+}
+
+QpmxDependency::operator QString() const
+{
+	auto res = package;
+	if(!provider.isNull())
+		res.prepend(provider + QStringLiteral("::"));
+	if(!version.isNull())
+		res.append(QLatin1Char('@') + version.toString());
+	return res;
+}
+
 QpmxFormat::QpmxFormat() :
 	dependencies()
 {}
 
-QpmxFormat QpmxFormat::readDefault()
+QpmxFormat QpmxFormat::readDefault(bool mustExist)
 {
 	QFile qpmxFile(QStringLiteral("./qpmx.json"));
 	if(qpmxFile.exists()) {
@@ -44,7 +59,9 @@ QpmxFormat QpmxFormat::readDefault()
 			qDebug() << e.what();
 			throw tr("qpmx.json contains invalid data");
 		}
-	} else
+	} else if(mustExist)
+		throw tr("qpmx.json file does not exist");
+	else
 		return {};
 }
 

@@ -15,15 +15,11 @@ QString GitSourcePlugin::packageSyntax() const
 
 bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 {
-	auto ok = false;
-
-	if(package.provider().isEmpty() ||
-	   package.provider() == QStringLiteral("git")){
+	if(package.provider() == QStringLiteral("git")) {
 		QUrl url(package.package());
-		ok = ok || (url.isValid() && url.path().endsWith(QStringLiteral(".git")));
-	}
-
-	return ok;
+		return url.isValid() && url.path().endsWith(QStringLiteral(".git"));
+	} else
+		return false;
 }
 
 void GitSourcePlugin::searchPackage(int requestId, const QString &provider, const QString &query)

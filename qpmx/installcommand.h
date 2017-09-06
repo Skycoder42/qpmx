@@ -2,6 +2,7 @@
 #define INSTALLCOMMAND_H
 
 #include "command.h"
+#include "qpmxformat.h"
 #include <QTemporaryDir>
 
 class InstallCommand : public Command
@@ -19,13 +20,12 @@ private slots:
 	void sourceError(int requestId, const QString &error);
 
 private:
-	bool _srcOnly;
 	bool _renew;
 	bool _cacheOnly;
 
-	QList<qpmx::PackageInfo> _pkgList;
+	QList<QpmxDependency> _pkgList;
 	int _pkgIndex;
-	qpmx::PackageInfo _current;
+	QpmxDependency _current;
 
 	struct SrcAction {
 		QString provider;
