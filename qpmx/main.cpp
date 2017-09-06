@@ -25,8 +25,9 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
-	QJsonSerializer::registerAllConverters<QtKitInfo>();
+	qRegisterMetaType<QVersionNumber>();
 	qRegisterMetaType<QList<QVersionNumber>>();
+	qRegisterMetaTypeStreamOperators<QVersionNumber>();
 
 	QCliParser parser;
 	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO ...

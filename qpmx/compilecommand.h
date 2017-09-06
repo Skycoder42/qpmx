@@ -4,22 +4,10 @@
 #include "command.h"
 
 #include <QUuid>
+#include <QSettings>
 
 class QtKitInfo
 {
-	Q_GADGET
-
-	Q_PROPERTY(QUuid id MEMBER id)
-	Q_PROPERTY(QString path MEMBER path)
-
-	Q_PROPERTY(QVersionNumber qmakeVer MEMBER qmakeVer)
-	Q_PROPERTY(QVersionNumber qtVer MEMBER qtVer)
-	Q_PROPERTY(QString spec MEMBER spec)
-	Q_PROPERTY(QString xspec MEMBER xspec)
-	Q_PROPERTY(QString hostPrefix MEMBER hostPrefix)
-	Q_PROPERTY(QString installPrefix MEMBER installPrefix)
-	Q_PROPERTY(QString sysRoot MEMBER sysRoot)
-
 public:
 	QtKitInfo(const QString &path = {});
 
@@ -51,15 +39,14 @@ public slots:
 private:
 	bool _global;
 	bool _recompile;
+	QSettings *_settings;
 
 	QList<qpmx::PackageInfo> _pkgList;
 	QList<QtKitInfo> _qtKits;
 
 	void initKits(const QStringList &qmakes);
 	QtKitInfo createKit(const QString &qmakePath);
-	QtKitInfo updateKit(QtKitInfo oldKit);
+	QtKitInfo updateKit(QtKitInfo oldKit, bool mustWork);
 };
-
-Q_DECLARE_METATYPE(QtKitInfo)
 
 #endif // COMPILECOMMAND_H
