@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
 	QJsonSerializer::registerAllConverters<QtKitInfo>();
+	qRegisterMetaType<QList<QVersionNumber>>();
 
 	QCliParser parser;
 	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO ...

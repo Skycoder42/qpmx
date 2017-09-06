@@ -9,10 +9,11 @@ InstallCommand::InstallCommand(QObject *parent) :
 	_renew(false),
 	_cacheOnly(false),
 	_pkgList(),
-	_pkgIndex(0),
+	_pkgIndex(-1),
 	_current(),
 	_actionCache(),
-	_resCache()
+	_resCache(),
+	_connectCache()
 {}
 
 void InstallCommand::initialize(QCliParser &parser)
@@ -81,13 +82,47 @@ void InstallCommand::sourceFetched(int requestId)
 	completeSource();
 }
 
+void InstallCommand::versionResult(int requestId, QList<QVersionNumber> versions)
+{
+	auto data = _actionCache.take(requestId);
+	if(!data)
+		return;
+
+	if(versions.isEmpty()) {
+		auto str = tr("Package \"%1\" does not exist for provider \"%2\"")
+				   .arg(_current)
+				   .arg(data.provider);
+		if(data.mustWork)
+			xCritical() << str;
+		else {
+			xDebug() << str;
+			completeSource();
+		}
+	} else {
+		if(data.mustWork)
+			xDebug() << tr("Fetched available versions for \"%1\"").arg(_current);
+		else {
+			xDebug() << tr("Fetched available versions for \"%1\" from provider \"%3\"")
+						.arg(_current)
+						.arg(data.provider);
+		}
+
+		//only called when searching for the latest version
+		std::sort(versions.begin(), versions.end());
+		_current.version = versions.last();
+		_pkgList[_pkgIndex] = _current;
+		_resCache.append(data);
+		completeSource();
+	}
+}
+
 void InstallCommand::sourceError(int requestId, const QString &error)
 {
 	auto data = _actionCache.take(requestId);
 	if(!data)
 		return;
 
-	auto str = tr("Failed to get sources for \"%1\" from provider \"%3\" with error: %4")
+	auto str = tr("Failed to get sources for \"%1\" from provider \"%2\" with error: %3")
 			   .arg(_current)
 			   .arg(data.provider)
 			   .arg(error);
@@ -101,7 +136,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 
 void InstallCommand::getNext()
 {
-	if(_pkgIndex >= _pkgList.size()) {
+	if(++_pkgIndex >= _pkgList.size()) {
 		if(!_cacheOnly)
 			completeInstall();
 		else
@@ -111,7 +146,7 @@ void InstallCommand::getNext()
 		return;
 	}
 
-	_current = _pkgList[_pkgIndex++];
+	_current = _pkgList[_pkgIndex];
 	if(_current.provider.isEmpty()) {
 		auto allProvs = registry()->providerNames();
 		auto any = false;
@@ -140,8 +175,44 @@ void InstallCommand::getNext()
 	}
 }
 
+int InstallCommand::randId()
+{
+	int id;
+	do {
+		id = qrand();
+	} while(_actionCache.contains(id));
+	return id;
+}
+
+void InstallCommand::connectPlg(SourcePlugin *plugin)
+{
+	if(_connectCache.contains(plugin))
+	   return;
+
+	auto plgobj = dynamic_cast<QObject*>(plugin);
+	connect(plgobj, SIGNAL(sourceFetched(int)),
+			this, SLOT(sourceFetched(int)),
+			Qt::QueuedConnection);
+	connect(plgobj, SIGNAL(versionResult(int,QList<QVersionNumber>)),
+			this, SLOT(versionResult(int,QList<QVersionNumber>)),
+			Qt::QueuedConnection);
+	connect(plgobj, SIGNAL(sourceError(int,QString)),
+			this, SLOT(sourceError(int,QString)),
+			Qt::QueuedConnection);
+	_connectCache.insert(plugin);
+}
+
 bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
+	if(_current.version.isNull()) {
+		//use the latest version -> query for it
+		auto id = randId();
+		_actionCache.insert(id, {provider, nullptr, mustWork, plugin});
+		connectPlg(plugin);
+		plugin->listPackageVersions(id, _current.pkg(provider));
+		return false;
+	}
+
 	QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 	auto subPath = QStringLiteral("src/%1/%3/%2")
 				   .arg(provider)
@@ -172,25 +243,14 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		}
 	}
 
-	int id;
-	do {
-		id = qrand();
-	} while(_actionCache.contains(id));
-
 	cacheDir.mkpath(QStringLiteral("tmp"));
 	auto tDir = new QTemporaryDir(cacheDir.absoluteFilePath(QStringLiteral("tmp/src.XXXXXX")));
 	if(!tDir->isValid())
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
+	auto id = randId();
 	_actionCache.insert(id, {provider, tDir, mustWork, plugin});
-	auto plgobj = dynamic_cast<QObject*>(plugin);
-	connect(plgobj, SIGNAL(sourceFetched(int)),
-			this, SLOT(sourceFetched(int)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(sourceError(int,QString)),
-			this, SLOT(sourceError(int,QString)),
-			Qt::QueuedConnection);
-
+	connectPlg(plugin);
 	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
 	return false;
 }
@@ -214,6 +274,12 @@ void InstallCommand::completeSource()
 
 		auto data = _resCache.first();
 		_resCache.clear();
+
+		//no tDir means no download yet, only version check. thus, download!
+		if(!data.tDir) {
+			getSource(data.provider, data.plugin, data.mustWork);
+			return;
+		}
 
 		auto str = tr("Using provider \"%1\" for package \"%2\"")
 				   .arg(data.provider)
@@ -281,5 +347,5 @@ InstallCommand::SrcAction::SrcAction(QString provider, QTemporaryDir *tDir, bool
 
 InstallCommand::SrcAction::operator bool() const
 {
-	return tDir && plugin;
+	return plugin;
 }

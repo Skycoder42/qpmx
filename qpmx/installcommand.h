@@ -17,6 +17,7 @@ public slots:
 
 private slots:
 	void sourceFetched(int requestId);
+	void versionResult(int requestId, QList<QVersionNumber> versions);
 	void sourceError(int requestId, const QString &error);
 
 private:
@@ -39,8 +40,11 @@ private:
 
 	QHash<int, SrcAction> _actionCache;
 	QList<SrcAction> _resCache;
+	QSet<qpmx::SourcePlugin*> _connectCache;
 
 	void getNext();
+	int randId();
+	void connectPlg(qpmx::SourcePlugin *plugin);
 	bool getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
 	void completeInstall();

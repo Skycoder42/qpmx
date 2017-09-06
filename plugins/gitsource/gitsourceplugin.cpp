@@ -3,6 +3,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QSet>
+#include <QTimer>
 
 GitSourcePlugin::GitSourcePlugin(QObject *parent) :
 	QObject(parent),
@@ -40,7 +41,6 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 
 		auto proc = new QProcess(this);
 		proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("git")));
-		proc->setStandardOutputFile(logDir.absoluteFilePath(QStringLiteral("stdout.log")));
 		proc->setStandardErrorFile(logDir.absoluteFilePath(QStringLiteral("stderr.log")));
 		proc->setProperty("logDir", logDir.absolutePath());
 
@@ -61,6 +61,15 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 
 		_processCache.insert(proc, {requestId, false});
 		proc->start();
+
+		//timeout after 30 seconds
+		QTimer::singleShot(30000, this, [proc, this](){
+			if(_processCache.contains(proc)) {
+				proc->kill();
+				if(!proc->waitForFinished(1000))
+					proc->terminate();
+			}
+		});
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
 	}
@@ -97,6 +106,15 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 
 		_processCache.insert(proc, {requestId, true});
 		proc->start();
+
+		//timeout after 30 seconds
+		QTimer::singleShot(30000, this, [proc, this](){
+			if(_processCache.contains(proc)) {
+				proc->kill();
+				if(!proc->waitForFinished(1000))
+					proc->terminate();
+			}
+		});
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
 	}
@@ -134,7 +152,7 @@ void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 					emit versionResult(data.first, versions.toList());
 				} else {
 					if(exitCode == 2) {
-						emit sourceError(data.first, tr("Failed to find the given or any version"));
+						emit versionResult(data.first, {});
 					} else {
 						emit sourceError(data.first,
 										 tr("Failed to list versions with exit code %1. "
@@ -189,7 +207,13 @@ QString GitSourcePlugin::pkgTag(const qpmx::PackageInfo &package)
 
 QDir GitSourcePlugin::createLogDir(const QString &action)
 {
-	QTemporaryDir tDir(QDir::temp().absoluteFilePath(QStringLiteral("qpmx.logs/%1/XXXXXX").arg(action)));
+	auto subPath = QStringLiteral("qpmx.logs/%1").arg(action);
+	QDir pDir(QDir::temp());
+	pDir.mkpath(subPath);
+	if(!pDir.cd(subPath))
+		throw tr("Failed to create log directory \"%1\"").arg(pDir.absolutePath());
+
+	QTemporaryDir tDir(pDir.absoluteFilePath(QStringLiteral("XXXXXX")));
 	tDir.setAutoRemove(false);
 	if(tDir.isValid())
 		return tDir.path();
