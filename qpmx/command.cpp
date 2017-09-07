@@ -57,6 +57,15 @@ QDir Command::buildDir(const qpmx::PackageInfo &package, bool mkDir)
 	return buildDir(package.provider(), package.package(), package.version(), mkDir);
 }
 
+QDir Command::buildDir(const qpmx::PackageInfo &package, const QUuid &kitId)
+{
+	auto bDir = buildDir(package.provider(), package.package(), package.version());
+	auto bPath = kitId.toString();
+	if(!bDir.mkpath(bPath) || !bDir.cd(bPath))
+		throw tr("Failed to create compilation target directory");
+	return bDir;
+}
+
 QDir Command::buildDir(const QpmxDependency &dep, bool mkDir)
 {
 	return buildDir(dep.provider, dep.package, dep.version, mkDir);
@@ -83,19 +92,19 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 		if(provider.isNull())
 			return dir;
 		if(!dir.mkpath(provider) || !dir.cd(provider))
-			throw tr("Failed to create source directory");
+			throw tr("Failed to create sub directory");
 
 		if(package.isNull())
 			return dir;
 		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
 		if(!dir.mkpath(pName) || !dir.cd(pName))
-			throw tr("Failed to create source directory");
+			throw tr("Failed to create sub directory");
 
 		if(version.isNull())
 			return dir;
 		auto VName = version.toString();
 		if(!dir.mkpath(VName) || !dir.cd(VName))
-			throw tr("Failed to create source directory");
+			throw tr("Failed to create sub directory");
 
 		return dir;
 	} else {

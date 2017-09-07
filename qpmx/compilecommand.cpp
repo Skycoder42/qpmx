@@ -14,6 +14,7 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_qtKits(),
 	_current(),
 	_kitIndex(-1),
+	_kit(),
 	_compileDir(nullptr),
 	_format(),
 	_stage(QMake),
@@ -134,6 +135,28 @@ void CompileCommand::compileNext()
 		_kitIndex = 0;
 		_current = _pkgList.takeFirst();
 	}
+	_kit = _qtKits[_kitIndex];
+
+	//check if include.pri exists
+	auto bDir = buildDir(_current, _kit.id);
+	if(bDir.exists(QStringLiteral("include.pri"))) {
+		if(_recompile) {
+			if(!bDir.removeRecursively()) {
+				throw tr("Failed to remove previous build of \"%1\" with \"%2\"")
+				.arg(_current.toString())
+				.arg(_kit.path);
+			}
+			xDebug() << tr("Removed previous build of \"%1\" with \"%2\"")
+						.arg(_current.toString())
+						.arg(_kit.path);
+		} else {
+			xDebug() << tr("Package \"%1\" already has compiled binaries for \"%2\"")
+						.arg(_current.toString())
+						.arg(_kit.path);
+			compileNext();
+			return;
+		}
+	}
 
 	//create temp dir and load qpmx.json
 	_compileDir.reset(new QTemporaryDir());
@@ -152,7 +175,7 @@ void CompileCommand::makeStep()
 		case QMake:
 			xDebug() << tr("Beginning compilation of \"%1\" with qmake \"%2\"")
 						.arg(_current.toString())
-						.arg(_qtKits[_kitIndex].path);
+						.arg(_kit.path);
 			qmake();
 			_stage = Make;
 			break;
@@ -174,7 +197,7 @@ void CompileCommand::makeStep()
 						.arg(_current.toString());
 			xInfo() << tr("Successfully compiled \"%1\" with qmake \"%2\"")
 					   .arg(_current.toString())
-					   .arg(_qtKits[_kitIndex].path);
+					   .arg(_kit.path);
 			compileNext();
 			break;
 		default:
@@ -193,12 +216,7 @@ void CompileCommand::qmake()
 	auto proFile = _compileDir->filePath(QStringLiteral("static.pro"));
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
-
-	//create compile dirs
-	auto bDir = buildDir(_current);
-	auto bPath = _qtKits[_kitIndex].id.toString();
-	if(!bDir.mkpath(bPath) || !bDir.cd(bPath))
-		throw tr("Failed to create compilation target directory");
+	auto bDir = buildDir(_current, _kit.id);
 
 	//create qmake.conf file
 	QFile confFile(_compileDir->filePath(QStringLiteral(".qmake.conf")));
@@ -214,7 +232,7 @@ void CompileCommand::qmake()
 	confFile.close();
 
 	initProcess();
-	_process->setProgram(_qtKits[_kitIndex].path);
+	_process->setProgram(_kit.path);
 	_process->setArguments({
 							   //TODO extra parameters via qpmx.json
 							   proFile
@@ -244,14 +262,7 @@ void CompileCommand::install()
 
 void CompileCommand::priGen()
 {
-	auto bDir = buildDir(_current);
-	if(!bDir.cd(_qtKits[_kitIndex].id.toString()))
-		throw tr("Failed to find compilation target directory");
-
-	//copy include.pri
-	if(!QFile::copy(QStringLiteral(":/build/template_include.pri"),
-					bDir.absoluteFilePath(QStringLiteral("include.pri"))))
-		throw tr("Failed to library include file");
+	auto bDir = buildDir(_current, _kit.id);
 
 	//create meta.pri file
 	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("meta.pri")));
@@ -263,6 +274,11 @@ void CompileCommand::priGen()
 	stream << "QPMX_LIBNAME=" << QFileInfo(_format.priFile).completeBaseName() << "\n";
 	stream.flush();
 	metaFile.close();
+
+	//copy include.pri
+	if(!QFile::copy(QStringLiteral(":/build/template_include.pri"),
+					bDir.absoluteFilePath(QStringLiteral("include.pri"))))
+		throw tr("Failed to library include file");
 }
 
 void CompileCommand::initKits(const QStringList &qmakes)

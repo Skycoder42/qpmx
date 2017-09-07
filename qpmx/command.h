@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QDir>
 #include <qcliparser.h>
+#include <QUuid>
 
 #include "packageinfo.h"
 #include "pluginregistry.h"
@@ -31,6 +32,7 @@ protected:
 
 	static QDir buildDir();
 	static QDir buildDir(const qpmx::PackageInfo &package, bool mkDir = true);
+	static QDir buildDir(const qpmx::PackageInfo &package, const QUuid &kitId);
 	static QDir buildDir(const QpmxDependency &dep, bool mkDir = true);
 	static QDir buildDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
 

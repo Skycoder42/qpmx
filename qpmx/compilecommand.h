@@ -58,6 +58,7 @@ private:
 
 	qpmx::PackageInfo _current;
 	int _kitIndex;
+	QtKitInfo _kit;
 	QScopedPointer<QTemporaryDir> _compileDir;
 	QpmxFormat _format;
 	Stage _stage;
