@@ -14,7 +14,7 @@ class SourcePlugin
 public:
 	virtual inline ~SourcePlugin() = default;
 
-	virtual QString packageSyntax() const = 0;
+	virtual QString packageSyntax(const QString &provider) const = 0;
 	virtual bool packageValid(const qpmx::PackageInfo &package) const = 0;
 
 public:

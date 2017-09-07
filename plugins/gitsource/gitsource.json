@@ -1,4 +1,4 @@
 {
-	"Providers": ["git"],
+	"Providers": ["git", "github"],
 	"Translations": ["qpmx_gitsource"]
 }

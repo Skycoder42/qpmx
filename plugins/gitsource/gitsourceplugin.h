@@ -15,7 +15,7 @@ class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
 public:
 	GitSourcePlugin(QObject *parent = nullptr);
 
-	QString packageSyntax() const override;
+	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 
 public slots:
@@ -34,8 +34,10 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
+	static QRegularExpression _githubRegex;
 	QHash<QProcess*, QPair<int, bool>> _processCache;
 
+	QString pkgUrl(const qpmx::PackageInfo &package);
 	QString pkgTag(const qpmx::PackageInfo &package);
 	QDir createLogDir(const QString &action);
 };

@@ -36,7 +36,7 @@ void ListCommand::listProviders(const QCliParser &parser)
 			auto plugin = registry()->sourcePlugin(provider);
 			print(QStringLiteral(" %1 | %2")
 				  .arg(provider, -28)
-				  .arg(plugin->packageSyntax()));
+				  .arg(plugin->packageSyntax(provider)));
 		}
 	}
 }

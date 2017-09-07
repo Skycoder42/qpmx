@@ -5,15 +5,22 @@
 #include <QSet>
 #include <QTimer>
 
+QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.]*)\.([^\.]*)$)__"));
+
 GitSourcePlugin::GitSourcePlugin(QObject *parent) :
 	QObject(parent),
 	SourcePlugin(),
 	_processCache()
 {}
 
-QString GitSourcePlugin::packageSyntax() const
+QString GitSourcePlugin::packageSyntax(const QString &provider) const
 {
-	return tr("<url>[#<prefix>]");
+	if(provider == QStringLiteral("git"))
+		return tr("<url>[#<prefix>]");
+	else if(provider == QStringLiteral("github"))
+		return tr("com.github.<user>.<repository>");
+	else
+		return {};
 }
 
 bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
@@ -21,7 +28,9 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 	if(package.provider() == QStringLiteral("git")) {
 		QUrl url(package.package());
 		return url.isValid() && url.path().endsWith(QStringLiteral(".git"));
-	} else
+	} else if(package.provider() == QStringLiteral("github"))
+		return _githubRegex.match(package.package().toLower()).hasMatch();
+	else
 		return false;
 }
 
@@ -36,7 +45,7 @@ void GitSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo &package)
 {
 	try {
-		auto tag = pkgTag(package);
+		auto url = pkgUrl(package);
 		auto logDir = createLogDir(QStringLiteral("ls-remote"));
 
 		auto proc = new QProcess(this);
@@ -48,7 +57,7 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 								  QStringLiteral("ls-remote"),
 								  QStringLiteral("--tags"),
 								  QStringLiteral("--exit-code"),
-								  package.package()
+								  url
 							  };
 		if(!package.version().isNull())
 			arguments.append(package.version().toString());
@@ -78,6 +87,7 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir, const QVariantHash &extraParameters)
 {
 	try {
+		auto url = pkgUrl(package);
 		auto tag = pkgTag(package);
 		auto logDir = createLogDir(QStringLiteral("clone"));
 
@@ -89,7 +99,7 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 
 		QStringList arguments{
 								  QStringLiteral("clone"),
-								  package.package(),
+								  url,
 								  QStringLiteral("--recurse-submodules"),
 								  QStringLiteral("--branch"),
 								  tag,
@@ -185,6 +195,24 @@ void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
 		}
 	}
 	proc->deleteLater();
+}
+
+QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package)
+{
+	QString pkgUrl;
+	if(package.provider() == QStringLiteral("git"))
+		pkgUrl = package.package();
+	else if(package.provider() == QStringLiteral("github")) {
+		auto match = _githubRegex.match(package.package().toLower());
+		if(!match.hasMatch())
+			throw tr("Package \"%1\" is not a valid github package").arg(package.toString());
+		pkgUrl = QStringLiteral("https://github.com/%1/%2.git")
+				 .arg(match.captured(1))
+				 .arg(match.captured(2));
+	} else
+		throw tr("Unknown provider type \"%1\"").arg(package.provider());
+
+	return pkgUrl;
 }
 
 QString GitSourcePlugin::pkgTag(const qpmx::PackageInfo &package)
