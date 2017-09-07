@@ -3,7 +3,4 @@
         <file>template_static.pro</file>
         <file>template_include.pri</file>
     </qresource>
-    <qresource prefix="/package">
-        <file>qpmx.pri</file>
-    </qresource>
 </RCC>

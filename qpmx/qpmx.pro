@@ -48,7 +48,10 @@ unix {
 	tHeaders.path = $$[QT_INSTALL_HEADERS]/../qpmx
 	tHeaders.files = $$PUBLIC_HEADERS
 
-	INSTALLS += target tHeaders
+	priBase.path = $$[QT_INSTALL_DATA]/../qpmx
+	priBase.files = qpmx.pri
+
+	INSTALLS += target tHeaders priBase
 }
 
 RESOURCES += \
