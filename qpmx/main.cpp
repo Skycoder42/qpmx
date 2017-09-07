@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
 static void setupParser(QCliParser &parser)
 {
-	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO ...
+	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO better description
 	parser.addHelpOption();
 	parser.addVersionOption();
 

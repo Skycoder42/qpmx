@@ -50,6 +50,8 @@ class QpmxFormat
 
 	Q_PROPERTY(QList<QpmxDependency> dependencies MEMBER dependencies)
 
+	Q_PROPERTY(QStringList qmakeExtraFlags MEMBER qmakeExtraFlags)
+
 public:
 	QpmxFormat();
 
@@ -62,6 +64,7 @@ public:
 	QString prcFile;
 	bool source;
 	QList<QpmxDependency> dependencies;
+	QStringList qmakeExtraFlags;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)

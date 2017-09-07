@@ -232,10 +232,9 @@ void CompileCommand::qmake()
 
 	initProcess();
 	_process->setProgram(_kit.path);
-	_process->setArguments({
-							   //TODO extra parameters via qpmx.json
-							   proFile
-						   });
+	auto args = _format.qmakeExtraFlags;
+	args.append(proFile);
+	_process->setArguments(args);
 	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }
