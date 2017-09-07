@@ -259,6 +259,8 @@ void InstallCommand::completeSource()
 
 		auto data = _resCache.first();
 		_resCache.clear();
+		_current.provider = data.provider;
+		_pkgList[_pkgIndex] = _current;
 
 		//no tDir means no download yet, only version check. thus, download!
 		if(!data.tDir) {
