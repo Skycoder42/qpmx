@@ -12,6 +12,7 @@
 #include <QJsonSerializer>
 #include <qcliparser.h>
 
+#include <QStandardPaths>
 #include <iostream>
 
 static QSet<QtMsgType> logLevel{QtCriticalMsg, QtFatalMsg};
@@ -183,6 +184,13 @@ static void setupParser(QCliParser &parser)
 										   QCoreApplication::translate("parser", "Generate the qpmx_generated.pri, internally used to include compiled packages."));
 	generateNode->addPositionalArgument(QStringLiteral("outdir"),
 										QCoreApplication::translate("parser", "The directory to generate the file in."));
+	generateNode->addOption({
+								{QStringLiteral("m"), QStringLiteral("qmake")},
+								QCoreApplication::translate("parser", "The <qmake> version to include compiled binaries for. If not specified "
+																	  "the qmake from path is be used."),
+								QCoreApplication::translate("parser", "qmake"),
+								QStandardPaths::findExecutable(QStringLiteral("qmake"))
+							});
 	generateNode->addOption({
 							   {QStringLiteral("r"), QStringLiteral("recreate")},
 							   QCoreApplication::translate("parser", "Always delete and recreate the file if it exists, not only when the configuration changed."),

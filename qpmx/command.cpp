@@ -18,6 +18,11 @@ PluginRegistry *Command::registry()
 	return _registry;
 }
 
+QUuid Command::findKit(const QString &qmake) const
+{
+	Q_UNIMPLEMENTED();
+}
+
 QDir Command::srcDir()
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));

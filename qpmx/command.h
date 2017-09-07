@@ -25,6 +25,8 @@ public slots:
 protected:
 	PluginRegistry *registry();
 
+	QUuid findKit(const QString &qmake) const;
+
 	static QDir srcDir();
 	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);
 	static QDir srcDir(const QpmxDependency &dep, bool mkDir = true);

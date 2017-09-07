@@ -2,7 +2,8 @@
 
 GenerateCommand::GenerateCommand(QObject *parent) :
 	Command(parent),
-	_genFile(nullptr)
+	_genFile(nullptr),
+	_qmake()
 {}
 
 void GenerateCommand::initialize(QCliParser &parser)
@@ -17,18 +18,23 @@ void GenerateCommand::initialize(QCliParser &parser)
 		_genFile = new QFile(tDir.absoluteFilePath(QStringLiteral("qpmx_generated.pri")), this);
 		auto cachePath = tDir.absoluteFilePath(QStringLiteral(".qpmx.cache"));
 
+		//qmake kit
+		_qmake = parser.value(QStringLiteral("qmake"));
+		if(!QFile::exists(_qmake))
+			throw tr("Choosen qmake executable \"%1\" does not exist").arg(_qmake);
+
 		auto mainFormat = QpmxFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
 				auto cacheFormat = QpmxFormat::readFile(tDir, QStringLiteral(".qpmx.cache"));
 				if(!hasChanged(mainFormat, cacheFormat)) {
-					xDebug() << tr("Unchanged configuration. Skipping generationg");
+					xDebug() << tr("Unchanged configuration. Skipping generation");
 					qApp->quit();
 					return;
 				}
 			}
 
-			if(_genFile->remove())
+			if(!_genFile->remove())
 				throw tr("Failed to remove qpmx_generated.pri with error: %1").arg(_genFile->errorString());
 			if(!QFile::remove(cachePath))
 				throw tr("Failed to remove qpmx cache file");
@@ -68,5 +74,30 @@ bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &ca
 
 void GenerateCommand::createPriFile(const QpmxFormat &current)
 {
+	if(!_genFile->open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to open qpmx_generated.pri with error: %1").arg(_genFile->errorString());
 
+	QTextStream stream(_genFile);
+
+	if(current.source)
+		createSrcFile(stream, current);
+	else
+		createCmpFile(stream, current);
+
+	stream.flush();
+	_genFile->close();
+}
+
+void GenerateCommand::createSrcFile(QTextStream &stream, const QpmxFormat &current)
+{
+	Q_UNIMPLEMENTED();
+}
+
+void GenerateCommand::createCmpFile(QTextStream &stream, const QpmxFormat &current)
+{
+	auto kit = findKit(_qmake);
+	foreach(auto dep, current.dependencies) {
+		auto dir = buildDir(dep.pkg(), kit);
+		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
+	}
 }
