@@ -119,15 +119,17 @@ static void setupParser(QCliParser &parser)
 						 QDir::currentPath()
 					 });
 
-	//providers
+	//list
 	auto listNode = parser.addContextNode(QStringLiteral("list"),
 										  QCoreApplication::translate("parser", "List things like providers, qmake versions and other components of qpmx."));
-	auto listProvidersNode = listNode->addLeafNode(QStringLiteral("providers"),
-												   QCoreApplication::translate("parser", "List the package provider backends that are available for qpmx."));
-	listProvidersNode->addOption({
-									 QStringLiteral("short"),
-									 QStringLiteral("Only list provider names, no syntax details")
-								 });
+	listNode->addOption({
+							QStringLiteral("short"),
+							QStringLiteral("Only list provider/qmake names, no other details.")
+						});
+	listNode->addLeafNode(QStringLiteral("providers"),
+						  QCoreApplication::translate("parser", "List the package provider backends that are available for qpmx."));
+	listNode->addLeafNode(QStringLiteral("kits"),
+						  QCoreApplication::translate("parser", "List all currently known Qt kits and the corresponding qmake executable."));
 
 	//install
 	auto installNode = parser.addLeafNode(QStringLiteral("install"),

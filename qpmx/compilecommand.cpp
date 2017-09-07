@@ -282,23 +282,7 @@ void CompileCommand::priGen()
 void CompileCommand::initKits(const QStringList &qmakes)
 {
 	//read exising qmakes
-	QList<QtKitInfo> allKits;
-	auto kitCnt = settings()->beginReadArray(QStringLiteral("qt-kits"));
-	for(auto i = 0; i < kitCnt; i++) {
-		settings()->setArrayIndex(i);
-		QtKitInfo info;
-		info.id = settings()->value(QStringLiteral("id"), info.id).toUuid();
-		info.path = settings()->value(QStringLiteral("path"), info.path).toString();
-		info.qmakeVer = settings()->value(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer)).value<QVersionNumber>();
-		info.qtVer = settings()->value(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer)).value<QVersionNumber>();
-		info.spec = settings()->value(QStringLiteral("spec"), info.spec).toString();
-		info.xspec = settings()->value(QStringLiteral("xspec"), info.xspec).toString();
-		info.hostPrefix = settings()->value(QStringLiteral("hostPrefix"), info.hostPrefix).toString();
-		info.installPrefix = settings()->value(QStringLiteral("installPrefix"), info.installPrefix).toString();
-		info.sysRoot = settings()->value(QStringLiteral("sysRoot"), info.sysRoot).toString();
-		allKits.append(info);
-	}
-	settings()->endArray();
+	auto allKits = QtKitInfo::readFromSettings(settings());
 
 	//collect the kits to use, and ALWAYS update them!
 	if(qmakes.isEmpty()) {
@@ -349,24 +333,7 @@ void CompileCommand::initKits(const QStringList &qmakes)
 		throw tr("No qmake versions found! Explicitly set them via \"--qmake <path_to_qmake>\"");
 
 	//save back all kits
-	kitCnt = allKits.size();
-	settings()->remove(QStringLiteral("qt-kits"));
-	settings()->beginWriteArray(QStringLiteral("qt-kits"), kitCnt);
-	for(auto i = 0; i < kitCnt; i++) {
-		settings()->setArrayIndex(i);
-		const auto &info = allKits[i];
-
-		settings()->setValue(QStringLiteral("id"), info.id);
-		settings()->setValue(QStringLiteral("path"), info.path);
-		settings()->setValue(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer));
-		settings()->setValue(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer));
-		settings()->setValue(QStringLiteral("spec"), info.spec);
-		settings()->setValue(QStringLiteral("xspec"), info.xspec);
-		settings()->setValue(QStringLiteral("hostPrefix"), info.hostPrefix);
-		settings()->setValue(QStringLiteral("installPrefix"), info.installPrefix);
-		settings()->setValue(QStringLiteral("sysRoot"), info.sysRoot);
-	}
-	settings()->endArray();
+	QtKitInfo::writeToSettings(settings(), allKits);
 }
 
 QtKitInfo CompileCommand::createKit(const QString &qmakePath)
@@ -504,6 +471,50 @@ QtKitInfo::QtKitInfo(const QString &path) :
 	installPrefix(),
 	sysRoot()
 {}
+
+QList<QtKitInfo> QtKitInfo::readFromSettings(QSettings *settings)
+{
+	QList<QtKitInfo> allKits;
+	auto kitCnt = settings->beginReadArray(QStringLiteral("qt-kits"));
+	for(auto i = 0; i < kitCnt; i++) {
+		settings->setArrayIndex(i);
+		QtKitInfo info;
+		info.id = settings->value(QStringLiteral("id"), info.id).toUuid();
+		info.path = settings->value(QStringLiteral("path"), info.path).toString();
+		info.qmakeVer = settings->value(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer)).value<QVersionNumber>();
+		info.qtVer = settings->value(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer)).value<QVersionNumber>();
+		info.spec = settings->value(QStringLiteral("spec"), info.spec).toString();
+		info.xspec = settings->value(QStringLiteral("xspec"), info.xspec).toString();
+		info.hostPrefix = settings->value(QStringLiteral("hostPrefix"), info.hostPrefix).toString();
+		info.installPrefix = settings->value(QStringLiteral("installPrefix"), info.installPrefix).toString();
+		info.sysRoot = settings->value(QStringLiteral("sysRoot"), info.sysRoot).toString();
+		allKits.append(info);
+	}
+	settings->endArray();
+	return allKits;
+}
+
+void QtKitInfo::writeToSettings(QSettings *settings, const QList<QtKitInfo> &kitInfos)
+{
+	auto kitCnt = kitInfos.size();
+	settings->remove(QStringLiteral("qt-kits"));
+	settings->beginWriteArray(QStringLiteral("qt-kits"), kitCnt);
+	for(auto i = 0; i < kitCnt; i++) {
+		settings->setArrayIndex(i);
+		const auto &info = kitInfos[i];
+
+		settings->setValue(QStringLiteral("id"), info.id);
+		settings->setValue(QStringLiteral("path"), info.path);
+		settings->setValue(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer));
+		settings->setValue(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer));
+		settings->setValue(QStringLiteral("spec"), info.spec);
+		settings->setValue(QStringLiteral("xspec"), info.xspec);
+		settings->setValue(QStringLiteral("hostPrefix"), info.hostPrefix);
+		settings->setValue(QStringLiteral("installPrefix"), info.installPrefix);
+		settings->setValue(QStringLiteral("sysRoot"), info.sysRoot);
+	}
+	settings->endArray();
+}
 
 QtKitInfo::operator bool() const
 {

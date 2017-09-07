@@ -12,6 +12,9 @@ class QtKitInfo
 public:
 	QtKitInfo(const QString &path = {});
 
+	static QList<QtKitInfo> readFromSettings(QSettings *settings);
+	static void writeToSettings(QSettings *settings, const QList<QtKitInfo> &kitInfos);
+
 	operator bool() const;
 	bool operator ==(const QtKitInfo &other) const;
 

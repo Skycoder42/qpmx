@@ -15,6 +15,7 @@ public slots:
 
 private:
 	void listProviders(const QCliParser &parser);
+	void listKits(const QCliParser &parser);
 };
 
 #endif // LISTCOMMAND_H
