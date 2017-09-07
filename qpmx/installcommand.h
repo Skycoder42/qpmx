@@ -48,6 +48,7 @@ private:
 	bool getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
 	void completeInstall();
+	void createSrcInclude();
 };
 
 #endif // INSTALLCOMMAND_H

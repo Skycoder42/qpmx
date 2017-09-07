@@ -90,7 +90,10 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 
 void GenerateCommand::createSrcFile(QTextStream &stream, const QpmxFormat &current)
 {
-	Q_UNIMPLEMENTED();
+	foreach(auto dep, current.dependencies) {
+		auto dir = buildDir(dep);
+		stream << "include(" << dir.absoluteFilePath(QStringLiteral("src_include.pri")) << ")\n";
+	}
 }
 
 void GenerateCommand::createCmpFile(QTextStream &stream, const QpmxFormat &current)

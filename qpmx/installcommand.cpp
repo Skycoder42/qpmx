@@ -259,6 +259,7 @@ void InstallCommand::completeSource()
 
 		auto data = _resCache.first();
 		_resCache.clear();
+		//store choosen provider!
 		_current.provider = data.provider;
 		_pkgList[_pkgIndex] = _current;
 
@@ -283,15 +284,19 @@ void InstallCommand::completeSource()
 		data.tDir.reset();
 		Q_ASSERT(wp.isNull());
 
-		auto tDir = srcDir(data.provider, _current.package);
-		if(!path.dir().rename(path.fileName(), tDir.absoluteFilePath(_current.version.toString())))
+		auto tDir = srcDir(_current.provider, _current.package);
+		auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
+		if(!path.dir().rename(path.fileName(), vSubDir))
 			throw tr("Failed to move downloaded sources from temporary directory to cache directory!");
 		xDebug() << tr("Moved sources for \"%1\" from \"%2\" to \"%3\"")
 					.arg(_current)
 					.arg(path.filePath())
-					.arg(tDir.absoluteFilePath(_current.version.toString()));
-		xInfo() << tr("Installed package \"%1\"").arg(_current);
+					.arg(vSubDir);
 
+		//create the src_include in the build dir
+		createSrcInclude();
+
+		xInfo() << tr("Installed package \"%1\"").arg(_current);
 		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
@@ -314,6 +319,20 @@ void InstallCommand::completeInstall()
 	}
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
+}
+
+void InstallCommand::createSrcInclude()
+{
+	auto sDir = srcDir(_current);
+	auto format = QpmxFormat::readFile(sDir);
+
+	QFile srcPriFile(buildDir(_current).absoluteFilePath(QStringLiteral("src_include.pri")));
+	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to open src_include.pri with error: %1").arg(srcPriFile.errorString());
+	QTextStream stream(&srcPriFile);
+	stream << "include(" << buildDir(_current).relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
+	stream.flush();
+	srcPriFile.close();
 }
 
 
