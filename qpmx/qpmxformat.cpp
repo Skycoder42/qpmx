@@ -47,7 +47,12 @@ QpmxFormat::QpmxFormat() :
 
 QpmxFormat QpmxFormat::readFile(const QDir &dir, bool mustExist)
 {
-	QFile qpmxFile(dir.absoluteFilePath(QStringLiteral("./qpmx.json")));
+	return readFile(dir, QStringLiteral("./qpmx.json"), mustExist);
+}
+
+QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool mustExist)
+{
+	QFile qpmxFile(dir.absoluteFilePath(fileName));
 	if(qpmxFile.exists()) {
 		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text))
 			throw tr("Failed to open qpmx.json with error: %1").arg(qpmxFile.errorString());

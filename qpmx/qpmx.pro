@@ -3,7 +3,7 @@ TEMPLATE = app
 QT += core jsonserializer
 QT -= gui
 
-CONFIG += c++11 onsole
+CONFIG += c++11 console
 CONFIG -= app_bundle
 
 TARGET = qpmx
@@ -32,7 +32,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	pluginregistry.h \
 	qpmxformat.h \
 	listcommand.h \
-	compilecommand.h
+	compilecommand.h \
+    generatecommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -40,7 +41,8 @@ SOURCES += main.cpp \
 	pluginregistry.cpp \
 	qpmxformat.cpp \
 	listcommand.cpp \
-	compilecommand.cpp
+	compilecommand.cpp \
+    generatecommand.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]

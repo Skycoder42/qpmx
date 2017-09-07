@@ -54,6 +54,7 @@ public:
 	QpmxFormat();
 
 	static QpmxFormat readFile(const QDir &dir, bool mustExist = false);
+	static QpmxFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
 	static QpmxFormat readDefault(bool mustExist = false);
 	static void writeDefault(const QpmxFormat &data);
 
