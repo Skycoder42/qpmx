@@ -6,7 +6,8 @@
 
 Command::Command(QObject *parent) :
 	QObject(parent),
-	_registry(new PluginRegistry(this))
+	_registry(new PluginRegistry(this)),
+	_settings(new QSettings(this))
 {
 	qsrand(QDateTime::currentMSecsSinceEpoch());
 }
@@ -18,9 +19,26 @@ PluginRegistry *Command::registry()
 	return _registry;
 }
 
+QSettings *Command::settings()
+{
+	return _settings;
+}
+
 QUuid Command::findKit(const QString &qmake) const
 {
-	Q_UNIMPLEMENTED();
+	QUuid id;
+	auto kitCnt = _settings->beginReadArray(QStringLiteral("qt-kits"));
+	for(auto i = 0; i < kitCnt; i++) {
+		_settings->setArrayIndex(i);
+		auto path = _settings->value(QStringLiteral("path")).toString();
+		if(path == qmake) {
+			id = _settings->value(QStringLiteral("id")).toUuid();
+			break;
+		}
+	}
+
+	_settings->endArray();
+	return id;
 }
 
 QDir Command::srcDir()

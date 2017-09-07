@@ -6,6 +6,7 @@
 #include <QDir>
 #include <qcliparser.h>
 #include <QUuid>
+#include <QSettings>
 
 #include "packageinfo.h"
 #include "pluginregistry.h"
@@ -24,6 +25,7 @@ public slots:
 
 protected:
 	PluginRegistry *registry();
+	QSettings *settings();
 
 	QUuid findKit(const QString &qmake) const;
 
@@ -42,6 +44,7 @@ protected:
 
 private:
 	PluginRegistry *_registry;
+	QSettings *_settings;
 
 	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
 };

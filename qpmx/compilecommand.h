@@ -4,7 +4,6 @@
 #include "command.h"
 
 #include <QUuid>
-#include <QSettings>
 #include <QTemporaryDir>
 #include <QProcess>
 
@@ -51,7 +50,6 @@ private slots:
 
 private:
 	bool _recompile;
-	QSettings *_settings;
 
 	QList<qpmx::PackageInfo> _pkgList;
 	QList<QtKitInfo> _qtKits;

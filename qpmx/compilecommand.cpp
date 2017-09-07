@@ -9,7 +9,6 @@ using namespace qpmx;
 CompileCommand::CompileCommand(QObject *parent) :
 	Command(parent),
 	_recompile(false),
-	_settings(new QSettings(this)),
 	_pkgList(),
 	_qtKits(),
 	_current(),
@@ -284,27 +283,24 @@ void CompileCommand::priGen()
 
 void CompileCommand::initKits(const QStringList &qmakes)
 {
-	QDir cfgDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-	cfgDir.mkpath(QStringLiteral("."));
-
 	//read exising qmakes
 	QList<QtKitInfo> allKits;
-	auto kitCnt = _settings->beginReadArray(QStringLiteral("qt-kits"));
+	auto kitCnt = settings()->beginReadArray(QStringLiteral("qt-kits"));
 	for(auto i = 0; i < kitCnt; i++) {
-		_settings->setArrayIndex(i);
+		settings()->setArrayIndex(i);
 		QtKitInfo info;
-		info.id = _settings->value(QStringLiteral("id"), info.id).toUuid();
-		info.path = _settings->value(QStringLiteral("path"), info.path).toString();
-		info.qmakeVer = _settings->value(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer)).value<QVersionNumber>();
-		info.qtVer = _settings->value(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer)).value<QVersionNumber>();
-		info.spec = _settings->value(QStringLiteral("spec"), info.spec).toString();
-		info.xspec = _settings->value(QStringLiteral("xspec"), info.xspec).toString();
-		info.hostPrefix = _settings->value(QStringLiteral("hostPrefix"), info.hostPrefix).toString();
-		info.installPrefix = _settings->value(QStringLiteral("installPrefix"), info.installPrefix).toString();
-		info.sysRoot = _settings->value(QStringLiteral("sysRoot"), info.sysRoot).toString();
+		info.id = settings()->value(QStringLiteral("id"), info.id).toUuid();
+		info.path = settings()->value(QStringLiteral("path"), info.path).toString();
+		info.qmakeVer = settings()->value(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer)).value<QVersionNumber>();
+		info.qtVer = settings()->value(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer)).value<QVersionNumber>();
+		info.spec = settings()->value(QStringLiteral("spec"), info.spec).toString();
+		info.xspec = settings()->value(QStringLiteral("xspec"), info.xspec).toString();
+		info.hostPrefix = settings()->value(QStringLiteral("hostPrefix"), info.hostPrefix).toString();
+		info.installPrefix = settings()->value(QStringLiteral("installPrefix"), info.installPrefix).toString();
+		info.sysRoot = settings()->value(QStringLiteral("sysRoot"), info.sysRoot).toString();
 		allKits.append(info);
 	}
-	_settings->endArray();
+	settings()->endArray();
 
 	//collect the kits to use, and ALWAYS update them!
 	if(qmakes.isEmpty()) {
@@ -356,23 +352,23 @@ void CompileCommand::initKits(const QStringList &qmakes)
 
 	//save back all kits
 	kitCnt = allKits.size();
-	_settings->remove(QStringLiteral("qt-kits"));
-	_settings->beginWriteArray(QStringLiteral("qt-kits"), kitCnt);
+	settings()->remove(QStringLiteral("qt-kits"));
+	settings()->beginWriteArray(QStringLiteral("qt-kits"), kitCnt);
 	for(auto i = 0; i < kitCnt; i++) {
-		_settings->setArrayIndex(i);
+		settings()->setArrayIndex(i);
 		const auto &info = allKits[i];
 
-		_settings->setValue(QStringLiteral("id"), info.id);
-		_settings->setValue(QStringLiteral("path"), info.path);
-		_settings->setValue(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer));
-		_settings->setValue(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer));
-		_settings->setValue(QStringLiteral("spec"), info.spec);
-		_settings->setValue(QStringLiteral("xspec"), info.xspec);
-		_settings->setValue(QStringLiteral("hostPrefix"), info.hostPrefix);
-		_settings->setValue(QStringLiteral("installPrefix"), info.installPrefix);
-		_settings->setValue(QStringLiteral("sysRoot"), info.sysRoot);
+		settings()->setValue(QStringLiteral("id"), info.id);
+		settings()->setValue(QStringLiteral("path"), info.path);
+		settings()->setValue(QStringLiteral("qmakeVer"), QVariant::fromValue(info.qmakeVer));
+		settings()->setValue(QStringLiteral("qtVer"), QVariant::fromValue(info.qtVer));
+		settings()->setValue(QStringLiteral("spec"), info.spec);
+		settings()->setValue(QStringLiteral("xspec"), info.xspec);
+		settings()->setValue(QStringLiteral("hostPrefix"), info.hostPrefix);
+		settings()->setValue(QStringLiteral("installPrefix"), info.installPrefix);
+		settings()->setValue(QStringLiteral("sysRoot"), info.sysRoot);
 	}
-	_settings->endArray();
+	settings()->endArray();
 }
 
 QtKitInfo CompileCommand::createKit(const QString &qmakePath)
