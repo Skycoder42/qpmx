@@ -55,7 +55,6 @@ void CompileCommand::initialize(QCliParser &parser)
 				foreach(auto package, wDir.entryList(flags)) {
 					if(!wDir.cd(package))
 						continue;
-					qDebug() << QUrl::fromPercentEncoding(package.toUtf8());
 					foreach(auto version, wDir.entryList(flags))
 						_pkgList.append({provider, QUrl::fromPercentEncoding(package.toUtf8()), QVersionNumber::fromString(version)});
 					wDir.cdUp();
@@ -443,7 +442,34 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 			return oldKit;
 		} else {
 			xDebug() << tr("Updated existing qmake configuration for \"%1\"").arg(oldKit.path);
-			//TODO remove build cache dir!
+			auto wDir = buildDir();
+			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
+			foreach(auto provider, wDir.entryList(flags)) {
+				if(!wDir.cd(provider))
+					continue;
+				foreach(auto package, wDir.entryList(flags)) {
+					if(!wDir.cd(package))
+						continue;
+					foreach(auto version, wDir.entryList(flags)) {
+						if(!wDir.cd(version))
+							continue;
+						if(wDir.cd(oldKit.id.toString())) {
+							if(!wDir.removeRecursively())
+								throw tr("Failed to remove build cache dir: \"%1\"").arg(wDir.absolutePath());
+							wDir.cdUp();
+							xDebug() << tr("Deleted outdated build cache for \"%1\"")
+										.arg(qpmx::PackageInfo {
+												 provider,
+												 QUrl::fromPercentEncoding(package.toUtf8()),
+												 QVersionNumber::fromString(version)}
+											 .toString()) ;
+						}
+						wDir.cdUp();
+					}
+					wDir.cdUp();
+				}
+				wDir.cdUp();
+			}
 			return newKit;
 		}
 	} catch (QString &s) {
