@@ -79,28 +79,16 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 
 	QTextStream stream(_genFile);
 
+	BuildId kit;
 	if(current.source)
-		createSrcFile(stream, current);
+		kit = QStringLiteral("src");
 	else
-		createCmpFile(stream, current);
+		kit = findKit(_qmake);
+	foreach(auto dep, current.dependencies) {
+		auto dir = buildDir(kit, dep.pkg());
+		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
+	}
 
 	stream.flush();
 	_genFile->close();
-}
-
-void GenerateCommand::createSrcFile(QTextStream &stream, const QpmxFormat &current)
-{
-	foreach(auto dep, current.dependencies) {
-		auto dir = buildDir(dep);
-		stream << "include(" << dir.absoluteFilePath(QStringLiteral("src_include.pri")) << ")\n";
-	}
-}
-
-void GenerateCommand::createCmpFile(QTextStream &stream, const QpmxFormat &current)
-{
-	auto kit = findKit(_qmake);
-	foreach(auto dep, current.dependencies) {
-		auto dir = buildDir(dep.pkg(), kit);
-		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
-	}
 }

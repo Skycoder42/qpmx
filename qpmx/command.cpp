@@ -71,32 +71,31 @@ QDir Command::buildDir()
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 	auto name = QStringLiteral("build");
 	if(!dir.mkpath(name) || !dir.cd(name))
-		throw tr("Failed to create source directory");
+		throw tr("Failed to create build directory");
 	return dir;
 }
 
-QDir Command::buildDir(const qpmx::PackageInfo &package, bool mkDir)
-{
-	return buildDir(package.provider(), package.package(), package.version(), mkDir);
-}
-
-QDir Command::buildDir(const qpmx::PackageInfo &package, const QUuid &kitId)
-{
-	auto bDir = buildDir(package.provider(), package.package(), package.version());
-	auto bPath = kitId.toString();
-	if(!bDir.mkpath(bPath) || !bDir.cd(bPath))
-		throw tr("Failed to create compilation target directory");
-	return bDir;
-}
-
-QDir Command::buildDir(const QpmxDependency &dep, bool mkDir)
-{
-	return buildDir(dep.provider, dep.package, dep.version, mkDir);
-}
-
-QDir Command::buildDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
+QDir Command::buildDir(const BuildId &kitId)
 {
 	auto dir = buildDir();
+	if(!dir.mkpath(kitId) || !dir.cd(kitId))
+		throw tr("Failed to create build kit directory");
+	return dir;
+}
+
+QDir Command::buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir)
+{
+	return buildDir(kitId, package.provider(), package.package(), package.version(), mkDir);
+}
+
+QDir Command::buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir)
+{
+	return buildDir(kitId, dep.provider, dep.package, dep.version, mkDir);
+}
+
+QDir Command::buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
+{
+	auto dir = buildDir(kitId);
 	return subDir(dir, provider, package, version, mkDir);
 }
 

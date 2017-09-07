@@ -219,9 +219,12 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 				throw tr("Failed to remove old sources for \"%1\"").arg(_current);
 
 			//remove compile dirs aswell
-			auto bDir = buildDir(provider, _current.package, _current.version, false);
-			if(!bDir.removeRecursively())
-				throw tr("Failed to remove old compilation cache for \"%1\"").arg(_current);
+			auto bDir = buildDir();
+			foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+				auto rDir = buildDir(cmpDir, provider, _current.package, _current.version, false);
+				if(!rDir.removeRecursively())
+					throw tr("Failed to remove old compilation cache for \"%1\"").arg(_current);
+			}
 		} else {
 			xDebug() << tr("Sources for package \"%1\" already exist. Skipping download").arg(_current);
 			getNext();
@@ -324,13 +327,14 @@ void InstallCommand::completeInstall()
 void InstallCommand::createSrcInclude()
 {
 	auto sDir = srcDir(_current);
+	auto bDir = buildDir(QStringLiteral("src"), _current);
 	auto format = QpmxFormat::readFile(sDir);
 
-	QFile srcPriFile(buildDir(_current).absoluteFilePath(QStringLiteral("src_include.pri")));
+	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open src_include.pri with error: %1").arg(srcPriFile.errorString());
 	QTextStream stream(&srcPriFile);
-	stream << "include(" << buildDir(_current).relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
+	stream << "include(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
 	stream.flush();
 	srcPriFile.close();
 }

@@ -24,6 +24,19 @@ public slots:
 	virtual void finalize();
 
 protected:
+	struct BuildId : public QString
+	{
+		inline BuildId() :
+			QString()
+		{}
+		inline BuildId(const QString &other) :
+			QString(other)
+		{}
+		inline BuildId(const QUuid &other) :
+			QString(other.toString())
+		{}
+	};
+
 	PluginRegistry *registry();
 	QSettings *settings();
 
@@ -35,10 +48,10 @@ protected:
 	static QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
 
 	static QDir buildDir();
-	static QDir buildDir(const qpmx::PackageInfo &package, bool mkDir = true);
-	static QDir buildDir(const qpmx::PackageInfo &package, const QUuid &kitId);
-	static QDir buildDir(const QpmxDependency &dep, bool mkDir = true);
-	static QDir buildDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+	static QDir buildDir(const BuildId &kitId);
+	static QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = true);
+	static QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = true);
+	static QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
 
 	static QDir tmpDir();
 

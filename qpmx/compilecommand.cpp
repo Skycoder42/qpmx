@@ -137,7 +137,7 @@ void CompileCommand::compileNext()
 	_kit = _qtKits[_kitIndex];
 
 	//check if include.pri exists
-	auto bDir = buildDir(_current, _kit.id);
+	auto bDir = buildDir(_kit.id, _current);
 	if(bDir.exists(QStringLiteral("include.pri"))) {
 		if(_recompile) {
 			if(!bDir.removeRecursively()) {
@@ -215,7 +215,7 @@ void CompileCommand::qmake()
 	auto proFile = _compileDir->filePath(QStringLiteral("static.pro"));
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
-	auto bDir = buildDir(_current, _kit.id);
+	auto bDir = buildDir(_kit.id, _current);
 
 	//create qmake.conf file
 	QFile confFile(_compileDir->filePath(QStringLiteral(".qmake.conf")));
@@ -260,7 +260,7 @@ void CompileCommand::install()
 
 void CompileCommand::priGen()
 {
-	auto bDir = buildDir(_current, _kit.id);
+	auto bDir = buildDir(_kit.id, _current);
 
 	//create meta.pri file
 	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("meta.pri")));
@@ -440,35 +440,10 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 			xDebug() << tr("Validated existing qmake configuration for \"%1\"").arg(oldKit.path);
 			return oldKit;
 		} else {
+			auto oDir = buildDir(oldKit.id);
+			if(!oDir.removeRecursively())
+				throw tr("Failed to remove build cache directory for \"%1\"").arg(oldKit.path);
 			xDebug() << tr("Updated existing qmake configuration for \"%1\"").arg(oldKit.path);
-			auto wDir = buildDir();
-			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
-			foreach(auto provider, wDir.entryList(flags)) {
-				if(!wDir.cd(provider))
-					continue;
-				foreach(auto package, wDir.entryList(flags)) {
-					if(!wDir.cd(package))
-						continue;
-					foreach(auto version, wDir.entryList(flags)) {
-						if(!wDir.cd(version))
-							continue;
-						if(wDir.cd(oldKit.id.toString())) {
-							if(!wDir.removeRecursively())
-								throw tr("Failed to remove build cache dir: \"%1\"").arg(wDir.absolutePath());
-							wDir.cdUp();
-							xDebug() << tr("Deleted outdated build cache for \"%1\"")
-										.arg(qpmx::PackageInfo {
-												 provider,
-												 QUrl::fromPercentEncoding(package.toUtf8()),
-												 QVersionNumber::fromString(version)}
-											 .toString()) ;
-						}
-						wDir.cdUp();
-					}
-					wDir.cdUp();
-				}
-				wDir.cdUp();
-			}
 			return newKit;
 		}
 	} catch (QString &s) {
