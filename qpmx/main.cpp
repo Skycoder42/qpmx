@@ -49,6 +49,12 @@ int main(int argc, char *argv[])
 						 QCoreApplication::translate("parser", "Do not use colors to highlight output.")
 					 });
 #endif
+	parser.addOption({
+						 {QStringLiteral("d"), QStringLiteral("dir")},
+						 QCoreApplication::translate("parser", "Set the working <directory>, i.e. the directory to check for the qpmx.json file."),
+						 QCoreApplication::translate("parser", "directory"),
+						 QDir::currentPath()
+					 });
 
 	//providers
 	auto listNode = parser.addContextNode(QStringLiteral("list"),
@@ -63,12 +69,6 @@ int main(int argc, char *argv[])
 	//install
 	auto installNode = parser.addLeafNode(QStringLiteral("install"),
 										  QCoreApplication::translate("parser", "Install a qpmx package for the current project."));
-	installNode->addOption({
-							   {QStringLiteral("s"), QStringLiteral("source")},
-							   QCoreApplication::translate("parser", "Install the package as sources, not as precompiled static library. This will increase "
-																	 "build times, but may help if a package does not work properly. Check the package "
-																	 "authors website for hints."),
-						   });
 	installNode->addOption({
 							   {QStringLiteral("n"), QStringLiteral("renew")},
 							   QCoreApplication::translate("parser", "Force a reinstallation. If the package was already downloaded, "
@@ -112,6 +112,14 @@ int main(int argc, char *argv[])
 									   QStringLiteral("[[<provider>::]<package>[@<version>] ...]"));
 
 	parser.process(a, true);
+
+	if(parser.isSet(QStringLiteral("dir"))){
+		if(!QDir::setCurrent(parser.value(QStringLiteral("dir")))) {
+			xCritical() << QCoreApplication::translate("parser", "Failed to enter working directory \"%1\"")
+						   .arg(parser.value(QStringLiteral("dir")));
+			return EXIT_FAILURE;
+		}
+	}
 
 	//setup logging
 #ifndef Q_OS_WIN

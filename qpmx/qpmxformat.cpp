@@ -7,15 +7,13 @@
 QpmxDependency::QpmxDependency() :
 	provider(),
 	package(),
-	version(),
-	source(false)
+	version()
 {}
 
-QpmxDependency::QpmxDependency(const qpmx::PackageInfo &package, bool source) :
+QpmxDependency::QpmxDependency(const qpmx::PackageInfo &package) :
 	provider(package.provider()),
 	package(package.package()),
-	version(package.version()),
-	source(source)
+	version(package.version())
 {}
 
 bool QpmxDependency::operator==(const QpmxDependency &other) const

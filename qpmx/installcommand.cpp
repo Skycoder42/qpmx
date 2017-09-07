@@ -18,7 +18,6 @@ InstallCommand::InstallCommand(QObject *parent) :
 void InstallCommand::initialize(QCliParser &parser)
 {
 	try {
-		auto srcOnly = parser.isSet(QStringLiteral("source"));
 		_renew = parser.isSet(QStringLiteral("renew"));
 		_cacheOnly = parser.isSet(QStringLiteral("cache"));
 
@@ -33,7 +32,7 @@ void InstallCommand::initialize(QCliParser &parser)
 				PackageInfo info(match.captured(1),
 								 match.captured(2),
 								 QVersionNumber::fromString(match.captured(3)));
-				_pkgList.append({info, srcOnly});
+				_pkgList.append(info);
 				xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
 							.arg(info.package())
 							.arg(info.version().toString())

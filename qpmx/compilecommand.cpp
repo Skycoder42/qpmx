@@ -71,12 +71,13 @@ void CompileCommand::initialize(QCliParser &parser)
 			xDebug() << tr("Compiling all %n globally cached package(s)", "", _pkgList.size());
 		} else {
 			auto format = QpmxFormat::readDefault(true);
-			foreach(auto dep, format.dependencies) {
-				if(!dep.source)
-					_pkgList.append(dep.pkg());
-				else
-					xDebug() << tr("Skipping package \"%1\" as it's a source only dependency").arg(dep);
+			if(format.source) {
+				xInfo() << tr("qpmx.json has the sources flag set. No binaries will be compiled");
+				qApp->quit();
+				return;
 			}
+			foreach(auto dep, format.dependencies)
+				_pkgList.append(dep.pkg());
 
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No dependencies to compile found in qpmx.json. Nothing will be done");

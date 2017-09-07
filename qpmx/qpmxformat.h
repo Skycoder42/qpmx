@@ -25,11 +25,10 @@ class QpmxDependency
 	Q_PROPERTY(QString provider MEMBER provider)
 	Q_PROPERTY(QString package MEMBER package)
 	Q_PROPERTY(QVersionNumber version MEMBER version)
-	Q_PROPERTY(bool source MEMBER source)
 
 public:
 	QpmxDependency();
-	QpmxDependency(const qpmx::PackageInfo &package, bool source);
+	QpmxDependency(const qpmx::PackageInfo &package);
 
 	bool operator==(const QpmxDependency &other) const;
 	operator QString() const;
@@ -38,7 +37,6 @@ public:
 	QString provider;
 	QString package;
 	QVersionNumber version;
-	bool source;
 };
 
 class QpmxFormat
