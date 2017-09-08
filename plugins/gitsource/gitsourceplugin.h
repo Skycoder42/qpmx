@@ -37,7 +37,7 @@ private:
 	static QRegularExpression _githubRegex;
 	QHash<QProcess*, QPair<int, bool>> _processCache;
 
-	QString pkgUrl(const qpmx::PackageInfo &package);
+	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
 	QString pkgTag(const qpmx::PackageInfo &package);
 	QDir createLogDir(const QString &action);
 };

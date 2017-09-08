@@ -5,7 +5,7 @@
 #include <QSet>
 #include <QTimer>
 
-QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.]*)\.([^\.]*)$)__"));
+QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.#]*)\.([^\.#]*)(?:#(.*))?$)__"));
 
 GitSourcePlugin::GitSourcePlugin(QObject *parent) :
 	QObject(parent),
@@ -18,7 +18,7 @@ QString GitSourcePlugin::packageSyntax(const QString &provider) const
 	if(provider == QStringLiteral("git"))
 		return tr("<url>[#<prefix>]");
 	else if(provider == QStringLiteral("github"))
-		return tr("com.github.<user>.<repository>");
+		return tr("com.github.<user>.<repository>[#<prefix>]");
 	else
 		return {};
 }
@@ -29,7 +29,7 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 		QUrl url(package.package());
 		return url.isValid() && url.path().endsWith(QStringLiteral(".git"));
 	} else if(package.provider() == QStringLiteral("github"))
-		return _githubRegex.match(package.package().toLower()).hasMatch();
+		return _githubRegex.match(package.package()).hasMatch();
 	else
 		return false;
 }
@@ -45,7 +45,8 @@ void GitSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo &package)
 {
 	try {
-		auto url = pkgUrl(package);
+		QString prefix;
+		auto url = pkgUrl(package, &prefix);
 		auto logDir = createLogDir(QStringLiteral("ls-remote"));
 
 		auto proc = new QProcess(this);
@@ -60,7 +61,9 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 								  url
 							  };
 		if(!package.version().isNull())
-			arguments.append(package.version().toString());
+			arguments.append(pkgTag(package));
+		else if(!prefix.isNull())
+			arguments.append(prefix + QLatin1Char('*'));//TODO test if working
 		proc->setArguments(arguments);
 
 		connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
@@ -197,33 +200,41 @@ void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
 	proc->deleteLater();
 }
 
-QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package)
+QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package, QString *prefix)
 {
 	QString pkgUrl;
 	if(package.provider() == QStringLiteral("git"))
 		pkgUrl = package.package();
 	else if(package.provider() == QStringLiteral("github")) {
-		auto match = _githubRegex.match(package.package().toLower());
+		auto match = _githubRegex.match(package.package());
 		if(!match.hasMatch())
 			throw tr("Package \"%1\" is not a valid github package").arg(package.toString());
-		pkgUrl = QStringLiteral("https://github.com/%1/%2.git")
+		pkgUrl = QStringLiteral("https://github.com/%1/%2.git#%3")
 				 .arg(match.captured(1))
-				 .arg(match.captured(2));
+				 .arg(match.captured(2))
+				 .arg(match.captured(3));
 	} else
 		throw tr("Unknown provider type \"%1\"").arg(package.provider());
 
+	if(prefix) {
+		QUrl pUrl(pkgUrl);
+		if(pUrl.hasFragment())
+			*prefix = pUrl.fragment();
+		else
+			prefix->clear();
+	}
 	return pkgUrl;
 }
 
 QString GitSourcePlugin::pkgTag(const qpmx::PackageInfo &package)
 {
-	QUrl packageUrl(package.package());
+	QString prefix;
+	QUrl packageUrl = pkgUrl(package, &prefix);
 	if(!packageUrl.isValid())
 		throw tr("The given package name is not a valid url");
 
 	QString tag;
-	if(packageUrl.hasFragment()) {
-		auto prefix = packageUrl.fragment();
+	if(!prefix.isNull()) {
 		if(prefix.contains(QStringLiteral("%1")))
 			tag = prefix.arg(package.version().toString());
 		else

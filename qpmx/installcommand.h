@@ -48,7 +48,7 @@ private:
 	bool getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
 	void completeInstall();
-	void createSrcInclude();
+	void createSrcInclude(const QpmxFormat &format);
 };
 
 #endif // INSTALLCOMMAND_H

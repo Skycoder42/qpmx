@@ -48,15 +48,22 @@ int main(int argc, char *argv[])
 	//setup logging
 #ifndef Q_OS_WIN
 	if(!parser.isSet(QStringLiteral("no-color"))) {
-		qSetMessagePattern(QStringLiteral("%{if-warning}\033[33m%{endif}"
-										  "%{if-critical}\033[31m%{endif}"
-										  "%{if-fatal}\033[35m%{endif}"
-										  "%{if-category}%{category}: %{endif}%{message}"
-										  "%{if-warning}\033[0m%{endif}"
-										  "%{if-critical}\033[0m%{endif}"
-										  "%{if-fatal}\033[0m%{endif}"));
-	}
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33mWarning: %{endif}"
+																 "%{if-critical}\033[31mError: %{endif}"
+																 "%{if-fatal}\033[35mFatal Error: %{endif}"
+																 "%{if-category}%{category}: %{endif}%{message}"
+																 "%{if-warning}\033[0m%{endif}"
+																 "%{if-critical}\033[0m%{endif}"
+																 "%{if-fatal}\033[0m%{endif}"));
+	} else
 #endif
+	{
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}Warning: %{endif}"
+																 "%{if-critical}Error: %{endif}"
+																 "%{if-fatal}Fatal Error: %{endif}"
+																 "%{if-category}%{category}: %{endif}%{message}"));
+	}
+
 	if(!parser.isSet(QStringLiteral("quiet"))) {
 		logLevel.insert(QtWarningMsg);
 		logLevel.insert(QtInfoMsg);

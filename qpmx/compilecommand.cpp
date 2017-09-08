@@ -163,6 +163,8 @@ void CompileCommand::compileNext()
 		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = QMake;
+	if(_format.source)
+		xWarning() << tr("Compiling a source-only package \"%1\". This can lead to unexpected behaviour").arg(_current.toString());
 
 	makeStep();
 }

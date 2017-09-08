@@ -56,7 +56,7 @@ private:
 		inline Data(QString provider, QString package, QVersionNumber version) :
 			QSharedData(),
 			provider(provider),
-			package(package),
+			package(package.toLower()),
 			version(version)
 		{}
 		inline Data(const Data &other) :

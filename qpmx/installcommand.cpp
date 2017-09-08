@@ -280,6 +280,9 @@ void InstallCommand::completeSource()
 		else
 			xInfo() << str;
 
+		//load the format from the temp dir
+		auto format = QpmxFormat::readFile(data.tDir->path(), true);
+
 		//move the sources to cache
 		auto wp = data.tDir.toWeakRef();
 		data.tDir->setAutoRemove(false);
@@ -297,7 +300,7 @@ void InstallCommand::completeSource()
 					.arg(vSubDir);
 
 		//create the src_include in the build dir
-		createSrcInclude();
+		createSrcInclude(format);
 
 		xInfo() << tr("Installed package \"%1\"").arg(_current);
 		getNext();
@@ -324,11 +327,10 @@ void InstallCommand::completeInstall()
 	xInfo() << "Added all packages to qpmx.json";
 }
 
-void InstallCommand::createSrcInclude()
+void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
 	auto sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current);
-	auto format = QpmxFormat::readFile(sDir);
 
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
