@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/build">
         <file>template_static.pro</file>
-        <file>template_include.pri</file>
+        <file>template_lib.pri</file>
     </qresource>
 </RCC>

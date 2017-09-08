@@ -1,19 +1,27 @@
-#ifndef GITSOURCEPLUGIN_H
-#define GITSOURCEPLUGIN_H
+#ifndef QPMSOURCEPLUGIN_H
+#define QPMSOURCEPLUGIN_H
 
 #include "../../qpmx/sourceplugin.h"
 
 #include <QProcess>
 #include <QHash>
 
-class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
+
+class QpmSourcePlugin : public QObject, public qpmx::SourcePlugin
 {
 	Q_OBJECT
 	Q_INTERFACES(qpmx::SourcePlugin)
-	Q_PLUGIN_METADATA(IID SourcePlugin_iid FILE "gitsource.json")
+	Q_PLUGIN_METADATA(IID SourcePlugin_iid FILE "qpmsource.json")
 
 public:
-	GitSourcePlugin(QObject *parent = nullptr);
+	enum Mode {
+		Search,
+		Version,
+		Install
+	};
+	Q_ENUM(Mode)
+
+	QpmSourcePlugin(QObject *parent = nullptr);
 
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
@@ -24,24 +32,24 @@ public slots:
 	void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) override;
 
 signals:
-	void searchResult(int requestId, const QStringList &packageNames) final;
-	void versionResult(int requestId, const QVersionNumber &version) final;
-	void sourceFetched(int requestId) final;
-	void sourceError(int requestId, const QString &error) final;
+	void searchResult(int requestId, const QStringList &packageNames) override;
+	void versionResult(int requestId, const QVersionNumber &version) override;
+	void sourceFetched(int requestId) override;
+	void sourceError(int requestId, const QString &error) override;
 
 private slots:
 	void finished(int exitCode, QProcess::ExitStatus exitStatus);
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
-	static QRegularExpression _githubRegex;
-	QHash<QProcess*, QPair<int, bool>> _processCache;
-
-	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
-	QString pkgTag(const qpmx::PackageInfo &package);
+	QHash<QProcess*, std::tuple<int, Mode, QDir, QString>> _processCache;
 
 	QDir createLogDir(const QString &action);
 	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);
+
+	void completeSearch(int id, QProcess *proc);
+	void completeVersion(int id, QProcess *proc);
+	void completeInstall(int id, QProcess *proc, QDir tDir, QString package);
 };
 
-#endif // GITSOURCEPLUGIN_H
+#endif // QPMSOURCEPLUGIN_H

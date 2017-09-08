@@ -264,21 +264,20 @@ void CompileCommand::priGen()
 {
 	auto bDir = buildDir(_kit.id, _current);
 
-	//create meta.pri file
-	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("meta.pri")));
+	//create include.pri file
+	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(!metaFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to create meta.pri with error: \"%1\"").arg(metaFile.errorString());
+	auto libName = QFileInfo(_format.priFile).completeBaseName();
 	QTextStream stream(&metaFile);
+	stream << "INCLUDEPATH += \"$$PWD/include\"\n\n";
+	stream << "win32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+	stream << "win32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n";
+	stream << "else:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n";
 	if(!_format.prcFile.isEmpty())
 		stream << "include(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
-	stream << "QPMX_LIBNAME=" << QFileInfo(_format.priFile).completeBaseName() << "\n";
 	stream.flush();
 	metaFile.close();
-
-	//copy include.pri
-	if(!QFile::copy(QStringLiteral(":/build/template_include.pri"),
-					bDir.absoluteFilePath(QStringLiteral("include.pri"))))
-		throw tr("Failed to library include file");
 }
 
 void CompileCommand::initKits(const QStringList &qmakes)

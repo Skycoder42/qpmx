@@ -17,7 +17,7 @@ public slots:
 
 private slots:
 	void sourceFetched(int requestId);
-	void versionResult(int requestId, QList<QVersionNumber> versions);
+	void versionResult(int requestId, QVersionNumber version);
 	void sourceError(int requestId, const QString &error);
 
 private:

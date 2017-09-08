@@ -80,13 +80,13 @@ void InstallCommand::sourceFetched(int requestId)
 	completeSource();
 }
 
-void InstallCommand::versionResult(int requestId, QList<QVersionNumber> versions)
+void InstallCommand::versionResult(int requestId, QVersionNumber version)
 {
 	auto data = _actionCache.take(requestId);
 	if(!data)
 		return;
 
-	if(versions.isEmpty()) {
+	if(version.isNull()) {
 		auto str = tr("Package \"%1\" does not exist for provider \"%2\"")
 				   .arg(_current)
 				   .arg(data.provider);
@@ -98,16 +98,14 @@ void InstallCommand::versionResult(int requestId, QList<QVersionNumber> versions
 		}
 	} else {
 		if(data.mustWork)
-			xDebug() << tr("Fetched available versions for \"%1\"").arg(_current);
+			xDebug() << tr("Fetched latest version for \"%1\"").arg(_current);
 		else {
-			xDebug() << tr("Fetched available versions for \"%1\" from provider \"%3\"")
+			xDebug() << tr("Fetched latest version for \"%1\" from provider \"%3\"")
 						.arg(_current)
 						.arg(data.provider);
 		}
 
-		//only called when searching for the latest version
-		std::sort(versions.begin(), versions.end());
-		_current.version = versions.last();
+		_current.version = version;
 		_pkgList[_pkgIndex] = _current;
 		_resCache.append(data);
 		completeSource();
@@ -191,8 +189,8 @@ void InstallCommand::connectPlg(SourcePlugin *plugin)
 	connect(plgobj, SIGNAL(sourceFetched(int)),
 			this, SLOT(sourceFetched(int)),
 			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(versionResult(int,QList<QVersionNumber>)),
-			this, SLOT(versionResult(int,QList<QVersionNumber>)),
+	connect(plgobj, SIGNAL(versionResult(int,QVersionNumber)),
+			this, SLOT(versionResult(int,QVersionNumber)),
 			Qt::QueuedConnection);
 	connect(plgobj, SIGNAL(sourceError(int,QString)),
 			this, SLOT(sourceError(int,QString)),
@@ -207,7 +205,7 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		auto id = randId();
 		_actionCache.insert(id, {provider, nullptr, mustWork, plugin});
 		connectPlg(plugin);
-		plugin->listPackageVersions(id, _current.pkg(provider));
+		plugin->findPackageVersion(id, _current.pkg(provider));
 		return false;
 	}
 

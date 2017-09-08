@@ -42,17 +42,11 @@ void GitSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 	emit searchResult(requestId, {});
 }
 
-void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo &package)
+void GitSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo &package)
 {
 	try {
 		QString prefix;
 		auto url = pkgUrl(package, &prefix);
-		auto logDir = createLogDir(QStringLiteral("ls-remote"));
-
-		auto proc = new QProcess(this);
-		proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("git")));
-		proc->setStandardErrorFile(logDir.absoluteFilePath(QStringLiteral("stderr.log")));
-		proc->setProperty("logDir", logDir.absolutePath());
 
 		QStringList arguments{
 								  QStringLiteral("ls-remote"),
@@ -63,42 +57,21 @@ void GitSourcePlugin::listPackageVersions(int requestId, const qpmx::PackageInfo
 		if(!package.version().isNull())
 			arguments.append(pkgTag(package));
 		else if(!prefix.isNull())
-			arguments.append(prefix + QLatin1Char('*'));//TODO test if working
-		proc->setArguments(arguments);
+			arguments.append(prefix + QLatin1Char('*'));
 
-		connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-				this, &GitSourcePlugin::finished);
-		connect(proc, &QProcess::errorOccurred,
-				this, &GitSourcePlugin::errorOccurred);
-
+		auto proc = createProcess(QStringLiteral("ls-remote"), arguments);
 		_processCache.insert(proc, {requestId, false});
 		proc->start();
-
-		//timeout after 30 seconds
-		QTimer::singleShot(30000, this, [proc, this](){
-			if(_processCache.contains(proc)) {
-				proc->kill();
-				if(!proc->waitForFinished(1000))
-					proc->terminate();
-			}
-		});
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
 	}
 }
 
-void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir, const QVariantHash &extraParameters)
+void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir)
 {
 	try {
 		auto url = pkgUrl(package);
 		auto tag = pkgTag(package);
-		auto logDir = createLogDir(QStringLiteral("clone"));
-
-		auto proc = new QProcess(this);
-		proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("git")));
-		proc->setStandardOutputFile(logDir.absoluteFilePath(QStringLiteral("stdout.log")));
-		proc->setStandardErrorFile(logDir.absoluteFilePath(QStringLiteral("stderr.log")));
-		proc->setProperty("logDir", logDir.absolutePath());
 
 		QStringList arguments{
 								  QStringLiteral("clone"),
@@ -108,26 +81,10 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 								  tag,
 								  targetDir.absolutePath()
 							  };
-		if(extraParameters.contains(QStringLiteral("gitargs")))
-			arguments.append(extraParameters.value(QStringLiteral("gitargs")).toStringList());
-		proc->setArguments(arguments);
 
-		connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-				this, &GitSourcePlugin::finished);
-		connect(proc, &QProcess::errorOccurred,
-				this, &GitSourcePlugin::errorOccurred);
-
+		auto proc = createProcess(QStringLiteral("clone"), arguments, true);
 		_processCache.insert(proc, {requestId, true});
 		proc->start();
-
-		//timeout after 30 seconds
-		QTimer::singleShot(30000, this, [proc, this](){
-			if(_processCache.contains(proc)) {
-				proc->kill();
-				if(!proc->waitForFinished(1000))
-					proc->terminate();
-			}
-		});
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
 	}
@@ -162,7 +119,10 @@ void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 						if(match.hasMatch())
 							versions.insert(QVersionNumber::fromString(match.captured(1)));
 					}
-					emit versionResult(data.first, versions.toList());
+
+					auto vList = versions.toList();
+					std::sort(vList.begin(), vList.end());
+					emit versionResult(data.first, vList.last());
 				} else {
 					if(exitCode == 2) {
 						emit versionResult(data.first, {});
@@ -258,4 +218,35 @@ QDir GitSourcePlugin::createLogDir(const QString &action)
 		return tDir.path();
 	else
 		throw tr("Failed to create log directory \"%1\"").arg(tDir.path());
+}
+
+QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool stdLog)
+{
+	auto logDir = createLogDir(type);
+
+	auto proc = new QProcess(this);
+	proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("git")));
+	if(stdLog)
+		proc->setStandardOutputFile(logDir.absoluteFilePath(QStringLiteral("stdout.log")));
+	proc->setStandardErrorFile(logDir.absoluteFilePath(QStringLiteral("stderr.log")));
+	proc->setArguments(arguments);
+	proc->setProperty("logDir", logDir.absolutePath());
+
+	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+			this, &GitSourcePlugin::finished,
+			Qt::QueuedConnection);
+	connect(proc, &QProcess::errorOccurred,
+			this, &GitSourcePlugin::errorOccurred,
+			Qt::QueuedConnection);
+
+	//timeout after 30 seconds
+	QTimer::singleShot(30000, this, [proc, this](){
+		if(_processCache.contains(proc)) {
+			proc->kill();
+			if(!proc->waitForFinished(1000))
+				proc->terminate();
+		}
+	});
+
+	return proc;
 }
