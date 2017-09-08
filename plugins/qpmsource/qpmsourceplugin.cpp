@@ -1,4 +1,8 @@
 #include "qpmsourceplugin.h"
+#include <QDebug>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -255,6 +259,45 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, QDir tDir, QString
 			throw tr("Failed to move sources back to tmp dir");
 
 		//transform qpm.json
+		QFile outFile(tDir.absoluteFilePath(QStringLiteral("qpmx.json")));
+		if(!outFile.exists()) {
+			QFile inFile(tDir.absoluteFilePath(QStringLiteral("qpm.json")));
+			if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+				throw tr("Failed to open qpm.json with error: %1").arg(inFile.errorString());
+
+			QJsonParseError error;
+			auto doc = QJsonDocument::fromJson(inFile.readAll(), &error);
+			if(error.error != QJsonParseError::NoError)
+				throw tr("Failed to read qpm.json with error: %1").arg(error.errorString());
+			inFile.close();
+			auto qpmRoot = doc.object();
+
+			QJsonArray depArray;
+			foreach(auto dep, qpmRoot[QStringLiteral("dependencies")].toArray()) {
+				auto nDep = dep.toString().split(QLatin1Char('@'));
+				if(nDep.size() != 2) {
+					qWarning().noquote() << tr("Skipping invalid qpm dependency \"%1\"").arg(dep.toString());
+					continue;
+				}
+				QJsonObject qpmxDep;
+				qpmxDep[QStringLiteral("provider")] = QStringLiteral("qpm");
+				qpmxDep[QStringLiteral("package")] = nDep[0];
+				qpmxDep[QStringLiteral("version")] = nDep[1];
+				depArray.append(qpmxDep);
+			}
+
+			QJsonObject qpmxRoot;
+			qpmxRoot[QStringLiteral("dependencies")] = depArray;
+			if(qpmRoot.contains(QStringLiteral("pri_filename")))
+				qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("pri_filename")];
+			else
+				qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("priFilename")];
+
+			if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text))
+				throw tr("Failed to open qpmx.json with error: %1").arg(outFile.errorString());
+			outFile.write(QJsonDocument(qpmxRoot).toJson(QJsonDocument::Indented));
+			outFile.close();
+		}
 
 		emit sourceFetched(id);
 	} catch (QString &s) {

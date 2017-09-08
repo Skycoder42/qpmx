@@ -6,7 +6,6 @@
 #include <QProcess>
 #include <QHash>
 
-
 class QpmSourcePlugin : public QObject, public qpmx::SourcePlugin
 {
 	Q_OBJECT
