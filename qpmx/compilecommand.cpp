@@ -100,7 +100,7 @@ void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 	else {
 		if(exitCode != EXIT_SUCCESS) {
 			_compileDir->setAutoRemove(false);
-			xCritical() << tr("Failed to run qmake for \"%1\" compilation. Exit code %2. Check the error logs at \"%3\"")
+			xCritical() << tr("Failed to run qmake for \"%1\" compilation. Exit code %2. Check the error logs at \"%3\"")//TODO .arg(_stage)
 						   .arg(_current.toString())
 						   .arg(exitCode)
 						   .arg(_compileDir->path());

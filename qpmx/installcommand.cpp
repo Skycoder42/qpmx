@@ -334,7 +334,10 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open src_include.pri with error: %1").arg(srcPriFile.errorString());
 	QTextStream stream(&srcPriFile);
-	stream << "include(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
+	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n";
+	stream << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n";
+	stream << "\tinclude(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
+	stream << "}\n";
 	stream.flush();
 	srcPriFile.close();
 }

@@ -9,6 +9,9 @@ VERSION = $$QPMX_VERSION
 CONFIG += qpmx_static
 include($$QPMX_PRI_INCLUDE)
 
+# add qtbase modules
+QT *= core gui widgets network xml sql concurrent
+
 isEmpty(PUBLIC_HEADERS): PUBLIC_HEADERS = $$HEADERS
 
 target.path = $$QPMX_INSTALL_LIB
