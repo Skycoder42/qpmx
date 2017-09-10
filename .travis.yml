@@ -25,4 +25,5 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then travis_wait 40 ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; else ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; fi
 
 script:
+  - ./ci/travis_init.sh
   - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh
