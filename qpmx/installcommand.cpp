@@ -68,10 +68,10 @@ void InstallCommand::sourceFetched(int requestId)
 			return;
 
 		if(data.mustWork)
-			xDebug() << tr("Downloaded sources for %1").arg(_current);
+			xDebug() << tr("Downloaded sources for %1").arg(_current.toString());
 		else {
 			xDebug() << tr("Downloaded sources for %1 from provider \"%3\"")
-						.arg(_current)
+						.arg(_current.toString())
 						.arg(data.provider);
 		}
 
@@ -88,7 +88,7 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 
 	if(version.isNull()) {
 		auto str = tr("Package %1 does not exist for provider \"%2\"")
-				   .arg(_current)
+				   .arg(_current.toString())
 				   .arg(data.provider);
 		if(data.mustWork)
 			xCritical() << str;
@@ -98,10 +98,10 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 		}
 	} else {
 		if(data.mustWork)
-			xDebug() << tr("Fetched latest version for %1").arg(_current);
+			xDebug() << tr("Fetched latest version for %1").arg(_current.toString());
 		else {
 			xDebug() << tr("Fetched latest version for %1 from provider \"%3\"")
-						.arg(_current)
+						.arg(_current.toString())
 						.arg(data.provider);
 		}
 
@@ -119,7 +119,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 		return;
 
 	auto str = tr("Failed to get sources for %1 from provider \"%2\" with error: %3")
-			   .arg(_current)
+			   .arg(_current.toString())
 			   .arg(data.provider)
 			   .arg(error);
 	if(data.mustWork)
@@ -158,7 +158,7 @@ void InstallCommand::getNext()
 		if(!any) {
 			throw tr("Unable to get sources for package %1: "
 					 "Package is not valid for any provider")
-					.arg(_current);
+					.arg(_current.toString());
 		}
 	} else {
 		auto plugin = registry()->sourcePlugin(_current.provider);
@@ -212,19 +212,19 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	auto sDir = srcDir(provider, _current.package, _current.version, false);
 	if(sDir.exists()) {
 		if(_renew) {
-			xDebug() << tr("Deleting sources for %1").arg(_current);
+			xDebug() << tr("Deleting sources for %1").arg(_current.toString());
 			if(!sDir.removeRecursively())
-				throw tr("Failed to remove old sources for %1").arg(_current);
+				throw tr("Failed to remove old sources for %1").arg(_current.toString());
 
 			//remove compile dirs aswell
 			auto bDir = buildDir();
 			foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
 				auto rDir = buildDir(cmpDir, provider, _current.package, _current.version, false);
 				if(!rDir.removeRecursively())
-					throw tr("Failed to remove old compilation cache for %1").arg(_current);
+					throw tr("Failed to remove old compilation cache for %1").arg(_current.toString());
 			}
 		} else {
-			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current);
+			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
 			getNext();
 			return true;
 		}
@@ -248,13 +248,13 @@ void InstallCommand::completeSource()
 
 	try {
 		if(_resCache.isEmpty())
-			throw tr("Unable to find a provider for package %1").arg(_current);
+			throw tr("Unable to find a provider for package %1").arg(_current.toString());
 		else if(_resCache.size() > 1) {
 			QStringList provList;
 			foreach(auto data, _resCache)
 				provList.append(data.provider);
 			throw tr("Found more then one provider for package %1.\nProviders are: %2")
-					.arg(_current)
+					.arg(_current.toString())
 					.arg(provList.join(tr(", ")));
 		}
 
@@ -272,7 +272,7 @@ void InstallCommand::completeSource()
 
 		auto str = tr("Using provider \"%1\" for package %2")
 				   .arg(data.provider)
-				   .arg(_current);
+				   .arg(_current.toString());
 		if(data.mustWork)
 			xDebug() << str;
 		else
@@ -292,9 +292,8 @@ void InstallCommand::completeSource()
 		auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
 		if(!path.dir().rename(path.fileName(), vSubDir))
 			throw tr("Failed to move downloaded sources from temporary directory to cache directory!");
-		xDebug() << tr("Moved sources for %1 to \"%3\"")
-					.arg(_current)
-					.arg(path.filePath())
+		xDebug() << tr("Moved sources for %1 to \"%2\"")
+					.arg(_current.toString())
 					.arg(vSubDir);
 
 		//create the src_include in the build dir
@@ -306,17 +305,17 @@ void InstallCommand::completeSource()
 			do {
 				dIndex = _pkgList.indexOf(dep, dIndex + 1);
 				if(dIndex != -1 && _pkgList[dIndex].version == dep.version) {
-					xDebug() << tr("Skipping dependency %1 as it is already in the install list").arg(dep);
+					xDebug() << tr("Skipping dependency %1 as it is already in the install list").arg(dep.toString());
 					break;
 				}
 			} while(dIndex != -1);
 			if(dIndex == -1) {
-				xDebug() << tr("Detected dependency to install: %1").arg(dep);
+				xDebug() << tr("Detected dependency to install: %1").arg(dep.toString());
 				_pkgList.append(dep);
 			}
 		}
 
-		xInfo() << tr("Installed package %1").arg(_current);
+		xInfo() << tr("Installed package %1").arg(_current.toString());
 		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
@@ -330,10 +329,10 @@ void InstallCommand::completeInstall()
 	foreach(auto pkg, _pkgList) {
 		auto depIndex = format.dependencies.indexOf(pkg);
 		if(depIndex == -1) {
-			xDebug() << tr("Added package %1 to qpmx.json").arg(pkg);
+			xDebug() << tr("Added package %1 to qpmx.json").arg(pkg.toString());
 			format.dependencies.append(pkg);
 		} else {
-			xWarning() << tr("Package %1 is already a dependency. Replacing with this version").arg(pkg);
+			xWarning() << tr("Package %1 is already a dependency. Replacing with this version").arg(pkg.toString());
 			format.dependencies[depIndex] = pkg;
 		}
 	}

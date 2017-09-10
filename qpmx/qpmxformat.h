@@ -31,7 +31,7 @@ public:
 	QpmxDependency(const qpmx::PackageInfo &package);
 
 	bool operator==(const QpmxDependency &other) const;
-	operator QString() const;//TODO use toString instead
+	QString toString(bool scoped = true) const;
 	qpmx::PackageInfo pkg(const QString &provider = {}) const;
 
 	QString provider;

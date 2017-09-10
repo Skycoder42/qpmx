@@ -23,19 +23,14 @@ bool QpmxDependency::operator==(const QpmxDependency &other) const
 			package == other.package;
 }
 
+QString QpmxDependency::toString(bool scoped) const
+{
+	return pkg().toString(scoped);
+}
+
 qpmx::PackageInfo QpmxDependency::pkg(const QString &provider) const
 {
 	return {provider.isEmpty() ? this->provider : provider, package, version};
-}
-
-QpmxDependency::operator QString() const
-{
-	auto res = package;
-	if(!provider.isNull())
-		res.prepend(provider + QStringLiteral("::"));
-	if(!version.isNull())
-		res.append(QLatin1Char('@') + version.toString());
-	return res;
 }
 
 QpmxFormat::QpmxFormat() :
