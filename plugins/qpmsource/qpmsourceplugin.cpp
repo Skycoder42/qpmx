@@ -12,6 +12,11 @@ QpmSourcePlugin::QpmSourcePlugin(QObject *parent) :
 	SourcePlugin()
 {}
 
+bool QpmSourcePlugin::canSearch() const
+{
+	return true;
+}
+
 QString QpmSourcePlugin::packageSyntax(const QString &provider) const
 {
 	if(provider == QStringLiteral("qpm"))

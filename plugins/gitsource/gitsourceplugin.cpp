@@ -13,6 +13,11 @@ GitSourcePlugin::GitSourcePlugin(QObject *parent) :
 	_processCache()
 {}
 
+bool GitSourcePlugin::canSearch() const
+{
+	return false;
+}
+
 QString GitSourcePlugin::packageSyntax(const QString &provider) const
 {
 	if(provider == QStringLiteral("git"))

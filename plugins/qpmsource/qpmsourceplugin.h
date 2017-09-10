@@ -22,6 +22,7 @@ public:
 
 	QpmSourcePlugin(QObject *parent = nullptr);
 
+	bool canSearch() const override;
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 

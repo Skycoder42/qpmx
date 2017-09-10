@@ -38,13 +38,16 @@ public:
 	inline QVersionNumber version() const {
 		return d->version;
 	}
-	inline QString toString() const {
+	inline QString toString(bool scoped = true) const {
 		auto res = d->package;
 		if(!d->provider.isNull())
 			res.prepend(d->provider + QStringLiteral("::"));
 		if(!d->version.isNull())
 			res.append(QLatin1Char('@') + d->version.toString());
-		return QStringLiteral("%{pkg}") + res + QStringLiteral("%{endpkg}");
+		if(scoped)
+			return QStringLiteral("%{pkg}") + res + QStringLiteral("%{endpkg}");
+		else
+			return res;
 	}
 
 	inline bool operator==(const PackageInfo &other) const {

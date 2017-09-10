@@ -2,6 +2,7 @@
 #include "qpmxformat.h"
 
 #include "listcommand.h"
+#include "searchcommand.h"
 #include "installcommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
@@ -80,6 +81,8 @@ int main(int argc, char *argv[])
 	Command *cmd = nullptr;
 	if(parser.enterContext(QStringLiteral("list")))
 		cmd = new ListCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("search")))
+		cmd = new SearchCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("install")))
 		cmd = new InstallCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("compile")))
@@ -140,6 +143,25 @@ static void setupParser(QCliParser &parser)
 	listNode->addLeafNode(QStringLiteral("kits"),
 						  QCoreApplication::translate("parser", "List all currently known Qt kits and the corresponding qmake executable."));
 
+	//search
+	auto searchNode = parser.addLeafNode(QStringLiteral("search"), QCoreApplication::translate("parser", "Search for a package by it's name"));
+	searchNode->addOption({
+							  {QStringLiteral("p"), QStringLiteral("provider")},
+							  QCoreApplication::translate("parser", "Specify the <provider> to search for this package. Can be specified "
+																	"multiple times to search multiple providers. If not specified, all "
+																	"providers that support searching are searched."),
+							  QCoreApplication::translate("parser", "provider")
+						  });
+	searchNode->addOption({
+							  QStringLiteral("short"),
+							  QStringLiteral("Only list package names (with provider) as space seperated list, no category based listing.")
+						  });
+	searchNode->addPositionalArgument(QStringLiteral("query"),
+									  QCoreApplication::translate("parser", "The query to search by. Typically, a \"contains\" search is "
+																			"performed, but some providers may support wildcard or regex expressions. "
+																			"If you can't find a package, try a different search pattern first."),
+									  QStringLiteral("<query>"));
+
 	//install
 	auto installNode = parser.addLeafNode(QStringLiteral("install"),
 										  QCoreApplication::translate("parser", "Install a qpmx package for the current project."));
@@ -194,7 +216,8 @@ static void setupParser(QCliParser &parser)
 	auto generateNode = parser.addLeafNode(QStringLiteral("generate"),
 										   QCoreApplication::translate("parser", "Generate the qpmx_generated.pri, internally used to include compiled packages."));
 	generateNode->addPositionalArgument(QStringLiteral("outdir"),
-										QCoreApplication::translate("parser", "The directory to generate the file in."));
+										QCoreApplication::translate("parser", "The directory to generate the file in."),
+										QStringLiteral("<outdir>"));
 	generateNode->addOption({
 								{QStringLiteral("m"), QStringLiteral("qmake")},
 								QCoreApplication::translate("parser", "The <qmake> version to include compiled binaries for. If not specified "
