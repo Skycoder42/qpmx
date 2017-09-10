@@ -270,12 +270,15 @@ void CompileCommand::priGen()
 		throw tr("Failed to create meta.pri with error: \"%1\"").arg(metaFile.errorString());
 	auto libName = QFileInfo(_format.priFile).completeBaseName();
 	QTextStream stream(&metaFile);
-	stream << "INCLUDEPATH += \"$$PWD/include\"\n\n";
-	stream << "win32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
-	stream << "win32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n";
-	stream << "else:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n";
+	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package() << "\") {\n";
+	stream << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package() << "\"\n";
+	stream << "\tINCLUDEPATH += \"$$PWD/include\"\n\n";
+	stream << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+	stream << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n";
+	stream << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n";
 	if(!_format.prcFile.isEmpty())
-		stream << "include(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+		stream << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+	stream << "}\n";
 	stream.flush();
 	metaFile.close();
 }
