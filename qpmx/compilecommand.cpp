@@ -108,7 +108,8 @@ void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 	else {
 		if(exitCode != EXIT_SUCCESS) {
 			_compileDir->setAutoRemove(false);
-			xCritical() << tr("Failed to run qmake for \"%1\" compilation. Exit code %2. Check the error logs at \"%3\"")//TODO .arg(_stage)
+			xCritical() << tr("Failed to run %1 step for %2 compilation. Exit code %3. Check the error logs at \"%4\"")
+						   .arg(stage())
 						   .arg(_current.toString())
 						   .arg(exitCode)
 						   .arg(_compileDir->path());
@@ -123,11 +124,29 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	_compileDir->setAutoRemove(false);
-	xCritical() << tr("Failed to run qmake for \"%1\" compilation. Error: %2")
+	xCritical() << tr("Failed to run %1 step for %2 compilation. Error: %3")
+				   .arg(stage())
 				   .arg(_current.toString())
 				   .arg(_process->errorString());
 	_process->deleteLater();
 	_process = nullptr;
+}
+
+QString CompileCommand::stage()
+{
+	switch (_stage) {
+	case QMake:
+		return tr("qmake");
+	case Make:
+		return tr("make");
+	case Install:
+		return tr("install");
+	case PriGen:
+		return tr("pri-generate");
+	default:
+		Q_UNREACHABLE();
+		return {};
+	}
 }
 
 void CompileCommand::depCollect()
@@ -176,15 +195,15 @@ void CompileCommand::compileNext()
 	if(bDir.exists(QStringLiteral("include.pri"))) {
 		if(_recompile) {
 			if(!bDir.removeRecursively()) {
-				throw tr("Failed to remove previous build of \"%1\" with \"%2\"")
+				throw tr("Failed to remove previous build of %1 with \"%2\"")
 				.arg(_current.toString())
 				.arg(_kit.path);
 			}
-			xDebug() << tr("Removed previous build of \"%1\" with \"%2\"")
+			xDebug() << tr("Removed previous build of %1 with \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
 		} else {
-			xDebug() << tr("Package \"%1\" already has compiled binaries for \"%2\"")
+			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
 			compileNext();
@@ -199,7 +218,7 @@ void CompileCommand::compileNext()
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = QMake;
 	if(_format.source)
-		xWarning() << tr("Compiling a source-only package \"%1\". This can lead to unexpected behaviour").arg(_current.toString());
+		xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(_current.toString());
 
 	makeStep();
 }
@@ -209,20 +228,20 @@ void CompileCommand::makeStep()
 	try {
 		switch (_stage) {
 		case QMake:
-			xDebug() << tr("Beginning compilation of \"%1\" with qmake \"%2\"")
+			xDebug() << tr("Beginning compilation of %1 with qmake \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
 			qmake();
 			_stage = Make;
 			break;
 		case Make:
-			xDebug() << tr("Completed qmake for \"%1\". Continuing with compile (make)")
+			xDebug() << tr("Completed qmake for %1. Continuing with compile (make)")
 						.arg(_current.toString());
 			make();
 			_stage = Install;
 			break;
 		case Install:
-			xDebug() << tr("Completed compile (make) for \"%1\". Installing to cache directory")
+			xDebug() << tr("Completed compile (make) for %1. Installing to cache directory")
 						.arg(_current.toString());
 			install();
 			_stage = PriGen;
@@ -231,7 +250,7 @@ void CompileCommand::makeStep()
 			priGen();
 			xDebug() << tr("Completed installation for \"%1\"")
 						.arg(_current.toString());
-			xInfo() << tr("Successfully compiled \"%1\" with qmake \"%2\"")
+			xInfo() << tr("Successfully compiled %1 with qmake \"%2\"")
 					   .arg(_current.toString())
 					   .arg(_kit.path);
 			compileNext();

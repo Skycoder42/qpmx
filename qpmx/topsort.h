@@ -100,7 +100,7 @@ QList<T> TopSort<T>::sort() const
 
 	// Check if there was a cycle
 	if (topOrder.size() != _data.size())
-		return {};//TODO throw
+		return {};
 
 	// generate result list
 	QList<T> result;

@@ -41,6 +41,7 @@ public:
 		Install,
 		PriGen
 	};
+	Q_ENUM(Stage)
 
 	explicit CompileCommand(QObject *parent = nullptr);
 
@@ -64,6 +65,8 @@ private:
 	QpmxFormat _format;
 	Stage _stage;
 	QProcess *_process;
+
+	QString stage();
 
 	void depCollect();
 

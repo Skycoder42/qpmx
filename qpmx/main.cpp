@@ -15,6 +15,7 @@
 #include <QStandardPaths>
 #include <iostream>
 
+static bool colored = false;
 static QSet<QtMsgType> logLevel{QtCriticalMsg, QtFatalMsg};
 
 static void setupParser(QCliParser &parser);
@@ -47,7 +48,8 @@ int main(int argc, char *argv[])
 
 	//setup logging
 #ifndef Q_OS_WIN
-	if(!parser.isSet(QStringLiteral("no-color"))) {
+	colored = !parser.isSet(QStringLiteral("no-color"));
+	if(colored) {
 		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33mWarning: %{endif}"
 																 "%{if-critical}\033[31mError: %{endif}"
 																 "%{if-fatal}\033[35mFatal Error: %{endif}"
@@ -100,7 +102,7 @@ int main(int argc, char *argv[])
 
 static void setupParser(QCliParser &parser)
 {
-	parser.setApplicationDescription(QCoreApplication::translate("parser", "Qt package manager X."));//TODO better description
+	parser.setApplicationDescription(QCoreApplication::translate("parser", "A qpm frontend"));//TODO better description
 	parser.addHelpOption();
 	parser.addVersionOption();
 
@@ -212,6 +214,31 @@ static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context
 		return;
 
 	auto message = qFormatLogMessage(type, context, msg);
+	if(colored) {
+		message.replace(QStringLiteral("%{pkg}"), QStringLiteral("\033[36m"));
+		switch (type) {
+		case QtDebugMsg:
+		case QtInfoMsg:
+			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[0m"));
+			break;
+		case QtWarningMsg:
+			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[33m"));
+			break;
+		case QtCriticalMsg:
+			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[31m"));
+			break;
+		case QtFatalMsg:
+			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[35m"));
+			break;
+		default:
+			Q_UNREACHABLE();
+			break;
+		}
+	} else {
+		message.replace(QStringLiteral("%{pkg}"), QStringLiteral("\""));
+		message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\""));
+	}
+
 	if(type == QtDebugMsg || type == QtInfoMsg)
 		std::cout << message.toStdString() << std::endl;
 	else

@@ -168,7 +168,7 @@ QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package, QString *prefi
 	else if(package.provider() == QStringLiteral("github")) {
 		auto match = _githubRegex.match(package.package());
 		if(!match.hasMatch())
-			throw tr("Package \"%1\" is not a valid github package").arg(package.toString());
+			throw tr("Package %1 is not a valid github package").arg(package.toString());
 		pkgUrl = QStringLiteral("https://github.com/%1/%2.git#%3")
 				 .arg(match.captured(1))
 				 .arg(match.captured(2))

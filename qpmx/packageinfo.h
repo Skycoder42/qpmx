@@ -44,7 +44,7 @@ public:
 			res.prepend(d->provider + QStringLiteral("::"));
 		if(!d->version.isNull())
 			res.append(QLatin1Char('@') + d->version.toString());
-		return res;
+		return QStringLiteral("%{pkg}") + res + QStringLiteral("%{endpkg}");
 	}
 
 	inline bool operator==(const PackageInfo &other) const {
