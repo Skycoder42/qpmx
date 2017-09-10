@@ -33,9 +33,9 @@ HEADERS += $$PUBLIC_HEADERS \
 	qpmxformat.h \
 	listcommand.h \
 	compilecommand.h \
-    generatecommand.h \
-    topsort.h \
-    searchcommand.h
+	generatecommand.h \
+	topsort.h \
+	searchcommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -44,8 +44,8 @@ SOURCES += main.cpp \
 	qpmxformat.cpp \
 	listcommand.cpp \
 	compilecommand.cpp \
-    generatecommand.cpp \
-    searchcommand.cpp
+	generatecommand.cpp \
+	searchcommand.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]
