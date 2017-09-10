@@ -1,0 +1,28 @@
+language: cpp
+
+sudo: required
+dist: trusty
+osx_image: xcode8.3
+services:
+  - docker
+
+env:
+  global:
+    - QT_VER=5.9.1
+    - NO_TESTS=true
+    - EXTRA_MODULES=".skycoder42.jsonserializer"
+matrix:
+  include:
+    - os: linux
+      env:
+        - PLATFORM=gcc_64
+    - os: osx
+      env:
+        - PLATFORM=clang_64
+
+before_install:
+  - git clone https://github.com/Skycoder42/QtModules.git ./qtmodules-travis
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then travis_wait 40 ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; else ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; fi
+
+script:
+  - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh

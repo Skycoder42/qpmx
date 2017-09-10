@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 
 static void setupParser(QCliParser &parser)
 {
-	parser.setApplicationDescription(QCoreApplication::translate("parser", "A qpm frontend"));//TODO better description
+	parser.setApplicationDescription(QCoreApplication::translate("parser", "A frontend for qpm, to provide source and build caching."));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
