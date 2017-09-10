@@ -300,6 +300,22 @@ void InstallCommand::completeSource()
 		//create the src_include in the build dir
 		createSrcInclude(format);
 
+		//add new dependencies
+		foreach(auto dep, format.dependencies) {
+			auto dIndex = -1;
+			do {
+				dIndex = _pkgList.indexOf(dep, dIndex + 1);
+				if(dIndex != -1 && _pkgList[dIndex].version == dep.version) {
+					xDebug() << tr("Skipping dependency \"%1\" as it is already in the install list").arg(dep);
+					break;
+				}
+			} while(dIndex != -1);
+			if(dIndex == -1) {
+				xDebug() << tr("Detected dependency to install as well: \"%1\"").arg(dep);
+				_pkgList.append(dep);
+			}
+		}
+
 		xInfo() << tr("Installed package \"%1\"").arg(_current);
 		getNext();
 	} catch(QString &s) {
@@ -336,7 +352,12 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	QTextStream stream(&srcPriFile);
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n";
 	stream << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n";
-	stream << "\tinclude(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n";
+	stream << "\tinclude(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n\n";
+	//include dependencies
+	foreach(auto dep, format.dependencies) {
+		auto depDir = buildDir(QStringLiteral("src"), dep);
+		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
+	}
 	stream << "}\n";
 	stream.flush();
 	srcPriFile.close();
