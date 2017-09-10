@@ -47,6 +47,11 @@ public:
 		return res;
 	}
 
+	inline bool operator==(const PackageInfo &other) const {
+		return d == other.d ||
+				*d == *other.d;
+	}
+
 private:
 	struct Data : public QSharedData {
 		QString provider;
@@ -65,6 +70,12 @@ private:
 			package(other.package),
 			version(other.version)
 		{}
+
+		inline bool operator==(const Data &other) const {
+			return provider == other.provider &&
+					package == other.package &&
+					version == other.version;
+		}
 	};
 
 	QSharedDataPointer<Data> d;

@@ -1,7 +1,9 @@
 #include "compilecommand.h"
 #include "qpmxformat.h"
+#include "topsort.h"
 
 #include <QProcess>
+#include <QQueue>
 #include <QStandardPaths>
 #include <QUrl>
 using namespace qpmx;
@@ -37,6 +39,9 @@ void CompileCommand::initialize(QCliParser &parser)
 				PackageInfo info(match.captured(1),
 								 match.captured(2),
 								 QVersionNumber::fromString(match.captured(3)));
+				if(info.provider().isEmpty() ||
+				   info.version().isNull())
+					throw tr("You must specify provider, package name and version to compile explicitly");
 				_pkgList.append(info);
 				xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
 							.arg(info.package())
@@ -78,12 +83,15 @@ void CompileCommand::initialize(QCliParser &parser)
 				_pkgList.append(dep.pkg());
 
 			if(_pkgList.isEmpty()) {
-				xWarning() << tr("No dependencies to compile found in qpmx.json. Nothing will be done");
+				xWarning() << tr("No packages to compile found in qpmx.json. Nothing will be done");
 				qApp->quit();
 				return;
 			}
 			xDebug() << tr("Compiling %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
+
+		//collect all dependencies
+		depCollect();
 
 		initKits(parser.values(QStringLiteral("qmake")));
 		_kitIndex = _qtKits.size();//to trigger the loop
@@ -120,6 +128,33 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 				   .arg(_process->errorString());
 	_process->deleteLater();
 	_process = nullptr;
+}
+
+void CompileCommand::depCollect()
+{
+	TopSort<qpmx::PackageInfo> sortHelper(_pkgList);
+
+	QQueue<qpmx::PackageInfo> queue;
+	foreach(auto pkg, _pkgList)
+		queue.enqueue(pkg);
+
+	while(!queue.isEmpty()) {
+		auto pkg = queue.dequeue();
+		auto sDir = srcDir(pkg);
+		auto format = QpmxFormat::readFile(sDir, true);
+		foreach(auto dep, format.dependencies) {
+			auto dPkg = dep.pkg();
+			if(!sortHelper.contains(dPkg)) {
+				sortHelper.addData(dPkg);
+				sortHelper.addDependency(pkg, dPkg);
+				queue.enqueue(dPkg);
+			}
+		}
+	}
+
+	_pkgList = sortHelper.sort();
+	if(_pkgList.isEmpty())
+		throw tr("Cyclic dependencies detected! Unable to compile packages");
 }
 
 void CompileCommand::compileNext()
@@ -228,7 +263,12 @@ void CompileCommand::qmake()
 		   << "QPMX_VERSION=" << _current.version().toString() << "\n"
 		   << "QPMX_PRI_INCLUDE=\"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
 		   << "QPMX_INSTALL_LIB=\"" << bDir.absoluteFilePath(QStringLiteral("lib")) << "\"\n"
-		   << "QPMX_INSTALL_INC=\"" << bDir.absoluteFilePath(QStringLiteral("include")) << "\"\n";
+		   << "QPMX_INSTALL_INC=\"" << bDir.absoluteFilePath(QStringLiteral("include")) << "\"\n\n";
+	foreach(auto dep, _format.dependencies) {
+		auto depDir = buildDir(_kit.id, dep);
+		stream << "include(" << depDir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
+	}
+
 	stream.flush();
 	confFile.close();
 
@@ -270,14 +310,23 @@ void CompileCommand::priGen()
 		throw tr("Failed to create meta.pri with error: \"%1\"").arg(metaFile.errorString());
 	auto libName = QFileInfo(_format.priFile).completeBaseName();
 	QTextStream stream(&metaFile);
-	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package() << "\") {\n";
-	stream << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package() << "\"\n";
-	stream << "\tINCLUDEPATH += \"$$PWD/include\"\n\n";
-	stream << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
-	stream << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n";
-	stream << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n";
-	if(!_format.prcFile.isEmpty())
-		stream << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package() << "\") {\n"
+		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package() << "\"\n\n";
+	stream << "\t#dependencies\n";
+	foreach(auto dep, _format.dependencies) {
+		auto depDir = buildDir(_kit.id, dep);
+		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
+	}
+	stream << "\t#includes\n"
+		   << "\tINCLUDEPATH += \"$$PWD/include\"\n"
+		   << "\t#lib\n"
+		   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
+		   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
+		   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+	if(!_format.prcFile.isEmpty()) {
+		stream << "\n\t#prc include\n"
+			   << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+	}
 	stream << "}\n";
 	stream.flush();
 	metaFile.close();

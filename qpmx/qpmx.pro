@@ -33,7 +33,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	qpmxformat.h \
 	listcommand.h \
 	compilecommand.h \
-    generatecommand.h
+    generatecommand.h \
+    topsort.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \

@@ -65,6 +65,8 @@ private:
 	Stage _stage;
 	QProcess *_process;
 
+	void depCollect();
+
 	void compileNext();
 	void makeStep();
 	void qmake();
