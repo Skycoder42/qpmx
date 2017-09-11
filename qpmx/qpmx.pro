@@ -36,7 +36,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	generatecommand.h \
 	topsort.h \
 	searchcommand.h \
-    uninstallcommand.h
+    uninstallcommand.h \
+    initcommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -47,7 +48,8 @@ SOURCES += main.cpp \
 	compilecommand.cpp \
 	generatecommand.cpp \
 	searchcommand.cpp \
-    uninstallcommand.cpp
+    uninstallcommand.cpp \
+    initcommand.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]

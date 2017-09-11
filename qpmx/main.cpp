@@ -7,6 +7,7 @@
 #include "uninstallcommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
+#include "initcommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -16,6 +17,7 @@
 
 #include <QStandardPaths>
 #include <iostream>
+using namespace qpmx;
 
 static bool colored = false;
 static QSet<QtMsgType> logLevel{QtCriticalMsg, QtFatalMsg};
@@ -92,6 +94,8 @@ int main(int argc, char *argv[])
 		cmd = new CompileCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("generate")))
 		cmd = new GenerateCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("init")))
+		cmd = new InitCommand(qApp);
 	else {
 		Q_UNREACHABLE();
 		return EXIT_FAILURE;
@@ -162,8 +166,7 @@ static void setupParser(QCliParser &parser)
 	searchNode->addPositionalArgument(QStringLiteral("query"),
 									  QCoreApplication::translate("parser", "The query to search by. Typically, a \"contains\" search is "
 																			"performed, but some providers may support wildcard or regex expressions. "
-																			"If you can't find a package, try a different search pattern first."),
-									  QStringLiteral("<query>"));
+																			"If you can't find a package, try a different search pattern first."));
 
 	//install
 	auto installNode = parser.addLeafNode(QStringLiteral("install"),
@@ -180,8 +183,9 @@ static void setupParser(QCliParser &parser)
 	installNode->addPositionalArgument(QStringLiteral("packages"),
 									   QCoreApplication::translate("parser", "The packages to be installed. The provider determines which backend to use for the download. "
 																			 "If left empty, all providers are searched for the package. If the version is left out, "
-																			 "the latest version is installed."),
-									   QStringLiteral("[<provider>::]<package>[@<version>] ..."));
+																			 "the latest version is installed. If no packages are specified, the packages from the qpmx.json "
+																			 "file will be installed."),
+									   QStringLiteral("[[<provider>::]<package>[@<version>] ...]"));
 
 	//uninstall
 	auto uninstallNode = parser.addLeafNode(QStringLiteral("uninstall"),
@@ -192,7 +196,7 @@ static void setupParser(QCliParser &parser)
 							 });
 	uninstallNode->addPositionalArgument(QStringLiteral("packages"),
 										 QCoreApplication::translate("parser", "The packages to remove from the qpmx.json."),
-										 QStringLiteral("<package> ..."));
+										 QStringLiteral("[<provider>::]<package>[@<version>] ..."));
 
 	//compile
 	auto compileNode = parser.addLeafNode(QStringLiteral("compile"),
@@ -208,7 +212,7 @@ static void setupParser(QCliParser &parser)
 	compileNode->addOption({
 							   {QStringLiteral("g"), QStringLiteral("global")},
 							   QCoreApplication::translate("parser", "Don't limit the packages to rebuild to only the ones specified in the qpmx.json. "
-																	 "Instead, build all ever cached packages (Ignored if packages are specified as arguments)."),
+																	 "Instead, build every ever cached package (Ignored if packages are specified as arguments)."),
 						   });
 	compileNode->addOption({
 							   {QStringLiteral("r"), QStringLiteral("recompile")},
@@ -218,20 +222,14 @@ static void setupParser(QCliParser &parser)
 	compileNode->addPositionalArgument(QStringLiteral("packages"),
 									   QCoreApplication::translate("parser", "The packages to compile binaries for. Installed packages are "
 																			 "matched against those, and binaries compiled for all of them. If no "
-																			 "packages are specified, ALL INSTALLED packages will be compiled."),
-									   QStringLiteral("[[<provider>::]<package>[@<version>] ...]"));
-	compileNode->addOption({
-							   {QStringLiteral("r"), QStringLiteral("recompile")},
-							   QCoreApplication::translate("parser", "By default, compilation is skipped for unchanged packages. By specifying "
-																	 "this flags, all packages are recompiled."),
-						   });
+																			 "packages are specified, all installed packages will be compiled."),
+									   QStringLiteral("[<provider>::<package>@<version> ...]"));
 
 	//generate
 	auto generateNode = parser.addLeafNode(QStringLiteral("generate"),
 										   QCoreApplication::translate("parser", "Generate the qpmx_generated.pri, internally used to include compiled packages."));
 	generateNode->addPositionalArgument(QStringLiteral("outdir"),
-										QCoreApplication::translate("parser", "The directory to generate the file in."),
-										QStringLiteral("<outdir>"));
+										QCoreApplication::translate("parser", "The directory to generate the file in."));
 	generateNode->addOption({
 								{QStringLiteral("m"), QStringLiteral("qmake")},
 								QCoreApplication::translate("parser", "The <qmake> version to include compiled binaries for. If not specified "
@@ -240,9 +238,30 @@ static void setupParser(QCliParser &parser)
 								QStandardPaths::findExecutable(QStringLiteral("qmake"))
 							});
 	generateNode->addOption({
-							   {QStringLiteral("r"), QStringLiteral("recreate")},
-							   QCoreApplication::translate("parser", "Always delete and recreate the file if it exists, not only when the configuration changed."),
+								{QStringLiteral("r"), QStringLiteral("recreate")},
+								QCoreApplication::translate("parser", "Always delete and recreate the file if it exists, not only when the configuration changed."),
 						   });
+
+	//init
+	auto initNode = parser.addLeafNode(QStringLiteral("init"),
+									   QCoreApplication::translate("parser", "Initialize a qpmx based project by downloading and compiling sources, "
+																			 "as well as generation the required includes. Call\n"
+																			 "qpmx init --prepare <path_to_profile>\n"
+																			 "to prepare a pro file to automatically initialize with qmake."));
+	initNode->addOption({
+							QStringLiteral("r"),
+							QCoreApplication::translate("parser", "Pass the -r option to the install, compile and generate commands."),
+					   });
+	initNode->addOption({
+							QStringLiteral("prepare"),
+							QCoreApplication::translate("parser", "Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
+																  "option, no initialization is performed."),
+							QCoreApplication::translate("parser", "pro-file")
+					   });
+	initNode->addPositionalArgument(QStringLiteral("qmake-path"),
+									QCoreApplication::translate("parser", "The path to the qmake to use for compilation of the qpmx dependencies."));
+	initNode->addPositionalArgument(QStringLiteral("outdir"),
+									QCoreApplication::translate("parser", "The directory to generate the files in. Passed to the generate step."));
 }
 
 static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
