@@ -17,7 +17,7 @@ private:
 	bool _cached;
 	QpmxFormat _format;
 
-	void removePkg(const qpmx::PackageInfo &package);
+	void removePkg(qpmx::PackageInfo package);
 };
 
 #endif // UNINSTALLCOMMAND_H

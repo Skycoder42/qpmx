@@ -26,10 +26,6 @@ void UninstallCommand::initialize(QCliParser &parser)
 			PackageInfo info(match.captured(1),
 							 match.captured(2),
 							 QVersionNumber::fromString(match.captured(3)));
-			//TODO ???
-			if(info.provider().isEmpty() ||
-			   info.version().isNull())
-				throw tr("You must specify provider, package name and version to compile explicitly");
 			pkgList.append(info);
 			xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
 						.arg(info.package())
@@ -52,8 +48,34 @@ void UninstallCommand::initialize(QCliParser &parser)
 	}
 }
 
-void UninstallCommand::removePkg(const PackageInfo &package)
+void UninstallCommand::removePkg(PackageInfo package)
 {
+	auto found = false;
+	if(package.provider().isNull()) {
+		foreach(auto dep, _format.dependencies) {
+			if(dep.package == package.package() &&
+			   (package.version().isNull() ||
+				package.version() == dep.version)) {
+				package = dep.pkg();
+				found = true;
+			}
+		}
+
+		if(!found)
+			throw tr("Failed to find a full package in qpmx.json that matches %1").arg(package.toString());
+	} else if(package.version().isNull()) {
+		foreach(auto dep, _format.dependencies) {
+			if(dep.package == package.package() &&
+			   dep.provider == package.provider()) {
+				package = dep.pkg();
+				found = true;
+			}
+		}
+
+		if(!found)
+			throw tr("Failed to find a full package in qpmx.json that matches %1").arg(package.toString());
+	}
+
 	if(!_format.dependencies.removeOne(package))
 		xWarning() << tr("Package %1 not found in qpmx.json").arg(package.toString());
 	else
