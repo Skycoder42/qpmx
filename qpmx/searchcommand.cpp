@@ -33,7 +33,6 @@ void SearchCommand::initialize(QCliParser &parser)
 			xDebug() << tr("Searching providers: %1").arg(providers.join(tr(", ")));
 		}
 
-		QList<PackageInfo> searchResult;
 		foreach(auto provider, providers) {
 			auto plg = registry()->sourcePlugin(provider);
 			auto plgobj = dynamic_cast<QObject*>(plg);

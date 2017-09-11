@@ -40,7 +40,12 @@ protected:
 	PluginRegistry *registry();
 	QSettings *settings();
 
+	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
+	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
+
 	QUuid findKit(const QString &qmake) const;
+
+	void cleanCaches(const qpmx::PackageInfo &package);
 
 	static QDir srcDir();
 	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);

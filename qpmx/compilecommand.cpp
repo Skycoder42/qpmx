@@ -30,27 +30,7 @@ void CompileCommand::initialize(QCliParser &parser)
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
-			auto regex = PackageInfo::packageRegexp();
-			foreach(auto arg, parser.positionalArguments()) {
-				auto match = regex.match(arg);
-				if(!match.hasMatch())
-					throw tr("Malformed package: \"%1\"").arg(arg);
-
-				PackageInfo info(match.captured(1),
-								 match.captured(2),
-								 QVersionNumber::fromString(match.captured(3)));
-				if(info.provider().isEmpty() ||
-				   info.version().isNull())
-					throw tr("You must specify provider, package name and version to compile explicitly");
-				_pkgList.append(info);
-				xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
-							.arg(info.package())
-							.arg(info.version().toString())
-							.arg(info.provider());
-			}
-
-			if(_pkgList.isEmpty())
-				throw tr("You must specify at least one package!");
+			_pkgList = readCliPackages(parser.positionalArguments(), true);
 		} else if(global){
 			auto wDir = srcDir();
 			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
@@ -79,9 +59,9 @@ void CompileCommand::initialize(QCliParser &parser)
 				qApp->quit();
 				return;
 			}
+
 			foreach(auto dep, format.dependencies)
 				_pkgList.append(dep.pkg());
-
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No packages to compile found in qpmx.json. Nothing will be done");
 				qApp->quit();

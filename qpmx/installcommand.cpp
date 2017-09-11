@@ -23,24 +23,7 @@ void InstallCommand::initialize(QCliParser &parser)
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Installing %n package(s) from the command line", "", parser.positionalArguments().size());
-			auto regex = PackageInfo::packageRegexp();
-			foreach(auto arg, parser.positionalArguments()) {
-				auto match = regex.match(arg);
-				if(!match.hasMatch())
-					throw tr("Malformed package: \"%1\"").arg(arg);
-
-				PackageInfo info(match.captured(1),
-								 match.captured(2),
-								 QVersionNumber::fromString(match.captured(3)));
-				_pkgList.append(info);
-				xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
-							.arg(info.package())
-							.arg(info.version().toString())
-							.arg(info.provider());
-			}
-
-			if(_pkgList.isEmpty())
-				throw tr("You must specify at least one package!");
+			_pkgList = depList(readCliPackages(parser.positionalArguments()));
 		} else {
 			auto format = QpmxFormat::readDefault(true);
 			_pkgList = format.dependencies;
@@ -209,21 +192,11 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		return false;
 	}
 
-	auto sDir = srcDir(provider, _current.package, _current.version, false);
+	auto sDir = srcDir(_current.pkg(provider), false);
 	if(sDir.exists()) {
-		if(_renew) {
-			xDebug() << tr("Deleting sources for %1").arg(_current.toString());
-			if(!sDir.removeRecursively())
-				throw tr("Failed to remove old sources for %1").arg(_current.toString());
-
-			//remove compile dirs aswell
-			auto bDir = buildDir();
-			foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
-				auto rDir = buildDir(cmpDir, provider, _current.package, _current.version, false);
-				if(!rDir.removeRecursively())
-					throw tr("Failed to remove old compilation cache for %1").arg(_current.toString());
-			}
-		} else {
+		if(_renew)
+			cleanCaches(_current.pkg(provider));
+		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
 			getNext();
 			return true;

@@ -25,6 +25,43 @@ QSettings *Command::settings()
 	return _settings;
 }
 
+QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
+{
+	QList<PackageInfo> pkgList;
+
+	auto regex = PackageInfo::packageRegexp();
+	foreach(auto arg, arguments) {
+		auto match = regex.match(arg);
+		if(!match.hasMatch())
+			throw tr("Malformed package: \"%1\"").arg(arg);
+
+		PackageInfo info(match.captured(1),
+						 match.captured(2),
+						 QVersionNumber::fromString(match.captured(3)));
+		if(fullPkgOnly &&
+		   (info.provider().isEmpty() ||
+			info.version().isNull()))
+			throw tr("You must specify provider, package name and version to compile explicitly");
+		pkgList.append(info);
+		xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
+					.arg(info.package())
+					.arg(info.version().toString())
+					.arg(info.provider());
+	}
+
+	if(pkgList.isEmpty())
+		throw tr("You must specify at least one package!");
+	return pkgList;
+}
+
+QList<QpmxDependency> Command::depList(const QList<PackageInfo> &pkgList)
+{
+	QList<QpmxDependency> depList;
+	foreach(auto pkg, pkgList)
+		depList.append(pkg);
+	return depList;
+}
+
 QUuid Command::findKit(const QString &qmake) const
 {
 	QUuid id;
@@ -40,6 +77,20 @@ QUuid Command::findKit(const QString &qmake) const
 
 	_settings->endArray();
 	return id;
+}
+
+void Command::cleanCaches(const PackageInfo &package)
+{
+	auto sDir = srcDir(package, false);
+	if(!sDir.removeRecursively())
+		throw tr("Failed to remove source cache for %1").arg(package.toString());
+	auto bDir = buildDir();
+	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+		auto rDir = buildDir(cmpDir, package, false);
+		if(!rDir.removeRecursively())
+			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
+	}
+	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
 
 QDir Command::srcDir()

@@ -16,25 +16,7 @@ void UninstallCommand::initialize(QCliParser &parser)
 			throw tr("You must specify at least 1 package to remove.");
 
 		xDebug() << tr("Uninstalling %n package(s) from the command line", "", parser.positionalArguments().size());
-		QList<PackageInfo> pkgList;
-		auto regex = PackageInfo::packageRegexp();
-		foreach(auto arg, parser.positionalArguments()) {//TODO move to command
-			auto match = regex.match(arg);
-			if(!match.hasMatch())
-				throw tr("Malformed package: \"%1\"").arg(arg);
-
-			PackageInfo info(match.captured(1),
-							 match.captured(2),
-							 QVersionNumber::fromString(match.captured(3)));
-			pkgList.append(info);
-			xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
-						.arg(info.package())
-						.arg(info.version().toString())
-						.arg(info.provider());
-		}
-
-		if(pkgList.isEmpty())
-			throw tr("You must specify at least one package!");
+		auto pkgList = readCliPackages(parser.positionalArguments());
 
 		_format = QpmxFormat::readDefault();
 		foreach(auto pkg, pkgList)
@@ -81,17 +63,6 @@ void UninstallCommand::removePkg(PackageInfo package)
 	else
 		xDebug() << tr("Removed package %1 from qpmx.json").arg(package.toString());
 
-	if(_cached) {
-		//TODO move to command
-		auto sDir = srcDir(package, false);
-		if(!sDir.removeRecursively())
-			throw tr("Failed to remove source cache for %1").arg(package.toString());
-		auto bDir = buildDir();
-		foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
-			auto rDir = buildDir(cmpDir, package, false);
-			if(!rDir.removeRecursively())
-				throw tr("Failed to remove compilation cache for %1").arg(package.toString());
-		}
-		xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());
-	}
+	if(_cached)
+		cleanCaches(package);
 }
