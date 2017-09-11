@@ -36,8 +36,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	generatecommand.h \
 	topsort.h \
 	searchcommand.h \
-    uninstallcommand.h \
-    initcommand.h
+	uninstallcommand.h \
+	initcommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -48,8 +48,8 @@ SOURCES += main.cpp \
 	compilecommand.cpp \
 	generatecommand.cpp \
 	searchcommand.cpp \
-    uninstallcommand.cpp \
-    initcommand.cpp
+	uninstallcommand.cpp \
+	initcommand.cpp
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]
@@ -57,10 +57,7 @@ unix {
 	tHeaders.path = $$[QT_INSTALL_HEADERS]/../qpmx
 	tHeaders.files = $$PUBLIC_HEADERS
 
-	priBase.path = $$[QT_INSTALL_DATA]/../qpmx
-	priBase.files = qpmx.pri
-
-	INSTALLS += target tHeaders priBase
+	INSTALLS += target tHeaders
 }
 
 RESOURCES += \

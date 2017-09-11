@@ -27,4 +27,4 @@ before_install:
 
 script:
   - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh
-  - if [ "$PLATFORM" != "gcc_64" ]; then ./ci/travis_test.sh; fi
+  - if [ "$PLATFORM" != "gcc_64" ]; then ./ci/travis_test.sh sudo; fi

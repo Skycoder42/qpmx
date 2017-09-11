@@ -4,8 +4,13 @@ setlocal
 set qtplatform=%PLATFORM%
 set PATH=C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx;
 
-mkdir build-%qtplatform%/tests
-cd build-%qtplatform%/tests
+:: install plugins into qt
+cd build-%qtplatform%\plugins
+nmake install || exit /B 1
+cd ..\..
+
+mkdir build-%qtplatform%\tests
+cd build-%qtplatform%\tests
 
 C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
 nmake || exit /B 1
