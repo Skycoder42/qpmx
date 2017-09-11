@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QJsonSerializer>
 #include <QSaveFile>
+using namespace qpmx;
 
 QpmxDependency::QpmxDependency() :
 	provider(),
@@ -10,7 +11,7 @@ QpmxDependency::QpmxDependency() :
 	version()
 {}
 
-QpmxDependency::QpmxDependency(const qpmx::PackageInfo &package) :
+QpmxDependency::QpmxDependency(const PackageInfo &package) :
 	provider(package.provider()),
 	package(package.package()),
 	version(package.version())
@@ -28,7 +29,7 @@ QString QpmxDependency::toString(bool scoped) const
 	return pkg().toString(scoped);
 }
 
-qpmx::PackageInfo QpmxDependency::pkg(const QString &provider) const
+PackageInfo QpmxDependency::pkg(const QString &provider) const
 {
 	return {provider.isEmpty() ? this->provider : provider, package, version};
 }

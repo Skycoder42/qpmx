@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "compilecommand.h"
+using namespace qpmx;
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
 

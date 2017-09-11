@@ -1,5 +1,6 @@
 #include "searchcommand.h"
 #include <iostream>
+using namespace qpmx;
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
 
@@ -32,7 +33,7 @@ void SearchCommand::initialize(QCliParser &parser)
 			xDebug() << tr("Searching providers: %1").arg(providers.join(tr(", ")));
 		}
 
-		QList<qpmx::PackageInfo> searchResult;
+		QList<PackageInfo> searchResult;
 		foreach(auto provider, providers) {
 			auto plg = registry()->sourcePlugin(provider);
 			auto plgobj = dynamic_cast<QObject*>(plg);
@@ -85,7 +86,7 @@ void SearchCommand::printResult()
 		QStringList resList;
 		foreach(auto res, _searchResults) {
 			foreach(auto pkg, res.second)
-				resList.append(qpmx::PackageInfo(res.first, pkg).toString(false));
+				resList.append(PackageInfo(res.first, pkg).toString(false));
 		}
 		print(resList.join(QLatin1Char(' ')));
 	} else {

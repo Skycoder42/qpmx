@@ -1,4 +1,5 @@
 #include "generatecommand.h"
+using namespace qpmx;
 
 GenerateCommand::GenerateCommand(QObject *parent) :
 	Command(parent),

@@ -42,7 +42,8 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
-	QHash<QProcess*, std::tuple<int, Mode, QDir, QString>> _processCache;
+	typedef std::tuple<int, Mode, QDir, QString> tpl;
+	QHash<QProcess*, tpl> _processCache;
 
 	QDir createLogDir(const QString &action);
 	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);

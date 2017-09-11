@@ -151,9 +151,9 @@ QString CompileCommand::stage()
 
 void CompileCommand::depCollect()
 {
-	TopSort<qpmx::PackageInfo> sortHelper(_pkgList);
+	TopSort<PackageInfo> sortHelper(_pkgList);
 
-	QQueue<qpmx::PackageInfo> queue;
+	QQueue<PackageInfo> queue;
 	foreach(auto pkg, _pkgList)
 		queue.enqueue(pkg);
 

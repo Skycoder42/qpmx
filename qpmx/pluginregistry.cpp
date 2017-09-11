@@ -6,6 +6,7 @@
 #include <QTranslator>
 #include <QCoreApplication>
 #include "command.h"
+using namespace qpmx;
 
 PluginRegistry::PluginRegistry(QObject *parent) :
 	QObject(parent)
@@ -17,7 +18,7 @@ QStringList PluginRegistry::providerNames()
 	return _srcCache.keys();
 }
 
-qpmx::SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
+SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 {
 	initSrcCache();
 
@@ -32,7 +33,7 @@ qpmx::SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 				.arg(loader->errorString());
 	}
 
-	auto srcPlg = qobject_cast<qpmx::SourcePlugin*>(instance);
+	auto srcPlg = qobject_cast<SourcePlugin*>(instance);
 	if(!srcPlg)
 		throw tr("Plugin \"%1\" is not a qpmx::SourcePlugin").arg(loader->fileName());
 	return srcPlg;

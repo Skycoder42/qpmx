@@ -3,6 +3,7 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
+using namespace qpmx;
 
 Command::Command(QObject *parent) :
 	QObject(parent),
@@ -50,7 +51,7 @@ QDir Command::srcDir()
 	return dir;
 }
 
-QDir Command::srcDir(const qpmx::PackageInfo &package, bool mkDir)
+QDir Command::srcDir(const PackageInfo &package, bool mkDir)
 {
 	return srcDir(package.provider(), package.package(), package.version(), mkDir);
 }
@@ -83,7 +84,7 @@ QDir Command::buildDir(const BuildId &kitId)
 	return dir;
 }
 
-QDir Command::buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir)
+QDir Command::buildDir(const BuildId &kitId, const PackageInfo &package, bool mkDir)
 {
 	return buildDir(kitId, package.provider(), package.package(), package.version(), mkDir);
 }

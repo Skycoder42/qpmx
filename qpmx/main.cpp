@@ -4,6 +4,7 @@
 #include "listcommand.h"
 #include "searchcommand.h"
 #include "installcommand.h"
+#include "uninstallcommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
 
@@ -85,6 +86,8 @@ int main(int argc, char *argv[])
 		cmd = new SearchCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("install")))
 		cmd = new InstallCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("uninstall")))
+		cmd = new UninstallCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("compile")))
 		cmd = new CompileCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("generate")))
@@ -179,6 +182,17 @@ static void setupParser(QCliParser &parser)
 																			 "If left empty, all providers are searched for the package. If the version is left out, "
 																			 "the latest version is installed."),
 									   QStringLiteral("[<provider>::]<package>[@<version>] ..."));
+
+	//uninstall
+	auto uninstallNode = parser.addLeafNode(QStringLiteral("uninstall"),
+											QCoreApplication::translate("parser", "Uninstall a qpmx package from the current project."));
+	uninstallNode->addOption({
+								 {QStringLiteral("c"), QStringLiteral("cached")},
+								 QCoreApplication::translate("parser", "Not only remove the dependency from the qpmx.json, but remove all cached sources and compiled libraries.")
+							 });
+	uninstallNode->addPositionalArgument(QStringLiteral("packages"),
+										 QCoreApplication::translate("parser", "The packages to remove from the qpmx.json."),
+										 QStringLiteral("<package> ..."));
 
 	//compile
 	auto compileNode = parser.addLeafNode(QStringLiteral("compile"),

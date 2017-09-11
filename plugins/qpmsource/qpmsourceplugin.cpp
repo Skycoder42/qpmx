@@ -43,7 +43,7 @@ void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 							  };
 
 		auto proc = createProcess(QStringLiteral("search"), arguments);
-		_processCache.insert(proc, {requestId, Search, {}, {}});
+		_processCache.insert(proc, tpl{requestId, Search, {}, {}});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -62,7 +62,7 @@ void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 							  };
 
 		auto proc = createProcess(QStringLiteral("search"), arguments);
-		_processCache.insert(proc, {requestId, Version, {}, {}});
+		_processCache.insert(proc, tpl{requestId, Version, {}, {}});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -85,7 +85,7 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 
 		auto proc = createProcess(QStringLiteral("install"), arguments);
 		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
-		_processCache.insert(proc, {requestId, Install, targetDir, package.package()});
+		_processCache.insert(proc, tpl{requestId, Install, targetDir, package.package()});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -99,7 +99,7 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, {-1, Search, {}, {}});
+		auto data = _processCache.value(proc, tpl{-1, Search, {}, {}});
 		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
 			switch (std::get<1>(data)) {
@@ -125,7 +125,7 @@ void QpmSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, {-1, Search, {}, {}});
+	auto data = _processCache.value(proc, tpl{-1, Search, {}, {}});
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
 		switch (std::get<1>(data)) {
