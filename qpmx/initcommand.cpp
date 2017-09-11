@@ -53,6 +53,8 @@ void InitCommand::initialize(QCliParser &parser)
 		runArgs = baseArguments;
 		runArgs.append({
 						   QStringLiteral("generate"),
+						   QStringLiteral("--qmake"),
+						   qmake,
 						   outdir
 					   });
 		exec(QStringLiteral("generate"), runArgs);
