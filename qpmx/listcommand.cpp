@@ -31,12 +31,19 @@ void ListCommand::listProviders(const QCliParser &parser)
 	if(parser.isSet(QStringLiteral("short")))
 		print(registry()->providerNames().join(QLatin1Char(' ')));
 	else {
-		print(QStringLiteral(" %1 | Package syntax").arg(QStringLiteral("Provider"), -28));
-		print(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
+		print(tr(" %1 | %2 | %3 ")
+			  .arg(tr("Provider"), -10)
+			  .arg(tr("Can Search"), -12)
+			  .arg(tr("Package Syntax")));
+		print(tr("-")
+			  .repeated(80)
+			  .replace(12, 1, QLatin1Char('|'))
+			  .replace(27, 1, QLatin1Char('|')));
 		foreach(auto provider, registry()->providerNames()) {
 			auto plugin = registry()->sourcePlugin(provider);
-			print(QStringLiteral(" %1 | %2")
-				  .arg(provider, -28)
+			print(tr(" %1 | %2 | %3 ")
+				  .arg(provider, -10)
+				  .arg(plugin->canSearch() ? tr("yes") : tr("no"), -12)
 				  .arg(plugin->packageSyntax(provider)));
 		}
 	}
@@ -52,15 +59,22 @@ void ListCommand::listKits(const QCliParser &parser)
 			paths.append(kit.path);
 		print(paths.join(QLatin1Char(' ')));
 	} else {
-		print(QStringLiteral(" Qt    | qmake | xspec      | qmake path"));
-		print(QString(QStringLiteral("-").repeated(7) + QLatin1Char('|')).repeated(2) +
-			  QStringLiteral("-").repeated(12) + QLatin1Char('|') +
-			  QStringLiteral("-").repeated(51));
+		print(tr(" %1 | %2 | %3 | %4 ")
+			  .arg(tr("Qt"), -5)
+			  .arg(tr("qmake"), -5)
+			  .arg(tr("xspec"), -15)
+			  .arg(tr("qmake path")));
+		print(tr("-")
+			  .repeated(80)
+			  .replace(7, 1, QLatin1Char('|'))
+			  .replace(15, 1, QLatin1Char('|'))
+			  .replace(33, 1, QLatin1Char('|')));
+
 		foreach(auto kit, kits) {
-			print(QStringLiteral(" %1 | %2 | %3 | %4")
+			print(tr(" %1 | %2 | %3 | %4 ")
 				  .arg(kit.qtVer.toString(), -5)
 				  .arg(kit.qmakeVer.toString(), -5)
-				  .arg(kit.xspec, -10)
+				  .arg(kit.xspec, -15)
 				  .arg(kit.path));
 		}
 	}
