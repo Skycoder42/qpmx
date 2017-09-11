@@ -17,3 +17,4 @@ install:
 
 build_script:
   - .\qtmodules-travis\ci\win\build.bat
+  - .\ci\appveyor_test.bat

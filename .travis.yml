@@ -22,7 +22,9 @@ matrix:
 
 before_install:
   - git clone https://github.com/Skycoder42/QtModules.git ./qtmodules-travis
+  - if [ "$PLATFORM" == "gcc_64" ]; then ./ci/travis_init.sh; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then travis_wait 40 ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; else ./qtmodules-travis/ci/$TRAVIS_OS_NAME/setup.sh; fi
 
 script:
   - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh
+  - if [ "$PLATFORM" != "gcc_64" ]; then ./ci/travis_test.sh; fi
