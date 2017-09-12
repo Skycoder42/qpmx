@@ -1,5 +1,4 @@
 :: build
-@echo on
 setlocal
 
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
@@ -8,6 +7,7 @@ set qtplatform=%PLATFORM%
 set PATH=C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx;
 
 :: install plugins into qt
+@echo on
 dir
 cd build-%qtplatform%
 dir
