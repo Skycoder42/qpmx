@@ -29,12 +29,17 @@ private:
 	QpmxDependency _current;
 
 	struct SrcAction {
+		enum ResType {
+			Version,
+			Install,
+			Exists
+		} type;
 		QString provider;
 		QSharedPointer<QTemporaryDir> tDir;
 		bool mustWork;
 		qpmx::SourcePlugin *plugin;
 
-		SrcAction(QString provider = {}, QTemporaryDir *tDir = nullptr, bool mustWork = false, qpmx::SourcePlugin *plugin = nullptr);
+		SrcAction(ResType type = Install, QString provider = {}, QTemporaryDir *tDir = nullptr, bool mustWork = false, qpmx::SourcePlugin *plugin = nullptr);
 		operator bool() const;
 	};
 
@@ -43,11 +48,12 @@ private:
 	QSet<qpmx::SourcePlugin*> _connectCache;
 
 	void getNext();
-	int randId();
-	void connectPlg(qpmx::SourcePlugin *plugin);
-	bool getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
+	void getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
 	void completeInstall();
+
+	int randId();
+	void connectPlg(qpmx::SourcePlugin *plugin);
 	void createSrcInclude(const QpmxFormat &format);
 };
 

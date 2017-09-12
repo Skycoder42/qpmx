@@ -55,6 +55,10 @@ public:
 				*d == *other.d;
 	}
 
+	inline bool operator!=(const PackageInfo &other) const {
+		return !operator ==(other);
+	}
+
 private:
 	struct Data : public QSharedData {
 		QString provider;
@@ -83,6 +87,12 @@ private:
 
 	QSharedDataPointer<Data> d;
 };
+
+inline uint qHash(const PackageInfo &t, uint seed) {
+	return qHash(t.provider(), seed) ^
+			qHash(t.package(), seed) ^
+			qHash(t.version(), seed);
+}
 
 }
 

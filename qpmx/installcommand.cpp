@@ -50,12 +50,14 @@ void InstallCommand::sourceFetched(int requestId)
 		if(!data)
 			return;
 
-		if(data.mustWork)
-			xDebug() << tr("Downloaded sources for %1").arg(_current.toString());
-		else {
-			xDebug() << tr("Downloaded sources for %1 from provider \"%3\"")
-						.arg(_current.toString())
-						.arg(data.provider);
+		if(data.type != SrcAction::Exists) {
+			if(data.mustWork)
+				xDebug() << tr("Downloaded sources for %1").arg(_current.toString());
+			else {
+				xDebug() << tr("Downloaded sources for %1 from provider \"%3\"")
+							.arg(_current.toString())
+							.arg(data.provider);
+			}
 		}
 
 		_resCache.append(data);
@@ -101,6 +103,10 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 	if(!data)
 		return;
 
+	//unlock source, as it is not used anymore
+	if(data.type == SrcAction::Install)
+		unlock(Install, _current.pkg(data.provider));
+
 	auto str = tr("Failed to get sources for %1 from provider \"%2\" with error: %3")
 			   .arg(_current.toString())
 			   .arg(data.provider)
@@ -133,8 +139,7 @@ void InstallCommand::getNext()
 			auto plugin = registry()->sourcePlugin(prov);
 			if(plugin->packageValid(_current.pkg(prov))) {
 				any = true;
-				if(getSource(prov, plugin, false))
-					break;
+				getSource(prov, plugin, false);
 			}
 		}
 
@@ -154,43 +159,19 @@ void InstallCommand::getNext()
 	}
 }
 
-int InstallCommand::randId()
-{
-	int id;
-	do {
-		id = qrand();
-	} while(_actionCache.contains(id));
-	return id;
-}
-
-void InstallCommand::connectPlg(SourcePlugin *plugin)
-{
-	if(_connectCache.contains(plugin))
-	   return;
-
-	auto plgobj = dynamic_cast<QObject*>(plugin);
-	connect(plgobj, SIGNAL(sourceFetched(int)),
-			this, SLOT(sourceFetched(int)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(versionResult(int,QVersionNumber)),
-			this, SLOT(versionResult(int,QVersionNumber)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(sourceError(int,QString)),
-			this, SLOT(sourceError(int,QString)),
-			Qt::QueuedConnection);
-	_connectCache.insert(plugin);
-}
-
-bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
+void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
 	if(_current.version.isNull()) {
 		//use the latest version -> query for it
 		auto id = randId();
-		_actionCache.insert(id, {provider, nullptr, mustWork, plugin});
+		_actionCache.insert(id, {SrcAction::Version, provider, nullptr, mustWork, plugin});
 		connectPlg(plugin);
 		plugin->findPackageVersion(id, _current.pkg(provider));
-		return false;
+		return;
 	}
+
+	//aquire the lock for the package
+	lock(Install, _current.pkg(provider));
 
 	auto sDir = srcDir(_current.pkg(provider), false);
 	if(sDir.exists()) {
@@ -198,8 +179,14 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			cleanCaches(_current.pkg(provider));
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
-			getNext();
-			return true;
+			unlock(Install, _current.pkg(provider));
+
+			//trick: add the request and then trigger the fetched slot to simulate a download
+			auto id = randId();
+			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
+			QMetaObject::invokeMethod(this, "sourceFetched", Qt::QueuedConnection,
+									  Q_ARG(int, id));
+			return;
 		}
 	}
 
@@ -208,10 +195,10 @@ bool InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
 	auto id = randId();
-	_actionCache.insert(id, {provider, tDir, mustWork, plugin});
+	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin});
 	connectPlg(plugin);
 	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
-	return false;
+	return;
 }
 
 void InstallCommand::completeSource()
@@ -237,9 +224,11 @@ void InstallCommand::completeSource()
 		_current.provider = data.provider;
 		_pkgList[_pkgIndex] = _current;
 
-		//no tDir means no download yet, only version check. thus, download!
-		if(!data.tDir) {
+		if(data.type == SrcAction::Version) {//Only version check. thus, download!
 			getSource(data.provider, data.plugin, data.mustWork);
+			return;
+		} else if(data.type == SrcAction::Exists) {//Exists -> finished
+			getNext();
 			return;
 		}
 
@@ -288,6 +277,7 @@ void InstallCommand::completeSource()
 			}
 		}
 
+		unlock(Install, _current.pkg(data.provider));
 		xInfo() << tr("Installed package %1").arg(_current.toString());
 		getNext();
 	} catch(QString &s) {
@@ -311,6 +301,33 @@ void InstallCommand::completeInstall()
 	}
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
+}
+
+int InstallCommand::randId()
+{
+	int id;
+	do {
+		id = qrand();
+	} while(_actionCache.contains(id));
+	return id;
+}
+
+void InstallCommand::connectPlg(SourcePlugin *plugin)
+{
+	if(_connectCache.contains(plugin))
+	   return;
+
+	auto plgobj = dynamic_cast<QObject*>(plugin);
+	connect(plgobj, SIGNAL(sourceFetched(int)),
+			this, SLOT(sourceFetched(int)),
+			Qt::QueuedConnection);
+	connect(plgobj, SIGNAL(versionResult(int,QVersionNumber)),
+			this, SLOT(versionResult(int,QVersionNumber)),
+			Qt::QueuedConnection);
+	connect(plgobj, SIGNAL(sourceError(int,QString)),
+			this, SLOT(sourceError(int,QString)),
+			Qt::QueuedConnection);
+	_connectCache.insert(plugin);
 }
 
 void InstallCommand::createSrcInclude(const QpmxFormat &format)
@@ -338,7 +355,8 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 
 
 
-InstallCommand::SrcAction::SrcAction(QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin) :
+InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin) :
+	type(type),
 	provider(provider),
 	tDir(tDir),
 	mustWork(mustWork),

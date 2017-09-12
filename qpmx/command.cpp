@@ -8,12 +8,22 @@ using namespace qpmx;
 Command::Command(QObject *parent) :
 	QObject(parent),
 	_registry(new PluginRegistry(this)),
-	_settings(new QSettings(this))
+	_settings(new QSettings(this)),
+	_locks()
 {
 	qsrand(QDateTime::currentMSecsSinceEpoch());
 }
 
-void Command::finalize() {}
+void Command::finalize()
+{
+	for(auto it = _locks.begin(); it != _locks.end(); it++) {
+		xDebug() << QStringLiteral("Freeing remaining lock fro %1/%2")
+					.arg(QString::fromUtf8(QMetaEnum::fromType<GlobalOperationType>().valueToKey(it.key().first)))
+					.arg(it.key().second.toString());
+		it.value()->release();
+		delete it.value();
+	}
+}
 
 PluginRegistry *Command::registry()
 {
@@ -23,6 +33,46 @@ PluginRegistry *Command::registry()
 QSettings *Command::settings()
 {
 	return _settings;
+}
+
+void Command::lock(Command::GlobalOperationType type, const PackageInfo &package)
+{
+	auto typeName = QString::fromUtf8(QMetaEnum::fromType<GlobalOperationType>().valueToKey(type));
+
+	if(_locks.contains({type, package}))
+		throw tr("Resource %1/%2 has already been locked").arg(typeName).arg(package.toString());
+
+	if(package.provider().isEmpty() ||
+		package.version().isNull())
+		throw tr("Semaphores require full packages");
+	auto name = QStringLiteral("%1/%2")
+				.arg(typeName)
+				.arg(package.toString(false));
+	auto sem = new QSystemSemaphore(name, 1, QSystemSemaphore::Open);
+	if(sem->error() != QSystemSemaphore::NoError)
+		throw tr("Failed to create semaphore with error: %1").arg(sem->errorString());
+
+	sem->acquire();
+	_locks.insert({type, package}, sem);
+}
+
+void Command::lock(Command::GlobalOperationType type, const QpmxDependency &dep)
+{
+	lock(type, dep.pkg());
+}
+
+void Command::unlock(Command::GlobalOperationType type, const PackageInfo &package)
+{
+	auto sem = _locks.take({type, package});
+	if(sem) {
+		sem->release();
+		delete sem;
+	}
+}
+
+void Command::unlock(Command::GlobalOperationType type, const QpmxDependency &dep)
+{
+	unlock(type, dep.pkg());
 }
 
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
