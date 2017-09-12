@@ -22,6 +22,9 @@ set +e
 echo after qmake
 for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
 	ls -lsa $log
+	cat $log/qmake.stdout.log
+	cat $log/qmake.stderr.log
+	cat $log/make.stdout.log
 	cat $log/make.stderr.log
 done
 
