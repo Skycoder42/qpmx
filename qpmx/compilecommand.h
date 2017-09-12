@@ -39,7 +39,8 @@ public:
 		QMake,
 		Make,
 		Install,
-		PriGen
+		PriGen,
+		Dummy
 	};
 	Q_ENUM(Stage)
 

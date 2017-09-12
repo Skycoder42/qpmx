@@ -114,7 +114,7 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 
 QString CompileCommand::stage()
 {
-	switch (_stage) {
+	switch (_stage - 1) {
 	case QMake:
 		return tr("qmake");
 	case Make:
@@ -208,25 +208,26 @@ void CompileCommand::makeStep()
 	try {
 		switch (_stage) {
 		case QMake:
+			_stage = Make;
 			xDebug() << tr("Beginning compilation of %1 with qmake \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
 			qmake();
-			_stage = Make;
 			break;
 		case Make:
+			_stage = Install;
 			xDebug() << tr("Completed qmake for %1. Continuing with compile (make)")
 						.arg(_current.toString());
 			make();
-			_stage = Install;
 			break;
 		case Install:
+			_stage = PriGen;
 			xDebug() << tr("Completed compile (make) for %1. Installing to cache directory")
 						.arg(_current.toString());
 			install();
-			_stage = PriGen;
 			break;
 		case PriGen:
+			_stage = Dummy;
 			priGen();
 			xDebug() << tr("Completed installation for \"%1\"")
 						.arg(_current.toString());
