@@ -17,4 +17,7 @@ isEmpty(PUBLIC_HEADERS): PUBLIC_HEADERS = $$HEADERS
 target.path = $$QPMX_INSTALL_LIB
 headers.files = $$PUBLIC_HEADERS
 headers.path = $$QPMX_INSTALL_INC
-INSTALLS += target headers
+
+INSTALLS += headers
+isEmpty(SOURCES):isEmpty(GENERATED_SOURCES):write_file($$OUT_PWD/.no_sources_detected)
+else: INSTALLS += target

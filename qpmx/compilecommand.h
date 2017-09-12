@@ -66,6 +66,7 @@ private:
 	QpmxFormat _format;
 	Stage _stage;
 	QProcess *_process;
+	bool _hasBinary;
 
 	QString stage();
 

@@ -19,7 +19,8 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_compileDir(nullptr),
 	_format(),
 	_stage(None),
-	_process(nullptr)
+	_process(nullptr),
+	_hasBinary(true)
 {}
 
 void CompileCommand::initialize(QCliParser &parser)
@@ -285,11 +286,20 @@ void CompileCommand::qmake()
 
 void CompileCommand::make()
 {
-	//just run make
-	initProcess();
-	_process->setProgram(findMake());
-	_process->setWorkingDirectory(_compileDir->path());
-	_process->start();
+	//check if anything is to be compiled
+	if(QFile::exists(_compileDir->filePath(QStringLiteral(".no_sources_detected")))) {
+		//skip to the install step, and cache information for generatePri
+		xDebug() << tr("No sources to compile detected. skipping make step");
+		_hasBinary = false;
+		makeStep();
+	} else {
+		_hasBinary = true;
+		//just run make
+		initProcess();
+		_process->setProgram(findMake());
+		_process->setWorkingDirectory(_compileDir->path());
+		_process->start();
+	}
 }
 
 void CompileCommand::install()
@@ -320,11 +330,13 @@ void CompileCommand::priGen()
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
 	stream << "\t#includes\n"
-		   << "\tINCLUDEPATH += \"$$PWD/include\"\n"
-		   << "\t#lib\n"
-		   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
-		   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
-		   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+		   << "\tINCLUDEPATH += \"$$PWD/include\"\n";
+	if(_hasBinary) {
+		stream << "\t#lib\n"
+			   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
+			   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
+			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+	}
 	if(!_format.prcFile.isEmpty()) {
 		stream << "\n\t#prc include\n"
 			   << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
