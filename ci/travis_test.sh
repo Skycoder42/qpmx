@@ -16,18 +16,16 @@ mkdir build-$PLATFORM/tests
 cd build-$PLATFORM/tests
 
 set +e
-/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/ || true
+/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
 
-
-echo after qmake
 for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
-	ls -lsa $log
 	cat $log/qmake.stdout.log
 	cat $log/qmake.stderr.log
 	cat $log/make.stdout.log
 	cat $log/make.stderr.log
+	cat $log/install.stdout.log
+	cat $log/install.stderr.log
 done
 
 make
-
 QT_QPA_PLATFORM=minimal ./test
