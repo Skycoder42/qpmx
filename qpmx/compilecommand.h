@@ -78,6 +78,8 @@ private:
 	void install();
 	void priGen();
 
+	QString findMake();
+
 	void initKits(const QStringList &qmakes);
 	QtKitInfo createKit(const QString &qmakePath);
 	QtKitInfo updateKit(QtKitInfo oldKit, bool mustWork);

@@ -287,7 +287,7 @@ void CompileCommand::make()
 {
 	//just run make
 	initProcess();
-	_process->setProgram(QStandardPaths::findExecutable(QStringLiteral("make")));
+	_process->setProgram(findMake());
 	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }
@@ -296,7 +296,7 @@ void CompileCommand::install()
 {
 	//just run make install
 	initProcess();
-	_process->setProgram(QStandardPaths::findExecutable(QStringLiteral("make")));
+	_process->setProgram(findMake());
 	_process->setArguments({QStringLiteral("install")});
 	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
@@ -332,6 +332,22 @@ void CompileCommand::priGen()
 	stream << "}\n";
 	stream.flush();
 	metaFile.close();
+}
+
+QString CompileCommand::findMake()
+{
+	QString make;
+
+	if(make.isEmpty() && _kit.xspec.contains(QStringLiteral("msvc")))
+		make = QStandardPaths::findExecutable(QStringLiteral("nmake"));
+	if(make.isEmpty() && _kit.xspec == QStringLiteral("win32-g++"))
+		make = QStandardPaths::findExecutable(QStringLiteral("mingw32-make"));
+
+	if(make.isEmpty())
+		make = QStandardPaths::findExecutable(QStringLiteral("make"));
+	if(make.isEmpty())
+		throw tr("Unable to find make executable. Make shure make can be found in your path");
+	return make;
 }
 
 void CompileCommand::initKits(const QStringList &qmakes)
