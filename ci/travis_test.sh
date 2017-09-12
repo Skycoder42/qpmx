@@ -18,4 +18,4 @@ cd build-$PLATFORM/tests
 /opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
 make
 
-QT_QPA_PLATFORM=minimal ./test
+QT_QPA_PLATFORM=minimal ./test || (for log in $(find /var/folders/bb/ -iname "*qpmx*"); do cat $log; done && exit 1)

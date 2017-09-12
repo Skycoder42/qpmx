@@ -7,7 +7,13 @@ set qtplatform=%PLATFORM%
 set PATH=C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx;
 
 :: install plugins into qt
-cd build-%qtplatform%\plugins
+dir
+cd build-%qtplatform%
+dir
+cd plugins
+dir
+
+:: cd build-%qtplatform%\plugins
 nmake install || exit /B 1
 cd ..\..
 
