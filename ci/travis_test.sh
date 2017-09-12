@@ -19,7 +19,12 @@ cd build-$PLATFORM/tests
 make
 
 set +e
-QT_QPA_PLATFORM=minimal ./test && exit 0
+QT_QPA_PLATFORM=minimal ./test || true
+echo after qmake
+
+find /var/folders/bb/ -iname "*qpmx*"
+dir /var/folders/bb/*/T/qpmx-Bmjbnz
+cat /var/folders/bb/*/T/qpmx-Bmjbnz/make.stderr.log
 
 for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
 	cat $log/make.stderr.log
