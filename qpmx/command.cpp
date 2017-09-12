@@ -18,8 +18,8 @@ void Command::finalize()
 {
 	for(auto it = _locks.begin(); it != _locks.end(); it++) {
 		xDebug() << QStringLiteral("Freeing remaining lock fro %1/%2")
-					.arg(QString::fromUtf8(QMetaEnum::fromType<GlobalOperationType>().valueToKey(it.key().first)))
-					.arg(it.key().second.toString());
+					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))
+					.arg(it.key().second);
 		it.value()->release();
 		delete it.value();
 	}
@@ -35,44 +35,50 @@ QSettings *Command::settings()
 	return _settings;
 }
 
-void Command::lock(Command::GlobalOperationType type, const PackageInfo &package)
+void Command::srcLock(const PackageInfo &package)
 {
-	auto typeName = QString::fromUtf8(QMetaEnum::fromType<GlobalOperationType>().valueToKey(type));
-
-	if(_locks.contains({type, package}))
-		throw tr("Resource %1/%2 has already been locked").arg(typeName).arg(package.toString());
-
 	if(package.provider().isEmpty() ||
 		package.version().isNull())
 		throw tr("Semaphores require full packages");
-	auto name = QStringLiteral("%1/%2")
-				.arg(typeName)
-				.arg(package.toString(false));
-	auto sem = new QSystemSemaphore(name, 1, QSystemSemaphore::Open);
-	if(sem->error() != QSystemSemaphore::NoError)
-		throw tr("Failed to create semaphore with error: %1").arg(sem->errorString());
-
-	sem->acquire();
-	_locks.insert({type, package}, sem);
+	lock(true, package.toString(false));
 }
 
-void Command::lock(Command::GlobalOperationType type, const QpmxDependency &dep)
+void Command::srcLock(const QpmxDependency &dep)
 {
-	lock(type, dep.pkg());
+	srcLock(dep.pkg());
 }
 
-void Command::unlock(Command::GlobalOperationType type, const PackageInfo &package)
+void Command::srcUnlock(const PackageInfo &package)
 {
-	auto sem = _locks.take({type, package});
-	if(sem) {
-		sem->release();
-		delete sem;
-	}
+	unlock(true, package.toString(false));
 }
 
-void Command::unlock(Command::GlobalOperationType type, const QpmxDependency &dep)
+void Command::srcUnlock(const QpmxDependency &dep)
 {
-	unlock(type, dep.pkg());
+	srcUnlock(dep.pkg());
+}
+
+void Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package)
+{
+	if(package.provider().isEmpty() ||
+		package.version().isNull())
+		throw tr("Semaphores require full packages");
+	lock(false, QStringLiteral("%1/%2").arg(kitId).arg(package.toString(false)));
+}
+
+void Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep)
+{
+	buildLock(kitId, dep.pkg());
+}
+
+void Command::buildUnlock(const Command::BuildId &kitId, const PackageInfo &package)
+{
+	unlock(false, QStringLiteral("%1/%2").arg(kitId).arg(package.toString(false)));
+}
+
+void Command::buildUnlock(const Command::BuildId &kitId, const QpmxDependency &dep)
+{
+	buildUnlock(kitId, dep.pkg());
 }
 
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
@@ -246,5 +252,32 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 		}
 
 		return QDir(dir.absoluteFilePath(path));
+	}
+}
+
+void Command::lock(bool isSource, const QString &key)
+{
+	auto prefix = isSource ? QStringLiteral("src") : QStringLiteral("build");
+	if(_locks.contains({isSource, key})){
+		throw tr("Resource \"%1/%2\" has already been locked")
+				.arg(prefix)
+				.arg(key);
+	}
+
+	auto name = QStringLiteral("%1/%2").arg(prefix).arg(key);
+	auto sem = new QSystemSemaphore(name, 1, QSystemSemaphore::Open);
+	if(sem->error() != QSystemSemaphore::NoError)
+		throw tr("Failed to create semaphore with error: %1").arg(sem->errorString());
+
+	sem->acquire();
+	_locks.insert({isSource, key}, sem);
+}
+
+void Command::unlock(bool isSource, const QString &key)
+{
+	auto sem = _locks.take({isSource, key});
+	if(sem) {
+		sem->release();
+		delete sem;
 	}
 }

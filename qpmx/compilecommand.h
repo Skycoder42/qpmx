@@ -39,7 +39,7 @@ public:
 		None,
 		QMake,
 		Make,
-		Install,
+		Source,
 		PriGen
 	};
 	Q_ENUM(Stage)
@@ -68,10 +68,6 @@ private:
 	QProcess *_process;
 	bool _hasBinary;
 
-	QString stage();
-
-	void depCollect();
-
 	void compileNext();
 	void makeStep();
 	void qmake();
@@ -79,12 +75,14 @@ private:
 	void install();
 	void priGen();
 
+	QString stage();
+	void depCollect();
 	QString findMake();
+	void initProcess();
 
 	void initKits(const QStringList &qmakes);
 	QtKitInfo createKit(const QString &qmakePath);
 	QtKitInfo updateKit(QtKitInfo oldKit, bool mustWork);
-	void initProcess();
 };
 
 #endif // COMPILECOMMAND_H

@@ -105,7 +105,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 
 	//unlock source, as it is not used anymore
 	if(data.type == SrcAction::Install)
-		unlock(Install, _current.pkg(data.provider));
+		srcUnlock(_current.pkg(data.provider));
 
 	auto str = tr("Failed to get sources for %1 from provider \"%2\" with error: %3")
 			   .arg(_current.toString())
@@ -171,7 +171,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	}
 
 	//aquire the lock for the package
-	lock(Install, _current.pkg(provider));
+	srcLock(_current.pkg(provider));
 
 	auto sDir = srcDir(_current.pkg(provider), false);
 	if(sDir.exists()) {
@@ -179,7 +179,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			cleanCaches(_current.pkg(provider));
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
-			unlock(Install, _current.pkg(provider));
+			srcUnlock(_current.pkg(provider));
 
 			//trick: add the request and then trigger the fetched slot to simulate a download
 			auto id = randId();
@@ -277,7 +277,7 @@ void InstallCommand::completeSource()
 			}
 		}
 
-		unlock(Install, _current.pkg(data.provider));
+		srcUnlock(_current.pkg(data.provider));
 		xInfo() << tr("Installed package %1").arg(_current.toString());
 		getNext();
 	} catch(QString &s) {

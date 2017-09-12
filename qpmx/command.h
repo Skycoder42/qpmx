@@ -18,12 +18,6 @@ class Command : public QObject
 	Q_OBJECT
 
 public:
-	enum GlobalOperationType {
-		Install,
-		Compile
-	};
-	Q_ENUM(GlobalOperationType)
-
 	explicit Command(QObject *parent = nullptr);
 
 public slots:
@@ -47,13 +41,15 @@ protected:
 	PluginRegistry *registry();
 	QSettings *settings();
 
-	void lock(GlobalOperationType type, const qpmx::PackageInfo &package);
-	void lock(GlobalOperationType type, const QpmxDependency &dep);
-	void unlock(GlobalOperationType type, const qpmx::PackageInfo &package);
-	void unlock(GlobalOperationType type, const QpmxDependency &dep);
+	void srcLock(const qpmx::PackageInfo &package);
+	void srcLock(const QpmxDependency &dep);
+	void srcUnlock(const qpmx::PackageInfo &package);
+	void srcUnlock(const QpmxDependency &dep);
 
-	QSharedPointer<QSystemSemaphore> semaphore(GlobalOperationType type, const qpmx::PackageInfo &package);
-	QSharedPointer<QSystemSemaphore> semaphore(GlobalOperationType type, const QpmxDependency &package);
+	void buildLock(const BuildId &kitId, const qpmx::PackageInfo &package);
+	void buildLock(const BuildId &kitId, const QpmxDependency &dep);
+	void buildUnlock(const BuildId &kitId, const qpmx::PackageInfo &package);
+	void buildUnlock(const BuildId &kitId, const QpmxDependency &dep);
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
@@ -78,9 +74,11 @@ protected:
 private:
 	PluginRegistry *_registry;
 	QSettings *_settings;
-	QHash<QPair<GlobalOperationType, qpmx::PackageInfo>, QSystemSemaphore*> _locks;
+	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
 
 	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
+	void lock(bool isSource, const QString &key);
+	void unlock(bool isSource, const QString &key);
 };
 
 #define xDebug(...) qDebug(__VA_ARGS__).noquote()

@@ -113,52 +113,6 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 	_process = nullptr;
 }
 
-QString CompileCommand::stage()
-{
-	switch (_stage) {
-	case None:
-		return tr("none");
-	case QMake:
-		return tr("qmake");
-	case Make:
-		return tr("make");
-	case Install:
-		return tr("install");
-	case PriGen:
-		return tr("pri-generate");
-	default:
-		Q_UNREACHABLE();
-		return {};
-	}
-}
-
-void CompileCommand::depCollect()
-{
-	TopSort<PackageInfo> sortHelper(_pkgList);
-
-	QQueue<PackageInfo> queue;
-	foreach(auto pkg, _pkgList)
-		queue.enqueue(pkg);
-
-	while(!queue.isEmpty()) {
-		auto pkg = queue.dequeue();
-		auto sDir = srcDir(pkg);
-		auto format = QpmxFormat::readFile(sDir, true);
-		foreach(auto dep, format.dependencies) {
-			auto dPkg = dep.pkg();
-			if(!sortHelper.contains(dPkg)) {
-				sortHelper.addData(dPkg);
-				sortHelper.addDependency(pkg, dPkg);
-				queue.enqueue(dPkg);
-			}
-		}
-	}
-
-	_pkgList = sortHelper.sort();
-	if(_pkgList.isEmpty())
-		throw tr("Cyclic dependencies detected! Unable to compile packages");
-}
-
 void CompileCommand::compileNext()
 {
 	if(++_kitIndex >= _qtKits.size()) {
@@ -173,6 +127,9 @@ void CompileCommand::compileNext()
 	}
 	_kit = _qtKits[_kitIndex];
 
+	//lock the package and kit
+	buildLock(_kit.id, _current);
+
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
 	if(bDir.exists(QStringLiteral("include.pri"))) {
@@ -186,6 +143,8 @@ void CompileCommand::compileNext()
 						.arg(_current.toString())
 						.arg(_kit.path);
 		} else {
+			//done -> unlock
+			buildUnlock(_kit.id, _current);
 			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
@@ -224,16 +183,18 @@ void CompileCommand::makeStep()
 			make();
 			break;
 		case Make:
-			_stage = Install;
+			_stage = Source;
 			xDebug() << tr("Completed compile (make) for %1. Installing to cache directory")
 						.arg(_current.toString());
 			install();
 			break;
-		case Install:
+		case Source:
 			_stage = PriGen;
 			priGen();
 			xDebug() << tr("Completed installation for \"%1\"")
 						.arg(_current.toString());
+			//done -> unlock
+			buildUnlock(_kit.id, _current);
 			xInfo() << tr("Successfully compiled %1 with qmake \"%2\"")
 					   .arg(_current.toString())
 					   .arg(_kit.path);
@@ -347,6 +308,54 @@ void CompileCommand::priGen()
 	metaFile.close();
 }
 
+QString CompileCommand::stage()
+{
+	switch (_stage) {
+	case None:
+		return tr("none");
+	case QMake:
+		return tr("qmake");
+	case Make:
+		return tr("make");
+	case Source:
+		return tr("install");
+	case PriGen:
+		return tr("pri-generate");
+	default:
+		Q_UNREACHABLE();
+		return {};
+	}
+}
+
+void CompileCommand::depCollect()
+{
+	TopSort<PackageInfo> sortHelper(_pkgList);
+
+	QQueue<PackageInfo> queue;
+	foreach(auto pkg, _pkgList)
+		queue.enqueue(pkg);
+
+	while(!queue.isEmpty()) {
+		auto pkg = queue.dequeue();
+		srcLock(pkg);
+		auto sDir = srcDir(pkg);
+		auto format = QpmxFormat::readFile(sDir, true);
+		srcUnlock(pkg);
+		foreach(auto dep, format.dependencies) {
+			auto dPkg = dep.pkg();
+			if(!sortHelper.contains(dPkg)) {
+				sortHelper.addData(dPkg);
+				sortHelper.addDependency(pkg, dPkg);
+				queue.enqueue(dPkg);
+			}
+		}
+	}
+
+	_pkgList = sortHelper.sort();
+	if(_pkgList.isEmpty())
+		throw tr("Cyclic dependencies detected! Unable to compile packages");
+}
+
 QString CompileCommand::findMake()
 {
 	QString make;
@@ -361,6 +370,41 @@ QString CompileCommand::findMake()
 	if(make.isEmpty())
 		throw tr("Unable to find make executable. Make shure make can be found in your path");
 	return make;
+}
+
+void CompileCommand::initProcess()
+{
+	if(_process)
+		_process->deleteLater();
+	_process = new QProcess(this);
+
+	QString logBase;
+	switch (_stage) {
+	case CompileCommand::QMake:
+		logBase = QStringLiteral("qmake");
+		break;
+	case CompileCommand::Make:
+		logBase = QStringLiteral("make");
+		break;
+	case CompileCommand::Source:
+		logBase = QStringLiteral("install");
+		break;
+	case CompileCommand::PriGen:
+		logBase = QStringLiteral("generate");
+		break;
+	default:
+		Q_UNREACHABLE();
+		break;
+	}
+	_process->setStandardOutputFile(_compileDir->filePath(QStringLiteral("%1.stdout.log").arg(logBase)));
+	_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
+
+	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+			this, &CompileCommand::finished,
+			Qt::QueuedConnection);
+	connect(_process, &QProcess::errorOccurred,
+			this, &CompileCommand::errorOccurred,
+			Qt::QueuedConnection);
 }
 
 void CompileCommand::initKits(const QStringList &qmakes)
@@ -505,41 +549,6 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 					  .arg(s);
 		return {};
 	}
-}
-
-void CompileCommand::initProcess()
-{
-	if(_process)
-		_process->deleteLater();
-	_process = new QProcess(this);
-
-	QString logBase;
-	switch (_stage) {
-	case CompileCommand::QMake:
-		logBase = QStringLiteral("qmake");
-		break;
-	case CompileCommand::Make:
-		logBase = QStringLiteral("make");
-		break;
-	case CompileCommand::Install:
-		logBase = QStringLiteral("install");
-		break;
-	case CompileCommand::PriGen:
-		logBase = QStringLiteral("generate");
-		break;
-	default:
-		Q_UNREACHABLE();
-		break;
-	}
-	_process->setStandardOutputFile(_compileDir->filePath(QStringLiteral("%1.stdout.log").arg(logBase)));
-	_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
-
-	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-			this, &CompileCommand::finished,
-			Qt::QueuedConnection);
-	connect(_process, &QProcess::errorOccurred,
-			this, &CompileCommand::errorOccurred,
-			Qt::QueuedConnection);
 }
 
 
