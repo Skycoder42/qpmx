@@ -14,7 +14,8 @@ cd ..\..
 mkdir build-%qtplatform%\tests
 cd build-%qtplatform%\tests
 
-C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
+C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
 nmake || exit /B 1
 
-.\test.exe || exit /B 1
+.\release\test.exe || exit /B 1
+.\debug\test.exe || exit /B 1
