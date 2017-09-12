@@ -297,6 +297,7 @@ void CompileCommand::make()
 		//just run make
 		initProcess();
 		_process->setProgram(findMake());
+		_process->setArguments({QStringLiteral("all")});
 		_process->setWorkingDirectory(_compileDir->path());
 		_process->start();
 	}
@@ -307,7 +308,7 @@ void CompileCommand::install()
 	//just run make install
 	initProcess();
 	_process->setProgram(findMake());
-	_process->setArguments({QStringLiteral("install")});
+	_process->setArguments({QStringLiteral("install-all")});
 	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }

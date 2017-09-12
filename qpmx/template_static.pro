@@ -21,3 +21,10 @@ headers.path = $$QPMX_INSTALL_INC
 INSTALLS += headers
 isEmpty(SOURCES):isEmpty(GENERATED_SOURCES):write_file($$OUT_PWD/.no_sources_detected)
 else: INSTALLS += target
+
+installall.target = install-all
+win32 {
+	CONFIG += debug_and_release
+	installall.depends += install-release install-debug
+} else: installall.depends += install
+QMAKE_EXTRA_TARGETS += installall
