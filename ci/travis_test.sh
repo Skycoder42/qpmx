@@ -15,11 +15,10 @@ popd
 mkdir build-$PLATFORM/tests
 cd build-$PLATFORM/tests
 
-/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
-make
-
 set +e
-QT_QPA_PLATFORM=minimal ./test || true
+/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/ || true
+
+
 echo after qmake
 
 find /var/folders/bb/ -iname "*qpmx*"
@@ -28,4 +27,10 @@ cat /var/folders/bb/*/T/qpmx-Bmjbnz/make.stderr.log
 
 for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
 	cat $log/make.stderr.log
-done && exit 1
+done
+
+
+
+make
+
+QT_QPA_PLATFORM=minimal ./test
