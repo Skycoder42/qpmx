@@ -18,7 +18,7 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_kit(),
 	_compileDir(nullptr),
 	_format(),
-	_stage(QMake),
+	_stage(None),
 	_process(nullptr)
 {}
 
@@ -114,7 +114,9 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 
 QString CompileCommand::stage()
 {
-	switch (_stage - 1) {
+	switch (_stage) {
+	case None:
+		return tr("none");
 	case QMake:
 		return tr("qmake");
 	case Make:
@@ -196,7 +198,7 @@ void CompileCommand::compileNext()
 	if(!_compileDir->isValid())
 		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
 	_format = QpmxFormat::readFile(srcDir(_current), true);
-	_stage = QMake;
+	_stage = None;
 	if(_format.source)
 		xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(_current.toString());
 
@@ -207,27 +209,27 @@ void CompileCommand::makeStep()
 {
 	try {
 		switch (_stage) {
-		case QMake:
-			_stage = Make;
+		case None:
+			_stage = QMake;
 			xDebug() << tr("Beginning compilation of %1 with qmake \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
 			qmake();
 			break;
-		case Make:
-			_stage = Install;
+		case QMake:
+			_stage = Make;
 			xDebug() << tr("Completed qmake for %1. Continuing with compile (make)")
 						.arg(_current.toString());
 			make();
 			break;
-		case Install:
-			_stage = PriGen;
+		case Make:
+			_stage = Install;
 			xDebug() << tr("Completed compile (make) for %1. Installing to cache directory")
 						.arg(_current.toString());
 			install();
 			break;
-		case PriGen:
-			_stage = Dummy;
+		case Install:
+			_stage = PriGen;
 			priGen();
 			xDebug() << tr("Completed installation for \"%1\"")
 						.arg(_current.toString());

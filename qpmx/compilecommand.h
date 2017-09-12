@@ -36,11 +36,11 @@ class CompileCommand : public Command
 
 public:
 	enum Stage {
+		None,
 		QMake,
 		Make,
 		Install,
-		PriGen,
-		Dummy
+		PriGen
 	};
 	Q_ENUM(Stage)
 
