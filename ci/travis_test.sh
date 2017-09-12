@@ -20,16 +20,10 @@ set +e
 
 
 echo after qmake
-
-find /var/folders/bb/ -iname "*qpmx*"
-dir /var/folders/bb/*/T/qpmx-Bmjbnz
-cat /var/folders/bb/*/T/qpmx-Bmjbnz/make.stderr.log
-
 for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
+	ls -lsa $log
 	cat $log/make.stderr.log
 done
-
-
 
 make
 

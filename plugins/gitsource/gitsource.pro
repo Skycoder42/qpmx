@@ -17,7 +17,5 @@ SOURCES += \
 
 DISTFILES += gitsource.json
 
-unix {
-	target.path = $$[QT_INSTALL_PLUGINS]/qpmx
-	INSTALLS += target
-}
+target.path = $$[QT_INSTALL_PLUGINS]/qpmx
+INSTALLS += target
