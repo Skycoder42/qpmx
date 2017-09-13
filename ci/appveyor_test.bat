@@ -16,7 +16,7 @@ cd build-%qtplatform%\tests
 
 C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/
 
-for /D %%G in (C:/Users/appveyor/AppData/Local/Temp/1/qpmx*) do (
+for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 	dir %%G
 	type %%G\qmake.stdout.log
 	type %%G\qmake.stderr.log
