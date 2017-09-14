@@ -46,7 +46,11 @@ void PluginRegistry::initSrcCache()
 
 #ifndef QT_NO_DEBUG
 	QDir plugDir(QCoreApplication::applicationDirPath());
+#ifdef Q_OS_WIN
+	if(!plugDir.cd(QStringLiteral("../../plugins")))
+#else
 	if(!plugDir.cd(QStringLiteral("../plugins")))
+#endif
 		throw QStringLiteral("debug plugins are not available!");
 #else
 	QDir plugDir(QLibraryInfo::location(QLibraryInfo::PluginsPath));
