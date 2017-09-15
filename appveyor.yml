@@ -18,3 +18,17 @@ install:
 build_script:
   - .\qtmodules-travis\ci\win\build.bat
   - .\ci\appveyor_test.bat
+
+artifacts:
+  - path: install\repository.zip
+  - path: install\qpmx Installer.exe
+
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: Cp5GRQku2ZWnKPE12NB5q11ZO0Fr5mlzdUTjnLpYJr/dki4LPVqm231edFggogy8
+  artifact: /.*/
+  force_update: false
+  on:
+    appveyor_repo_tag: true
+
