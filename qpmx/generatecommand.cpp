@@ -87,7 +87,7 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 		kit = findKit(_qmake);
 	stream << "gcc:!mac: LIBS += -Wl,--start-group\n";
 	foreach(auto dep, current.dependencies) {
-		auto dir = buildDir(kit, dep.pkg());
+		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
 	stream << "gcc:!mac: LIBS += -Wl,--end-group\n";

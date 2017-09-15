@@ -332,6 +332,8 @@ void InstallCommand::connectPlg(SourcePlugin *plugin)
 
 void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
+	buildLock(QStringLiteral("src"), _current);
+
 	auto sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current);
 
@@ -351,6 +353,8 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 		   << "}\n";
 	stream.flush();
 	srcPriFile.close();
+
+	buildUnlock(QStringLiteral("src"), _current);
 }
 
 

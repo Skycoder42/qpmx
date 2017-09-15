@@ -157,6 +157,8 @@ void CompileCommand::compileNext()
 	_compileDir.reset(new QTemporaryDir());
 	if(!_compileDir->isValid())
 		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
+
+	srcLock(_current);
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = None;
 	if(_format.source)
@@ -193,7 +195,8 @@ void CompileCommand::makeStep()
 			priGen();
 			xDebug() << tr("Completed installation for \"%1\"")
 						.arg(_current.toString());
-			//done -> unlock
+			//done -> unlock (both)
+			srcUnlock(_current);
 			buildUnlock(_kit.id, _current);
 			xInfo() << tr("Successfully compiled %1 with qmake \"%2\"")
 					   .arg(_current.toString())

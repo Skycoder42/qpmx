@@ -142,9 +142,11 @@ void Command::cleanCaches(const PackageInfo &package)
 		throw tr("Failed to remove source cache for %1").arg(package.toString());
 	auto bDir = buildDir();
 	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+		buildLock(cmpDir, package);
 		auto rDir = buildDir(cmpDir, package, false);
 		if(!rDir.removeRecursively())
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
+		buildUnlock(cmpDir, package);
 	}
 	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
