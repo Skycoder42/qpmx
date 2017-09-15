@@ -20,8 +20,6 @@ DEFINES += "VERSION=\\\"$$VERSION\\\""
 DEFINES += "COMPANY=\"\\\"$$QMAKE_TARGET_COMPANY\\\"\""
 DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 
-include(../submodules/submodules.pri)
-
 PUBLIC_HEADERS += \
 	sourceplugin.h \
 	packageinfo.h
@@ -51,14 +49,40 @@ SOURCES += main.cpp \
 	uninstallcommand.cpp \
 	initcommand.cpp
 
-unix {
+RESOURCES += \
+	qpmx.qrc
+
+DISTFILES += \
+	config.xml \
+	meta/*
+
+no_installer {
 	target.path = $$[QT_INSTALL_BINS]
 
 	tHeaders.path = $$[QT_INSTALL_HEADERS]/../qpmx
 	tHeaders.files = $$PUBLIC_HEADERS
 
 	INSTALLS += target tHeaders
+} else { # installer
+	QTIFW_CONFIG = config.xml
+	QTIFW_MODE = online_all
+
+	subdir1.name = include
+	subdir1.files += $$PUBLIC_HEADERS
+
+	subdir2.name = plugins/qpmx
+	subdir2.dirs += $$OUT_PWD/../plugins/qpmx
+
+	qpmxpkg.pkg = de.skycoder42.qpmx
+	qpmxpkg.meta += meta
+	qpmxpkg.subdirs += subdir1 subdir2
+	QTIFW_AUTO_INSTALL_PKG = qpmxpkg
+
+	QTIFW_PACKAGES += qpmxpkg
+	QTIFW_DEPLOY_TSPRO = $$_PRO_FILE_
+
+	CONFIG += qtifw_auto_deploy
+	CONFIG += qtifw_install_target
 }
 
-RESOURCES += \
-	qpmx.qrc
+include(../submodules/submodules.pri)
