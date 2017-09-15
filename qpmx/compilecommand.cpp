@@ -272,7 +272,7 @@ void CompileCommand::install()
 	//just run make install
 	initProcess();
 	_process->setProgram(findMake());
-	_process->setArguments({QStringLiteral("install-all")});
+	_process->setArguments({QStringLiteral("all-install")});
 	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }
