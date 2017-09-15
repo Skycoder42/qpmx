@@ -17,5 +17,7 @@ SOURCES += \
 
 DISTFILES += qpmsource.json
 
-target.path = $$[QT_INSTALL_PLUGINS]/qpmx
-INSTALLS += target
+no_installer {
+	target.path = $$[QT_INSTALL_PLUGINS]/qpmx
+	INSTALLS += target
+}
