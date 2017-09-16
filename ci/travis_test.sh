@@ -29,3 +29,6 @@ cd build-$PLATFORM/tests
 
 make
 QT_QPA_PLATFORM=minimal ./test
+
+#debug
+build-$PLATFORM/qpmx/qtifw-installer/packages/de.skycoder42.qpmx/data/qpmx --help
