@@ -4,7 +4,8 @@ QT += core jsonserializer
 QT -= gui
 
 CONFIG += c++11 console
-!force_bundle: CONFIG -= app_bundle
+no_installer: CONFIG -= app_bundle
+else: CONFIG += qtifw_no_bundle
 
 TARGET = qpmx
 VERSION = $$QPMXVER
@@ -67,10 +68,12 @@ no_installer {
 	QTIFW_CONFIG = config.xml
 	QTIFW_MODE = online_all
 
-	subdir1.name = include
+	mac: subdir1.name = Headers
+	else: subdir1.name = include
 	subdir1.files += $$PUBLIC_HEADERS
 
-	subdir2.name = plugins/qpmx
+	mac: subdir2.name = PlugIns/qpmx
+	else: subdir2.name = plugins/qpmx
 	subdir2.dirs += $$OUT_PWD/../plugins/qpmx
 
 	qpmxpkg.pkg = de.skycoder42.qpmx
