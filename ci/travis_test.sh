@@ -8,9 +8,8 @@ export MAKEFLAGS="-j$(nproc)"
 export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx"
 
 # install plugins into qt
-pushd build-$PLATFORM/plugins
-$SUDO make install
-popd
+$SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
+$SUDO cp plugins/qpmx/* /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx/
 
 mkdir build-$PLATFORM/tests
 cd build-$PLATFORM/tests

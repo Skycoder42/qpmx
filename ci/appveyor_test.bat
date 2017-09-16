@@ -7,9 +7,8 @@ set PATH=C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatf
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
 
 :: install plugins into qt
-cd build-%qtplatform%\plugins
-nmake install || exit /B 1
-cd ..\..
+mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx
+xcopy /s plugins\qpmx\ C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx\
 
 mkdir build-%qtplatform%\tests
 cd build-%qtplatform%\tests
