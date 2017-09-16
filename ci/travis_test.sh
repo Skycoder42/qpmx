@@ -12,7 +12,7 @@ $SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
 $SUDO cp build-$PLATFORM/plugins/qpmx/* /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx/
 
 mkdir build-$PLATFORM/tests
-cd build-$PLATFORM/tests
+pushd build-$PLATFORM/tests
 
 /opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/ || (
 	res=$?
@@ -29,6 +29,7 @@ cd build-$PLATFORM/tests
 
 make
 QT_QPA_PLATFORM=minimal ./test
+popd
 
 #debug
 build-$PLATFORM/qpmx/qtifw-installer/packages/de.skycoder42.qpmx/data/qpmx --help
