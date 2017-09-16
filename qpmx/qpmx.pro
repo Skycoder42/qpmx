@@ -4,6 +4,7 @@ QT += core jsonserializer
 QT -= gui
 
 CONFIG += c++11 console
+!force_bundle: CONFIG -= app_bundle
 
 TARGET = qpmx
 VERSION = $$QPMXVER

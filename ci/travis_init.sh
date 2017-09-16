@@ -9,5 +9,5 @@ if [[ "$PLATFORM" == "gcc_64" ]]; then
 fi
 
 if [[ "$PLATFORM" == "clang_64" ]]; then
-	echo "CONFIG += app_bundle" >> .qmake.conf
+	echo "CONFIG += force_bundle" >> .qmake.conf
 fi
