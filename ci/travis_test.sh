@@ -6,7 +6,7 @@ SUDO=$1
 
 if [[ "$PLATFORM" == "clang_64" ]]; then
 	export MAKEFLAGS="-j$(sysctl -n hw.ncpu)"
-	export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx.app/Contents/MacOS"
+	export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx/qpmx.app/Contents/MacOS"
 else
 	export MAKEFLAGS="-j$(nproc)"
 	export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx"
