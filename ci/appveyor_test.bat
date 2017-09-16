@@ -29,9 +29,3 @@ nmake all || exit /B 1
 
 .\release\test.exe || exit /B 1
 .\debug\test.exe || exit /B 1
-
-cd ..\..
-dir
-cd install
-dir
-cd ..

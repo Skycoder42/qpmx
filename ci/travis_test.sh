@@ -5,7 +5,12 @@ set -e
 SUDO=$1
 
 export MAKEFLAGS="-j$(nproc)"
-export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx"
+if [[ "$PLATFORM" == "clang_64" ]]; then
+	export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx.app/Contents/MacOS"
+else
+	export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx"
+fi
+which qpmx
 
 # install plugins into qt
 $SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
