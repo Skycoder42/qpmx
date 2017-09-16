@@ -4,7 +4,6 @@ QT += core jsonserializer
 QT -= gui
 
 CONFIG += c++11 console
-CONFIG -= app_bundle
 
 TARGET = qpmx
 VERSION = $$QPMXVER
@@ -85,5 +84,4 @@ no_installer {
 	CONFIG += qtifw_install_target
 }
 
-mac: QTIFW_DEPLOY_SRC = "$$OUT_PWD/$$TARGET"
 include(../submodules/submodules.pri)

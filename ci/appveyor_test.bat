@@ -8,7 +8,6 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary
 
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
-cd build-%qtplatform%\plugins\qpmx && dir && cd ..\..\..
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 
 mkdir build-%qtplatform%\tests
