@@ -85,4 +85,5 @@ no_installer {
 	CONFIG += qtifw_install_target
 }
 
+mac: QTIFW_DEPLOY_SRC = "$$OUT_PWD/$$TARGET"
 include(../submodules/submodules.pri)
