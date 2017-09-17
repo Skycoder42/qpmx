@@ -4,8 +4,7 @@ QT += core jsonserializer
 QT -= gui
 
 CONFIG += c++11 console
-no_installer: CONFIG -= app_bundle
-else: CONFIG += qtifw_no_bundle
+CONFIG -= app_bundle
 
 TARGET = qpmx
 VERSION = $$QPMXVER
