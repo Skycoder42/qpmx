@@ -17,9 +17,8 @@ Component.prototype.createOperations = function()
 			}
 		} else {
 			if(installer.value("allUsers") === "true") {
-				component.addElevatedOperation("CreateLink",
-											   "@TargetDir@/qpmx",
-											   "/usr/bin/qpmx");
+				component.addElevatedOperation("Execute",
+											   "ln", "-s", "@TargetDir@/qpmx", "/usr/bin/qpmx");
 			}
 		}
 	} catch (e) {
