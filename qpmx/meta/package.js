@@ -15,10 +15,12 @@ Component.prototype.createOperations = function()
 									   "cmd", "/c",
 									   "xset",  "path", "%PATH%;@TargetDir@");
 			}
-		} else if (installer.value("os") === "x11") {
-			component.addElevatedOperation("CreateLink",
-										   "/usr/bin/qpmx",
-										   "@TargetDir@/qpmx");
+		} else {
+			if(installer.value("allUsers") === "true") {
+				component.addElevatedOperation("CreateLink",
+											   "@TargetDir@/qpmx",
+											   "/usr/bin/qpmx");
+			}
 		}
 	} catch (e) {
 		print(e);
