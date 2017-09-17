@@ -36,7 +36,7 @@ deploy:
     secure: bDg2+BmnGjA54MfbU9u4oynBW6OrUPAf4NSGkFc9B4dcYVcUXCP7bTy6xUnu3cDA/VXLtyt3wZueKsUb52jzWCOtwSA+ViWejLGmMn3gY8dLwy6gRjaTO/WNQs2ToAWZTatx/mBSWpRuiQm09NXZbrYAGtGgmlO7/TUhIlkbL8FuesZ0PWiAynHdjpsYwUfROAIhJJx4m+RclDigZ6y6NH1b8RL+Cx/L6De2WuCd0/tN2NT3cZkrlFZ2p4+OXL767q/3UFtXduZQdH+lE6GvW7sddKmpIAWhR5uWd3nyBqSmgTGhnQt/XbBdQtDYOd8cXVls+x25ZLCHEqXc6Znr4XM/oJ7mJ69nva/nUpF+RpPcaQvQpGfnPGSdq3wdwNJfYByq+vH/ctYcCxuuOX1Ff298jklBHlXXWuKdH6RIOGLI0AI1GFP8hiGKB5+6Hb9/aIETMTj8+G3W/XAqj8RnnULjkcQEO0Dp9znUxuzeWCbHmnNPG2/IYB5yQWJrJtAKk0+ykFD9xVpHM4m7ZoqzFqNxlzxjQxihqwTOr+u7GXi/yCdxZkMX1/gJ8lw9iH7cQMD52tBjrskVzmnfiJByUim+eiBpNW7IvMN1Jfy19MSq5wyj1DS/1A6Q0GT4ItcdbFRoSkdnNUoR8OkhfvH0q1oSoQ+emLUKGvkQjdQO1Qs=
   file_glob: true
   file:
-    - ./install/repository.*
+    - ./install/repository_*.tar.xz
     - ./install/qpmx Installer.*
   on:
     repo: Skycoder42/qpmx

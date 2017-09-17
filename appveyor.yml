@@ -20,7 +20,7 @@ build_script:
   - .\ci\appveyor_test.bat
 
 artifacts:
-  - path: install\repository.zip
+  - path: install\repository_win.zip
   - path: install\qpmx Installer.exe
 
 deploy:
