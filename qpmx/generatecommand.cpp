@@ -83,24 +83,35 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 	QTextStream stream(_genFile);
 
 	//add possible includes
-	stream << "#local includes\n";
-	foreach(auto inc, current.localIncludes)
-		stream << "include(" << inc << "/qpmx_generated.pri)\n";
-
+	stream << "gcc:!mac:!gcc_skip_group: LIBS += -Wl,--start-group\n\n"
+		   << "#local includes\n";
+	if(current.source) {//only add include paths
+		foreach(auto inc, current.localIncludes)
+			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)";
+	} else {
+		stream << "gcc:!mac:!gcc_skip_group {\n"
+			   << "\tCONFIG += gcc_skip_group\n";
+		foreach(auto inc, current.localIncludes)
+			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
+		stream << "\tCONFIG -= gcc_skip_group\n"
+			   << "} else {\n";
+		foreach(auto inc, current.localIncludes)
+			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
+		stream << "}\n";
+	}
 	//add dependencies
 	BuildId kit;
 	if(current.source)
 		kit = QStringLiteral("src");
 	else
 		kit = findKit(_qmake);
-	stream << "\n#dependencies\n"
-		   << "gcc:!mac: LIBS += -Wl,--start-group\n";
+	stream << "\n#dependencies\n";
 	foreach(auto dep, current.dependencies) {
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
-	stream << "gcc:!mac: LIBS += -Wl,--end-group\n";
 
+	stream << "\ngcc:!mac:!gcc_skip_group: LIBS += -Wl,--end-group\n";
 	stream.flush();
 	_genFile->close();
 }
