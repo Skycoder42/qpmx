@@ -56,11 +56,13 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &cache)
 {
-	if(current.source != cache.source)
+	if(current.source != cache.source ||
+	   current.prcFile != cache.prcFile ||
+	   current.qmakeExtraFlags != cache.qmakeExtraFlags ||
+	   current.localIncludes != cache.localIncludes ||
+	   current.dependencies.size() != cache.dependencies.size())
 		return true;
 
-	if(current.dependencies.size() != cache.dependencies.size())
-		return true;
 	auto cCache = cache.dependencies;
 	foreach(auto dep, current.dependencies) {
 		auto cIdx = cCache.indexOf(dep);
@@ -80,12 +82,19 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 
 	QTextStream stream(_genFile);
 
+	//add possible includes
+	stream << "#local includes\n";
+	foreach(auto inc, current.localIncludes)
+		stream << "include(" << inc << "/qpmx_generated.pri)\n";
+
+	//add dependencies
 	BuildId kit;
 	if(current.source)
 		kit = QStringLiteral("src");
 	else
 		kit = findKit(_qmake);
-	stream << "gcc:!mac: LIBS += -Wl,--start-group\n";
+	stream << "\n#dependencies\n"
+		   << "gcc:!mac: LIBS += -Wl,--start-group\n";
 	foreach(auto dep, current.dependencies) {
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";

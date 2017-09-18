@@ -51,6 +51,7 @@ class QpmxFormat
 	Q_PROPERTY(QList<QpmxDependency> dependencies MEMBER dependencies)
 
 	Q_PROPERTY(QStringList qmakeExtraFlags MEMBER qmakeExtraFlags)
+	Q_PROPERTY(QStringList localIncludes MEMBER localIncludes)
 
 public:
 	QpmxFormat();
@@ -65,6 +66,7 @@ public:
 	bool source;
 	QList<QpmxDependency> dependencies;
 	QStringList qmakeExtraFlags;
+	QStringList localIncludes;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)
