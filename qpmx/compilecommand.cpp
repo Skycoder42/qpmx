@@ -229,8 +229,7 @@ void CompileCommand::qmake()
 	stream << "QPMX_TARGET=" << priBase << "\n"
 		   << "QPMX_VERSION=" << _current.version().toString() << "\n"
 		   << "QPMX_PRI_INCLUDE=\"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
-		   << "QPMX_INSTALL_LIB=\"" << bDir.absoluteFilePath(QStringLiteral("lib")) << "\"\n"
-		   << "QPMX_INSTALL_INC=\"" << bDir.absoluteFilePath(QStringLiteral("include")) << "\"\n\n";
+		   << "QPMX_INSTALL=\"" << bDir.absolutePath() << "\"\n\n";
 	foreach(auto dep, _format.dependencies) {
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "include(" << depDir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
