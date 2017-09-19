@@ -80,11 +80,12 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 	if(!_genFile->open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open qpmx_generated.pri with error: %1").arg(_genFile->errorString());
 
+	//create & prepare
 	QTextStream stream(_genFile);
+	stream << "gcc:!mac:!gcc_skip_group: LIBS += -Wl,--start-group\n";
 
 	//add possible includes
-	stream << "gcc:!mac:!gcc_skip_group: LIBS += -Wl,--start-group\n\n"
-		   << "#local includes\n";
+	stream << "\n#local includes\n";
 	if(current.source) {//only add include paths
 		foreach(auto inc, current.localIncludes)
 			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)";
@@ -99,6 +100,7 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
 		stream << "}\n";
 	}
+
 	//add dependencies
 	BuildId kit;
 	if(current.source)
@@ -111,6 +113,25 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
 
+	//add translations
+	stream << "\n#translations\n"
+		   << "isEmpty(QPMX_LRELEASE) {\n"
+		   << "\tisEmpty(LRELEASE) {\n"
+		   << "\t\tqtPrepareTool(LRELEASE, lrelease)\n"
+		   << "\t\tLRELEASE += -nounfinished\n"
+		   << "\t}\n"
+		   << "\tQPMX_LRELEASE = $$replace(LRELEASE, -, +)\n"
+		   << "}\n";
+	if(!current.source)
+		stream << "qtPrepareTool(QPMX_LCONVERT, lconvert)\n";
+	stream << "\nqpmx_ts_target.target = lrelease\n"
+		   << "qpmx_ts_target.commands = qpmx translate ";//no \n
+	if(!current.source)
+		stream << "--lconvert $$shell_quote($$QPMX_LCONVERT) ";//no \n
+	stream << "$$shell_quote($$PWD/.qpmx.cache) $$QPMX_LRELEASE %% $$TRANSLATIONS\n"
+		   << "QMAKE_EXTRA_TARGETS += qpmx_ts_target\n";
+
+	//final
 	stream << "\ngcc:!mac:!gcc_skip_group: LIBS += -Wl,--end-group\n";
 	stream.flush();
 	_genFile->close();

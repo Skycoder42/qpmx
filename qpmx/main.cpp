@@ -242,6 +242,24 @@ static void setupParser(QCliParser &parser)
 								QCoreApplication::translate("parser", "Always delete and recreate the file if it exists, not only when the configuration changed."),
 						   });
 
+	//translate
+	auto translateNode = parser.addLeafNode(QStringLiteral("translate"),
+											QCoreApplication::translate("parser", "Prepare translations by compiling the projects translations and combining "
+																				  "it with the translations of qpmx packages"));
+	translateNode->addOption({
+								 QStringLiteral("lconvert"),
+								 QCoreApplication::translate("parser", "If needed, the <path> to the lconvert binary to be used."),
+								 QCoreApplication::translate("parser", "path")
+							 });
+	translateNode->addPositionalArgument(QStringLiteral("qpmx-file"),
+										 QCoreApplication::translate("parser", "The qpmx-file with the dependencies to use to collect the translations."));
+	translateNode->addPositionalArgument(QStringLiteral("lrelease"),
+										 QCoreApplication::translate("parser", "The path to the lrelease binary, as well as additional arguments."),
+										 QStringLiteral("<lrelease> [<arguments> ...]"));
+	translateNode->addPositionalArgument(QStringLiteral("ts-files"),
+										 QCoreApplication::translate("parser", "The ts-files to compile as translations. Typically, the TRANSLATIONS qmake variable is passed."),
+										 QStringLiteral("%% <ts-files> ..."));
+
 	//init
 	auto initNode = parser.addLeafNode(QStringLiteral("init"),
 									   QCoreApplication::translate("parser", "Initialize a qpmx based project by downloading and compiling sources, "
