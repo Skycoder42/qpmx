@@ -35,7 +35,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	topsort.h \
 	searchcommand.h \
 	uninstallcommand.h \
-	initcommand.h
+	initcommand.h \
+    translatecommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -47,7 +48,8 @@ SOURCES += main.cpp \
 	generatecommand.cpp \
 	searchcommand.cpp \
 	uninstallcommand.cpp \
-	initcommand.cpp
+	initcommand.cpp \
+    translatecommand.cpp
 
 RESOURCES += \
 	qpmx.qrc

@@ -8,6 +8,7 @@
 #include "compilecommand.h"
 #include "generatecommand.h"
 #include "initcommand.h"
+#include "translatecommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -54,9 +55,9 @@ int main(int argc, char *argv[])
 #ifndef Q_OS_WIN
 	colored = !parser.isSet(QStringLiteral("no-color"));
 	if(colored) {
-		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33mWarning: %{endif}"
-																 "%{if-critical}\033[31mError: %{endif}"
-																 "%{if-fatal}\033[35mFatal Error: %{endif}"
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33mwarning: %{endif}"
+																 "%{if-critical}\033[31merror: %{endif}"
+																 "%{if-fatal}\033[35mfatal error: %{endif}"
 																 "%{if-category}%{category}: %{endif}%{message}"
 																 "%{if-warning}\033[0m%{endif}"
 																 "%{if-critical}\033[0m%{endif}"
@@ -64,9 +65,9 @@ int main(int argc, char *argv[])
 	} else
 #endif
 	{
-		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}Warning: %{endif}"
-																 "%{if-critical}Error: %{endif}"
-																 "%{if-fatal}Fatal Error: %{endif}"
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}warning: %{endif}"
+																 "%{if-critical}error: %{endif}"
+																 "%{if-fatal}fatal error: %{endif}"
 																 "%{if-category}%{category}: %{endif}%{message}"));
 	}
 
@@ -94,6 +95,8 @@ int main(int argc, char *argv[])
 		cmd = new CompileCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("generate")))
 		cmd = new GenerateCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("translate")))
+		cmd = new TranslateCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("init")))
 		cmd = new InitCommand(qApp);
 	else {
@@ -254,7 +257,9 @@ static void setupParser(QCliParser &parser)
 	translateNode->addPositionalArgument(QStringLiteral("qpmx-file"),
 										 QCoreApplication::translate("parser", "The qpmx-file with the dependencies to use to collect the translations."));
 	translateNode->addPositionalArgument(QStringLiteral("lrelease"),
-										 QCoreApplication::translate("parser", "The path to the lrelease binary, as well as additional arguments."),
+										 QCoreApplication::translate("parser", "The path to the lrelease binary, as well as additional arguments.\n"
+																			   "IMPORTANT: Extra arguments like \"-nounfinished\" must NOT be specified with the "
+																			   "leading \"-\"! Instead, use a \"+\". It is replaced internally. Example: \"+nounfinished\"."),
 										 QStringLiteral("<lrelease> [<arguments> ...]"));
 	translateNode->addPositionalArgument(QStringLiteral("ts-files"),
 										 QCoreApplication::translate("parser", "The ts-files to compile as translations. Typically, the TRANSLATIONS qmake variable is passed."),

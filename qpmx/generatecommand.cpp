@@ -125,7 +125,7 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 	if(!current.source)
 		stream << "qtPrepareTool(QPMX_LCONVERT, lconvert)\n";
 	stream << "\nqpmx_ts_target.target = lrelease\n"
-		   << "qpmx_ts_target.commands = qpmx translate ";//no \n
+		   << "qpmx_ts_target.commands = qpmx translate $$QPMX_EXTRA_OPTIONS ";//no \n
 	if(!current.source)
 		stream << "--lconvert $$shell_quote($$QPMX_LCONVERT) ";//no \n
 	stream << "$$shell_quote($$PWD/.qpmx.cache) $$QPMX_LRELEASE %% $$TRANSLATIONS\n"
