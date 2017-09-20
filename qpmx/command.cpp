@@ -214,7 +214,7 @@ QDir Command::tmpDir()
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 	auto name = QStringLiteral("tmp");
 	if(!dir.mkpath(name) || !dir.cd(name))
-		throw tr("Failed to create source directory");
+		throw tr("Failed to create temporary directory");
 	return dir;
 }
 

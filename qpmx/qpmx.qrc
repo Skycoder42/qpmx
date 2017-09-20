@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/build">
         <file>template_static.pro</file>
+        <file>translation_compiler.pri</file>
     </qresource>
 </RCC>

@@ -83,6 +83,8 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 	//create & prepare
 	QTextStream stream(_genFile);
 	stream << "gcc:!mac:!gcc_skip_group: LIBS += -Wl,--start-group\n";
+	if(current.source)
+		stream << "CONFIG += qpmx_src_build\n";
 
 	//add possible includes
 	stream << "\n#local includes\n";
@@ -114,22 +116,13 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 	}
 
 	//add translations
-	stream << "\n#translations\n"
-		   << "isEmpty(QPMX_LRELEASE) {\n"
-		   << "\tisEmpty(LRELEASE) {\n"
-		   << "\t\tqtPrepareTool(LRELEASE, lrelease)\n"
-		   << "\t\tLRELEASE += -nounfinished\n"
-		   << "\t}\n"
-		   << "\tQPMX_LRELEASE = $$replace(LRELEASE, -, +)\n"
-		   << "}\n";
-	if(!current.source)
-		stream << "qtPrepareTool(QPMX_LCONVERT, lconvert)\n";
-	stream << "\nqpmx_ts_target.target = lrelease\n"
-		   << "qpmx_ts_target.commands = qpmx translate $$QPMX_EXTRA_OPTIONS ";//no \n
-	if(!current.source)
-		stream << "--lconvert $$shell_quote($$QPMX_LCONVERT) ";//no \n
-	stream << "$$shell_quote($$PWD/.qpmx.cache) $$QPMX_LRELEASE %% $$TRANSLATIONS\n"
-		   << "QMAKE_EXTRA_TARGETS += qpmx_ts_target\n";
+	stream << "\n#translations\n";
+	QFile tCmp(QStringLiteral(":/build/translation_compiler.pri"));
+	if(!tCmp.open(QIODevice::ReadOnly | QIODevice::Text))
+		throw tr("Failed to load translation compiler cached code with error: %1").arg(tCmp.errorString());
+	while(!tCmp.atEnd())
+		stream << tCmp.readLine();
+	tCmp.close();
 
 	//final
 	stream << "\ngcc:!mac:!gcc_skip_group: LIBS += -Wl,--end-group\n";

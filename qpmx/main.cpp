@@ -254,6 +254,13 @@ static void setupParser(QCliParser &parser)
 								 QCoreApplication::translate("parser", "If needed, the <path> to the lconvert binary to be used."),
 								 QCoreApplication::translate("parser", "path")
 							 });
+	translateNode->addOption({
+								 {QStringLiteral("m"), QStringLiteral("qmake")},
+								 QCoreApplication::translate("parser", "The <qmake> version to use to find the corresponding translations. If not specified "
+																	   "the qmake from path is be used."),
+								 QCoreApplication::translate("parser", "qmake"),
+								 QStandardPaths::findExecutable(QStringLiteral("qmake"))
+							 });
 	translateNode->addPositionalArgument(QStringLiteral("qpmx-file"),
 										 QCoreApplication::translate("parser", "The qpmx-file with the dependencies to use to collect the translations."));
 	translateNode->addPositionalArgument(QStringLiteral("lrelease"),
