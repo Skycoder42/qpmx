@@ -17,6 +17,7 @@ public slots:
 	void initialize(QCliParser &parser) override;
 
 private:
+	QString _outDir;
 	QString _qmake;
 	QString _lconvert;
 	QpmxFormat _format;

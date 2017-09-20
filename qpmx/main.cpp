@@ -262,6 +262,11 @@ static void setupParser(QCliParser &parser)
 								 QStandardPaths::findExecutable(QStringLiteral("qmake"))
 							 });
 	translateNode->addOption({
+								 QStringLiteral("outdir"),
+								 QCoreApplication::translate("parser", "The <directory> to generate the translation files in. If not passed, the current directoy is used."),
+								 QCoreApplication::translate("parser", "directory")
+							 });
+	translateNode->addOption({
 								 QStringLiteral("qpmx"),
 								 QCoreApplication::translate("parser", "The qpmx <file> with the dependencies to use to collect the translations (required)."),
 								 QCoreApplication::translate("parser", "file")

@@ -4,6 +4,7 @@
 
 TranslateCommand::TranslateCommand(QObject *parent) :
 	Command(parent),
+	_outDir(),
 	_qmake(),
 	_lconvert(),
 	_format(),
@@ -15,6 +16,10 @@ TranslateCommand::TranslateCommand(QObject *parent) :
 void TranslateCommand::initialize(QCliParser &parser)
 {
 	try {
+		if(parser.isSet(QStringLiteral("outdir")))
+			_outDir = parser.value(QStringLiteral("outdir")) + QLatin1Char('/');
+		else
+			_outDir = QStringLiteral("./");
 		_qmake = parser.value(QStringLiteral("qmake"));
 		_lconvert = parser.value(QStringLiteral("lconvert"));
 		QFileInfo qpmxFile = parser.value(QStringLiteral("qpmx"));
@@ -55,8 +60,8 @@ void TranslateCommand::binTranslate()
 
 	//first: translate all the ts file
 	QFileInfo tsInfo(_tsFile);
-	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm");
-	QString qmBaseFile = tsInfo.completeBaseName() + QStringLiteral(".qm-base");
+	QString qmFile = _outDir + tsInfo.completeBaseName() + QStringLiteral(".qm");
+	QString qmBaseFile = _outDir + tsInfo.completeBaseName() + QStringLiteral(".qm-base");
 
 	auto args = _lrelease;
 	args.append({_tsFile, QStringLiteral("-qm"), qmBaseFile});
@@ -97,7 +102,7 @@ void TranslateCommand::binTranslate()
 void TranslateCommand::srcTranslate()
 {
 	QFileInfo tsInfo(_tsFile);
-	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm");
+	QString qmFile = _outDir + tsInfo.completeBaseName() + QStringLiteral(".qm");
 
 	QStringList tsFiles(_tsFile);
 	auto locale = localeString();
