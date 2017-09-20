@@ -4,108 +4,47 @@
 
 TranslateCommand::TranslateCommand(QObject *parent) :
 	Command(parent),
-	_lconvert(),
 	_qmake(),
-	_lrelease(),
+	_lconvert(),
 	_format(),
-	_tsFiles(),
-	_activeProcs()
+	_tsFile(),
+	_lrelease(),
+	_qpmxTsFiles()
 {}
 
 void TranslateCommand::initialize(QCliParser &parser)
 {
 	try {
-		//verify all args
-		if(parser.isSet(QStringLiteral("lconvert")))
-			_lconvert = parser.value(QStringLiteral("lconvert"));
-
-		//qmake kit
 		_qmake = parser.value(QStringLiteral("qmake"));
+		_lconvert = parser.value(QStringLiteral("lconvert"));
+		QFileInfo qpmxFile = parser.value(QStringLiteral("qpmx"));
+		_format = QpmxFormat::readFile(qpmxFile.dir(), qpmxFile.fileName(), true);
+		_tsFile = parser.value(QStringLiteral("ts-file"));
+		if(!QFile::exists(_tsFile))
+			throw tr("You must specify the --ts-file option with a valid file!");
 
 		auto pArgs = parser.positionalArguments();
 		if(pArgs.isEmpty())
-			throw tr("You must specify the qpmx file to combine translations based on as first argument");
-		QFileInfo qpmxFile = pArgs.takeFirst();
-
-		if(pArgs.isEmpty())
 			throw tr("You must specify the path to the lrelease binary after the qpmx file as argument, with possible additional arguments");
-		forever {
+		do {
 			QString arg = pArgs.takeFirst();
-			if(arg == QStringLiteral("%%"))
+			if(arg == QStringLiteral("%%")) {
+				_qpmxTsFiles = pArgs;
+				xDebug() << tr("Extracted translation files as: %1").arg(_qpmxTsFiles.join(tr(", ")));
 				break;
+			}
 			_lrelease.append(arg.replace(QRegularExpression(QStringLiteral("^\\+")), QStringLiteral("-")));
-			if(pArgs.isEmpty())
-				throw tr("After the lrelease part, seperate via \"%%\" and then pass the ts files to translate");
-		}
+		} while(!pArgs.isEmpty());
 		xDebug() << tr("Extracted lrelease as: %1").arg(_lrelease.join(QStringLiteral(" ")));
 
-		if(pArgs.isEmpty()) {
-			//TODO qtcreator does not "find" warning -> maybe some special syntax is needed?
-			xWarning() << tr("No ts-files specified! Make shure to set the TRANSLATIONS variable BEFORE including the qpmx pri");
-			qApp->quit();
-			return;
-		} else
-			_tsFiles = pArgs;
-		xDebug() << tr("Extracted translation files as: %1").arg(_tsFiles.join(tr(", ")));
-
-		//read the qpmx
-		_format = QpmxFormat::readFile(qpmxFile.dir(), qpmxFile.fileName(), true);
 		if(_format.source)
 			;//TODO
 		else
 			binTranslate();
+
+		qApp->quit();
 	} catch(QString &s) {
 		xCritical() << s;
-	}
-}
-
-void TranslateCommand::errorOccurred(QProcess::ProcessError error)
-{
-	Q_UNUSED(error)
-	auto proc = qobject_cast<QProcess*>(sender());
-	if(!proc)
-		return;
-	if(_activeProcs.remove(proc) == 0)
-		return;
-
-	xCritical() << tr("Subcommand \"%1\" failed with error: %2")
-				   .arg(proc->program() + QLatin1Char(' ') + proc->arguments().join(QLatin1Char(' ')))
-				   .arg(proc->errorString());
-	proc->deleteLater();
-}
-
-void TranslateCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
-{
-	if(exitStatus == QProcess::CrashExit)
-		errorOccurred(QProcess::Crashed);
-	else {
-		auto proc = qobject_cast<QProcess*>(sender());
-		if(!proc)
-			return;
-		if(!_activeProcs.contains(proc))
-			return;
-
-		if(exitCode != 0) {
-			xCritical() << tr("Subcommand \"%1\" failed with exit code: %2")
-						   .arg(proc->program() + QLatin1Char(' ') + proc->arguments().join(QLatin1Char(' ')))
-						   .arg(exitCode);
-			proc->deleteLater();
-			return;
-		}
-
-		//forward stdout/err
-		std::cout << proc->readAllStandardOutput().toStdString();
-		std::cerr << proc->readAllStandardError().toStdString();
-
-		auto emitter = _activeProcs.take(proc);
-		proc->deleteLater();
-
-		if(emitter)
-			emitter();
-		if(_activeProcs.isEmpty()) {
-			xDebug() << "Translation generation completed";
-			qApp->quit();
-		}
 	}
 }
 
@@ -114,28 +53,26 @@ void TranslateCommand::binTranslate()
 	if(!QFile::exists(_qmake))
 		throw tr("Choosen qmake executable \"%1\" does not exist").arg(_qmake);
 
-	//first: translate all the ts files
-	foreach(auto tsFile, _tsFiles) {
-		QFileInfo tsInfo(tsFile);
-		QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm-base");
+	//first: translate all the ts file
+	QFileInfo tsInfo(_tsFile);
+	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm-base");
 
-		auto args = _lrelease;
-		args.append({tsFile, QStringLiteral("-qm"), qmFile});
-		addTask(args, [this, qmFile](){
-			binCombine(qmFile);
-		});
-	}
-}
+	auto args = _lrelease;
+	args.append({_tsFile, QStringLiteral("-qm"), qmFile});
+	execute(args);
 
-void TranslateCommand::binCombine(const QString &tmpQmFile)
-{
-	auto locale = localeString(tmpQmFile);
-	if(locale.isNull())
+	//now combine them into one
+	auto locale = localeString(qmFile);
+	if(locale.isNull()) {
+		QFile::rename(qmFile, tsInfo.completeBaseName() + QStringLiteral(".qm"));
 		return;
+	}
 
-	QStringList args(_lconvert);
-	args.append({QStringLiteral("-if"), QStringLiteral("qm")});
-	args.append({QStringLiteral("-i"), tmpQmFile});
+	args = QStringList{
+		_lconvert,
+		QStringLiteral("-if"), QStringLiteral("qm"),
+		QStringLiteral("-i"), qmFile
+	};
 
 	foreach(auto dep, _format.dependencies) {
 		auto bDir = buildDir(findKit(_qmake), dep);
@@ -144,34 +81,47 @@ void TranslateCommand::binCombine(const QString &tmpQmFile)
 
 		bDir.setFilter(QDir::Files | QDir::Readable);
 		bDir.setNameFilters({QStringLiteral("*.qm")});
-		foreach(auto qmFile, bDir.entryInfoList()) {
-			auto baseName = qmFile.completeBaseName();
+		foreach(auto qpmxQmFile, bDir.entryInfoList()) {
+			auto baseName = qpmxQmFile.completeBaseName();
 			if(baseName.endsWith(locale))
-				args.append({QStringLiteral("-i"), qmFile.absoluteFilePath()});
+				args.append({QStringLiteral("-i"), qpmxQmFile.absoluteFilePath()});
 		}
 	}
 
 	args.append({QStringLiteral("-of"), QStringLiteral("qm")});
-	args.append({QStringLiteral("-o"), tmpQmFile.mid(0, tmpQmFile.size() - 5)});
-
-	addTask(args);
+	args.append({QStringLiteral("-o"), tsInfo.completeBaseName() + QStringLiteral(".qm")});
+	execute(args);
 }
 
-void TranslateCommand::addTask(QStringList command, std::function<void ()> emitter)
+void TranslateCommand::execute(QStringList command)
 {
 	xDebug() << tr("Running subcommand: %1").arg(command.join(QLatin1Char(' ')));
 
-	auto proc = new QProcess(this);
-	proc->setProgram(command.takeFirst());
-	proc->setArguments(command);
-
-	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-			this, &TranslateCommand::finished);
-	connect(proc, &QProcess::errorOccurred,
-			this, &TranslateCommand::errorOccurred);
-
-	_activeProcs.insert(proc, emitter);
-	proc->start(QIODevice::ReadOnly);
+	auto pName = command.takeFirst();
+	auto res = QProcess::execute(pName, command);
+	switch (res) {
+	case -2://not started
+		throw tr("Failed to start \"%1\" to compile \"%2\"")
+				.arg(pName)
+				.arg(_tsFile);
+		break;
+	case -1://crashed
+		throw tr("Failed to run \"%1\" to compile \"%2\" - it crashed")
+				.arg(pName)
+				.arg(_tsFile);
+		break;
+	case 0://success
+		xDebug() << tr("Successfully ran \"%1\" to compile \"%2\"")
+					.arg(pName)
+					.arg(_tsFile);
+		break;
+	default:
+		throw tr("Running \"%1\" to compile \"%2\" failed with exit code: %3")
+				.arg(pName)
+				.arg(_tsFile)
+				.arg(res);//TODO exit with the given code instead
+		break;
+	}
 }
 
 QString TranslateCommand::localeString(const QString &fileName)
@@ -185,7 +135,7 @@ QString TranslateCommand::localeString(const QString &fileName)
 		parts.removeFirst();
 	} while(!parts.isEmpty());
 
-	xWarning() << tr("Unable to detect locale of file \"%1\". Translations are skipped")
+	xWarning() << tr("Unable to detect locale of file \"%1\". Translation combination is skipped")
 				  .arg(fileName);
 	return {};
 }

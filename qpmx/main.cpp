@@ -251,26 +251,35 @@ static void setupParser(QCliParser &parser)
 																				  "it with the translations of qpmx packages"));
 	translateNode->addOption({
 								 QStringLiteral("lconvert"),
-								 QCoreApplication::translate("parser", "If needed, the <path> to the lconvert binary to be used."),
+								 QCoreApplication::translate("parser", "The <path> to the lconvert binary to be used (binary builds only)."),
 								 QCoreApplication::translate("parser", "path")
 							 });
 	translateNode->addOption({
 								 {QStringLiteral("m"), QStringLiteral("qmake")},
 								 QCoreApplication::translate("parser", "The <qmake> version to use to find the corresponding translations. If not specified "
-																	   "the qmake from path is be used."),
+																	   "the qmake from path is used (binary builds only)."),
 								 QCoreApplication::translate("parser", "qmake"),
 								 QStandardPaths::findExecutable(QStringLiteral("qmake"))
 							 });
-	translateNode->addPositionalArgument(QStringLiteral("qpmx-file"),
-										 QCoreApplication::translate("parser", "The qpmx-file with the dependencies to use to collect the translations."));
+	translateNode->addOption({
+								 QStringLiteral("qpmx"),
+								 QCoreApplication::translate("parser", "The qpmx <file> with the dependencies to use to collect the translations (required)."),
+								 QCoreApplication::translate("parser", "file")
+							 });
+	translateNode->addOption({
+								 QStringLiteral("ts-file"),
+								 QCoreApplication::translate("parser", "The ts <file> to translate and combine with the qpmx translations (required)."),
+								 QCoreApplication::translate("parser", "file")
+							 });
 	translateNode->addPositionalArgument(QStringLiteral("lrelease"),
 										 QCoreApplication::translate("parser", "The path to the lrelease binary, as well as additional arguments.\n"
 																			   "IMPORTANT: Extra arguments like \"-nounfinished\" must NOT be specified with the "
 																			   "leading \"-\"! Instead, use a \"+\". It is replaced internally. Example: \"+nounfinished\"."),
 										 QStringLiteral("<lrelease> [<arguments> ...]"));
-	translateNode->addPositionalArgument(QStringLiteral("ts-files"),
-										 QCoreApplication::translate("parser", "The ts-files to compile as translations. Typically, the TRANSLATIONS qmake variable is passed."),
-										 QStringLiteral("%% <ts-files> ..."));
+	translateNode->addPositionalArgument(QStringLiteral("qpmx-translations"),
+										 QCoreApplication::translate("parser", "The ts-files to combine with the specified translations. "
+																			   "Typically, the QPMX_TRANSLATIONS qmake variable is passed (source builds only)."),
+										 QStringLiteral("[%% <ts-files> ...]"));
 
 	//init
 	auto initNode = parser.addLeafNode(QStringLiteral("init"),
