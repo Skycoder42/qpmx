@@ -38,7 +38,7 @@ void TranslateCommand::initialize(QCliParser &parser)
 		xDebug() << tr("Extracted lrelease as: %1").arg(_lrelease.join(QStringLiteral(" ")));
 
 		if(_format.source)
-			;//TODO
+			srcTranslate();
 		else
 			binTranslate();
 
@@ -55,23 +55,24 @@ void TranslateCommand::binTranslate()
 
 	//first: translate all the ts file
 	QFileInfo tsInfo(_tsFile);
-	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm-base");
+	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm");
+	QString qmBaseFile = tsInfo.completeBaseName() + QStringLiteral(".qm-base");
 
 	auto args = _lrelease;
-	args.append({_tsFile, QStringLiteral("-qm"), qmFile});
+	args.append({_tsFile, QStringLiteral("-qm"), qmBaseFile});
 	execute(args);
 
 	//now combine them into one
-	auto locale = localeString(qmFile);
+	auto locale = localeString();
 	if(locale.isNull()) {
-		QFile::rename(qmFile, tsInfo.completeBaseName() + QStringLiteral(".qm"));
+		QFile::rename(qmBaseFile, qmFile);
 		return;
 	}
 
 	args = QStringList{
 		_lconvert,
 		QStringLiteral("-if"), QStringLiteral("qm"),
-		QStringLiteral("-i"), qmFile
+		QStringLiteral("-i"), qmBaseFile
 	};
 
 	foreach(auto dep, _format.dependencies) {
@@ -89,7 +90,29 @@ void TranslateCommand::binTranslate()
 	}
 
 	args.append({QStringLiteral("-of"), QStringLiteral("qm")});
-	args.append({QStringLiteral("-o"), tsInfo.completeBaseName() + QStringLiteral(".qm")});
+	args.append({QStringLiteral("-o"), qmFile});
+	execute(args);
+}
+
+void TranslateCommand::srcTranslate()
+{
+	QFileInfo tsInfo(_tsFile);
+	QString qmFile = tsInfo.completeBaseName() + QStringLiteral(".qm");
+
+	QStringList tsFiles(_tsFile);
+	auto locale = localeString();
+	if(!locale.isNull()) {
+		//collect all possible qpmx ts files
+		foreach(auto ts, _qpmxTsFiles) {
+			auto baseName = QFileInfo(ts).completeBaseName();
+			if(baseName.endsWith(locale))
+				tsFiles.append(ts);
+		}
+	}
+
+	auto args = _lrelease;
+	args.append(tsFiles);
+	args.append({QStringLiteral("-qm"), qmFile});
 	execute(args);
 }
 
@@ -124,9 +147,9 @@ void TranslateCommand::execute(QStringList command)
 	}
 }
 
-QString TranslateCommand::localeString(const QString &fileName)
+QString TranslateCommand::localeString()
 {
-	auto parts = QFileInfo(fileName).baseName().split(QLatin1Char('_'));
+	auto parts = QFileInfo(_tsFile).baseName().split(QLatin1Char('_'));
 	do {
 		auto nName = parts.join(QLatin1Char('_'));
 		QLocale locale(nName);
@@ -136,6 +159,6 @@ QString TranslateCommand::localeString(const QString &fileName)
 	} while(!parts.isEmpty());
 
 	xWarning() << tr("Unable to detect locale of file \"%1\". Translation combination is skipped")
-				  .arg(fileName);
+				  .arg(_tsFile);
 	return {};
 }

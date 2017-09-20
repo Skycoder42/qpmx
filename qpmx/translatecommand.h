@@ -25,9 +25,10 @@ private:
 	QStringList _qpmxTsFiles;
 
 	void binTranslate();
+	void srcTranslate();
 
 	void execute(QStringList command);
-	QString localeString(const QString &fileName);
+	QString localeString();
 };
 
 #endif // TRANSLATECOMMAND_H
