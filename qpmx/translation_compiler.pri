@@ -6,10 +6,7 @@ debug_and_release {
 }
 
 isEmpty(QPMX_LRELEASE) {
-	isEmpty(LRELEASE) {
-		qtPrepareTool(LRELEASE, lrelease)
-		LRELEASE += -nounfinished
-	}
+	isEmpty(LRELEASE): qtPrepareTool(LRELEASE, lrelease)
 	QPMX_LRELEASE = $$replace(LRELEASE, -, +)
 }
 !qpmx_src_build: qtPrepareTool(QPMX_LCONVERT, lconvert)
