@@ -17,8 +17,8 @@ for /L %%i IN (0, 1, 1) DO (
 		rename submodules\qpmx-sample-package\qpmx-test\qpmx.json.src submodules\qpmx-sample-package\qpmx-test\qpmx.json
 	)
 
-	mkdir build-%qtplatform%\tests
-	cd build-%qtplatform%\tests
+	mkdir build-%qtplatform%\tests-%%i
+	cd build-%qtplatform%\tests-%%i
 
 	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || (
 		for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
@@ -36,4 +36,9 @@ for /L %%i IN (0, 1, 1) DO (
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1
+	
+	cd ..\..
 )
+
+:: debug
+build-%qtplatform%\qpmx\qtifw-installer\packages\de.skycoder42.qpmx\data\qpmx.exe list providers
