@@ -14,11 +14,8 @@ xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpm
 
 for /L %%i IN (0, 1, 1) DO (
 	if "%%i" == "1" (
-		echo del submodules\qpmx-sample-package\qpmx-test\qpmx.json
-		del submodules\qpmx-sample-package\qpmx-test\qpmx.json || exit /B 1
-		echo ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.src submodules\qpmx-sample-package\qpmx-test\qpmx.json
-		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.src submodules\qpmx-sample-package\qpmx-test\qpmx.json || exit /B 1
-		echo rename done
+		del submodules\qpmx-sample-package\qpmx-test\qpmx.json
+		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.src qpmx.json
 	)
 
 	mkdir build-%qtplatform%\tests-%%i
