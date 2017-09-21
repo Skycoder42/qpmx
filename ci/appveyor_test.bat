@@ -11,6 +11,7 @@ mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 
 :: build tests (bin and src)
+@echo on
 for /L %%i IN (0, 1, 1) DO (
 	if "%%i" == "1" (
 		del submodules\qpmx-sample-package\qpmx-test\qpmx.json
