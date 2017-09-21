@@ -27,7 +27,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		auto mainFormat = QpmxUserFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
-				auto cacheFormat = QpmxFormat::readFile(tDir, QStringLiteral(".qpmx.cache"));
+				auto cacheFormat = QpmxUserFormat::readCached(tDir, true);
 				if(!hasChanged(mainFormat, cacheFormat)) {
 					xDebug() << tr("Unchanged configuration. Skipping generation");
 					qApp->quit();
