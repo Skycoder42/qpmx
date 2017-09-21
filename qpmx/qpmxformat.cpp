@@ -50,8 +50,11 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 {
 	QFile qpmxFile(dir.absoluteFilePath(fileName));
 	if(qpmxFile.exists()) {
-		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text))
-			throw tr("Failed to open qpmx.json with error: %1").arg(qpmxFile.errorString());
+		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			throw tr("Failed to open %1 with error: %2")
+					.arg(fileName)
+					.arg(qpmxFile.errorString());
+		}
 
 		try {
 			QJsonSerializer ser;
@@ -59,10 +62,10 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 			return ser.deserializeFrom<QpmxFormat>(&qpmxFile);
 		} catch(QJsonSerializerException &e) {
 			qDebug() << e.what();
-			throw tr("qpmx.json contains invalid data");
+			throw tr("%1 contains invalid data").arg(fileName);
 		}
 	} else if(mustExist)
-		throw tr("qpmx.json file does not exist");
+		throw tr("%1 file does not exist").arg(fileName);
 	else
 		return {};
 }
@@ -92,6 +95,94 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 	if(!qpmxFile.commit())
 		throw tr("Failed to save qpmx.json with error: %1").arg(qpmxFile.errorString());
 }
+
+QpmxDevData::QpmxDevData() :
+	active(false),
+	devDeps()
+{}
+
+bool QpmxDevData::operator!=(const QpmxDevData &other) const
+{
+	return active != other.active &&
+		devDeps != other.devDeps;
+}
+
+QpmxUserFormat::QpmxUserFormat() :
+	QpmxFormat(),
+	dev()
+{}
+
+QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format) :
+	QpmxFormat(format),
+	dev(userFormat.dev)
+{
+	if(dev.active)
+		source = true;
+}
+
+QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)
+{
+	auto baseFormat = QpmxFormat::readDefault(mustExist);
+	auto userFormat = readFile(QDir::current(), QStringLiteral("qpmx.json.user"), false);
+	return {userFormat, baseFormat};
+}
+
+QpmxUserFormat QpmxUserFormat::readCached(const QDir &dir, bool mustExist)
+{
+	return readFile(dir, QStringLiteral(".qpmx.cache"), mustExist);
+}
+
+QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName, bool mustExist)
+{
+	QFile qpmxUserFile(dir.absoluteFilePath(fileName));
+	if(qpmxUserFile.exists()) {
+		if(!qpmxUserFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			throw tr("Failed to open %1 with error: %2")
+					.arg(fileName)
+					.arg(qpmxUserFile.errorString());
+		}
+
+		try {
+			QJsonSerializer ser;
+			ser.addJsonTypeConverter(new VersionConverter());
+			return ser.deserializeFrom<QpmxUserFormat>(&qpmxUserFile);
+		} catch(QJsonSerializerException &e) {
+			qDebug() << e.what();
+			throw tr("%1 contains invalid data").arg(fileName);
+		}
+	} else if(mustExist)
+		throw tr("%1 file does not exist").arg(fileName);
+	else
+		return {};
+}
+
+bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
+{
+	QSaveFile qpmxUserFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
+	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		qWarning().noquote() << tr("Failed to open .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+		return false;
+	}
+
+	try {
+		QJsonSerializer ser;
+		ser.addJsonTypeConverter(new VersionConverter());
+		//ser.serializeTo(&qpmxFile, data);
+		auto json = ser.serialize(data);
+		qpmxUserFile.write(QJsonDocument(json).toJson(QJsonDocument::Indented));
+	} catch(QJsonSerializerException &e) {
+		qDebug() << e.what();
+		qWarning().noquote() << tr("Failed to write .qpmx.cache");
+		return false;
+	}
+
+	if(!qpmxUserFile.commit()) {
+		qWarning().noquote() << tr("Failed to save .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+		return false;
+	} else
+		return true;
+}
+
 
 
 

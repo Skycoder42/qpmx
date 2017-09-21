@@ -69,7 +69,44 @@ public:
 	QStringList localIncludes;
 };
 
+class QpmxDevData
+{
+	Q_GADGET
+
+	Q_PROPERTY(bool active MEMBER active)
+	Q_PROPERTY(QList<QpmxDependency> devDeps MEMBER devDeps)
+
+public:
+	QpmxDevData();
+
+	bool operator!=(const QpmxDevData &other) const;
+
+	bool active;
+	QList<QpmxDependency> devDeps;
+};
+
+class QpmxUserFormat : public QpmxFormat
+{
+	Q_GADGET
+
+	Q_PROPERTY(QpmxDevData dev MEMBER dev)
+
+public:
+	QpmxUserFormat();
+	QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format);
+
+	static QpmxUserFormat readDefault(bool mustExist = false);
+	static QpmxUserFormat readCached(const QDir &dir, bool mustExist = false);
+	static QpmxUserFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
+
+	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
+
+	QpmxDevData dev;
+};
+
 Q_DECLARE_METATYPE(QpmxDependency)
 Q_DECLARE_METATYPE(QpmxFormat)
+Q_DECLARE_METATYPE(QpmxDevData)
+Q_DECLARE_METATYPE(QpmxUserFormat)
 
 #endif // QPMXFORMAT_H

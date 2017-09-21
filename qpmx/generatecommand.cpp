@@ -24,7 +24,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		if(!QFile::exists(_qmake))
 			throw tr("Choosen qmake executable \"%1\" does not exist").arg(_qmake);
 
-		auto mainFormat = QpmxFormat::readDefault(true);
+		auto mainFormat = QpmxUserFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
 				auto cacheFormat = QpmxFormat::readFile(tDir, QStringLiteral(".qpmx.cache"));
@@ -44,7 +44,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
 		createPriFile(mainFormat);
-		if(!QFile::copy(QStringLiteral("qpmx.json"), cachePath))
+		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
 			xWarning() << tr("Failed to cache qpmx.json file. This means generate will always recreate the qpmx_generated.pri");
 
 		xDebug() << tr("Pri-File generation completed");
@@ -75,7 +75,7 @@ bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &ca
 	return !cCache.isEmpty();
 }
 
-void GenerateCommand::createPriFile(const QpmxFormat &current)
+void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 {
 	if(!_genFile->open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open qpmx_generated.pri with error: %1").arg(_genFile->errorString());
