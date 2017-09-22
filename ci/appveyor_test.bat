@@ -12,7 +12,7 @@ xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpm
 
 :: build tests (bin and src)
 
-for /L %%i IN (0, 2, 1) DO (
+for /L %%i IN (0, 1, 2) DO (
 	if "%%i" == "1" (
 		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.user.cm qpmx.json.user
 	)

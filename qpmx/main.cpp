@@ -9,6 +9,7 @@
 #include "generatecommand.h"
 #include "initcommand.h"
 #include "translatecommand.h"
+#include "devcommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -100,6 +101,8 @@ int main(int argc, char *argv[])
 		cmd = new TranslateCommand(qApp);
 	else if(parser.enterContext(QStringLiteral("init")))
 		cmd = new InitCommand(qApp);
+	else if(parser.enterContext(QStringLiteral("dev")))
+		cmd = new DevCommand(qApp);
 	else {
 		Q_UNREACHABLE();
 		return EXIT_FAILURE;
@@ -307,6 +310,23 @@ static void setupParser(QCliParser &parser)
 									QCoreApplication::translate("parser", "The path to the qmake to use for compilation of the qpmx dependencies."));
 	initNode->addPositionalArgument(QStringLiteral("outdir"),
 									QCoreApplication::translate("parser", "The directory to generate the files in. Passed to the generate step."));
+
+	//dev
+	auto devNode = parser.addContextNode(QStringLiteral("dev"),
+										 QCoreApplication::translate("parser", "Switch packages from or to developer mode."));
+	auto devAddNode = devNode->addLeafNode(QStringLiteral("add"),
+										   QCoreApplication::translate("parser", "Add a packages as \"dev package\" to the qpmx.json.user file."));
+	devAddNode->addPositionalArgument(QStringLiteral("package"),
+									  QCoreApplication::translate("parser", "The package(s) to add as dev package"),
+									  QStringLiteral("<provider>::<package>@<version>"));
+	devAddNode->addPositionalArgument(QStringLiteral("pri-path"),
+									  QCoreApplication::translate("parser", "The local path to the pri file to be used to replace the preceding package with."),
+									  QStringLiteral("<pri-path> ..."));
+	auto devRemoveNode = devNode->addLeafNode(QStringLiteral("remove"),
+											  QCoreApplication::translate("parser", "Remove a \"dev package\" from the qpmx.json.user file."));
+	devRemoveNode->addPositionalArgument(QStringLiteral("packages"),
+										 QCoreApplication::translate("parser", "The packages to remove from the dev packages"),
+										 QStringLiteral("<provider>::<package>@<version> ..."));
 }
 
 static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)

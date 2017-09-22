@@ -183,6 +183,30 @@ QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName
 		return {};
 }
 
+void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
+{
+	QSaveFile qpmxUserFile(QDir::current().absoluteFilePath(QStringLiteral("qpmx.json.user")));
+	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to open qpmx.json.user with error: %1").arg(qpmxUserFile.errorString());
+
+	try {
+		QJsonSerializer ser;
+		ser.addJsonTypeConverter(new VersionConverter());
+		auto json = ser.serialize(data);
+
+		QJsonObject userReduced;
+		userReduced[QStringLiteral("devmode")] = json[QStringLiteral("devmode")];
+
+		qpmxUserFile.write(QJsonDocument(userReduced).toJson(QJsonDocument::Indented));
+	} catch(QJsonSerializerException &e) {
+		qDebug() << e.what();
+		throw tr("Failed to write .qpmx.cache");
+	}
+
+	if(!qpmxUserFile.commit())
+		throw tr("Failed to save .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+}
+
 bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
 {
 	QSaveFile qpmxUserFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));

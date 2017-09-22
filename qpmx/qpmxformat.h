@@ -82,7 +82,7 @@ class QpmxDevDependency : public QpmxDependency
 
 public:
 	QpmxDevDependency();
-	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath);
+	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath = {});
 
 	bool operator==(const QpmxDependency &other) const;
 
@@ -104,6 +104,7 @@ public:
 	static QpmxUserFormat readCached(const QDir &dir, bool mustExist = false);
 	static QpmxUserFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
 
+	static void writeUser(const QpmxUserFormat &data);
 	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
 
 	QList<QpmxDevDependency> devmode;
