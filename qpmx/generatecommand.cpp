@@ -54,7 +54,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 	}
 }
 
-bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &cache)
+bool GenerateCommand::hasChanged(const QpmxUserFormat &current, const QpmxUserFormat &cache)
 {
 	if(current.source != cache.source ||
 	   current.prcFile != cache.prcFile ||
@@ -71,8 +71,23 @@ bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &ca
 		if(dep.version != cCache.takeAt(cIdx).version)
 			return true;
 	}
+	if(!cCache.isEmpty())
+		return true;
 
-	return !cCache.isEmpty();
+	auto dCache = cache.devmode;
+	foreach(auto dep, current.devmode) {
+		auto cIdx = dCache.indexOf(dep);
+		if(cIdx == -1)
+			return true;
+		auto dDep = dCache.takeAt(cIdx);
+		if(dep.version != dDep.version ||
+		   dep.path != dDep.path)
+			return true;
+	}
+	if(!dCache.isEmpty())
+		return true;
+
+	return false;
 }
 
 void GenerateCommand::createPriFile(const QpmxUserFormat &current)
@@ -114,6 +129,12 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
+
+	//add dev dependencies
+	stream << "\n#dev dependencies\n";
+	auto crDir = QDir::current();
+	foreach(auto dep, current.devmode)
+		stream << "include(" << QDir::cleanPath(crDir.absoluteFilePath(dep.path)) << ")\n";
 
 	//add translations
 	stream << "\n#translations\n";

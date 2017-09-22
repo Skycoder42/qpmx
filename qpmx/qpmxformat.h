@@ -69,7 +69,9 @@ public:
 	QStringList localIncludes;
 
 protected:
-	void checkDuplicates();
+	virtual void checkDuplicates();
+	template <typename T>
+	static void checkDuplicatesImpl(const QList<T> &data);
 };
 
 class QpmxDevDependency : public QpmxDependency
@@ -105,6 +107,9 @@ public:
 	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
 
 	QList<QpmxDevDependency> devmode;
+
+protected:
+	void checkDuplicates() override;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)

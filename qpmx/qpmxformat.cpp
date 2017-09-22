@@ -100,11 +100,19 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 
 void QpmxFormat::checkDuplicates()
 {
-	for(auto i = 0; i < dependencies.size() - 1; i++) {
-		if(dependencies.indexOf(dependencies[i], i + 1) != -1)
-			throw tr("Duplicated dependency found: %1").arg(dependencies[i].toString());
+	checkDuplicatesImpl(dependencies);
+}
+
+template<typename T>
+void QpmxFormat::checkDuplicatesImpl(const QList<T> &data)
+{
+	static_assert(std::is_base_of<QpmxDependency, T>::value, "checkDuplicates is only available for QpmxDependency classes");
+	for(auto i = 0; i < data.size() - 1; i++) {
+		if(data.indexOf(data[i], i + 1) != -1)
+			throw tr("Duplicated dependency found: %1").arg(data[i].toString());
 	}
 }
+
 
 QpmxDevDependency::QpmxDevDependency() :
 	QpmxDependency(),
@@ -198,6 +206,12 @@ bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
 		return false;
 	} else
 		return true;
+}
+
+void QpmxUserFormat::checkDuplicates()
+{
+	QpmxFormat::checkDuplicates();
+	checkDuplicatesImpl(devmode);
 }
 
 
