@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
+	QJsonSerializer::registerAllConverters<QpmxDevDependency>();
 	qRegisterMetaType<QVersionNumber>();
 	qRegisterMetaType<QList<QVersionNumber>>();
 	qRegisterMetaTypeStreamOperators<QVersionNumber>();

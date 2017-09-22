@@ -67,29 +67,32 @@ public:
 	QList<QpmxDependency> dependencies;
 	QStringList qmakeExtraFlags;
 	QStringList localIncludes;
+
+protected:
+	void checkDuplicates();
 };
 
-class QpmxDevData
+class QpmxDevDependency : public QpmxDependency
 {
 	Q_GADGET
 
-	Q_PROPERTY(bool active MEMBER active)
-	Q_PROPERTY(QList<QpmxDependency> devDeps MEMBER devDeps)
+	Q_PROPERTY(QString path MEMBER path)
 
 public:
-	QpmxDevData();
+	QpmxDevDependency();
+	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath);
 
-	bool operator!=(const QpmxDevData &other) const;
+	bool operator==(const QpmxDependency &other) const;
 
-	bool active;
-	QList<QpmxDependency> devDeps;
+	QString path;
 };
 
 class QpmxUserFormat : public QpmxFormat
 {
 	Q_GADGET
+	Q_DECLARE_TR_FUNCTIONS(QpmxFormat)
 
-	Q_PROPERTY(QpmxDevData dev MEMBER dev)
+	Q_PROPERTY(QList<QpmxDevDependency> devmode MEMBER devmode)
 
 public:
 	QpmxUserFormat();
@@ -101,12 +104,12 @@ public:
 
 	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
 
-	QpmxDevData dev;
+	QList<QpmxDevDependency> devmode;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)
 Q_DECLARE_METATYPE(QpmxFormat)
-Q_DECLARE_METATYPE(QpmxDevData)
+Q_DECLARE_METATYPE(QpmxDevDependency)
 Q_DECLARE_METATYPE(QpmxUserFormat)
 
 #endif // QPMXFORMAT_H

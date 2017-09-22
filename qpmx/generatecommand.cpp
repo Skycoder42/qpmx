@@ -27,7 +27,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		auto mainFormat = QpmxUserFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
-				auto cacheFormat = QpmxUserFormat::readCached(tDir, true);
+				auto cacheFormat = QpmxUserFormat::readCached(tDir, false);
 				if(!hasChanged(mainFormat, cacheFormat)) {
 					xDebug() << tr("Unchanged configuration. Skipping generation");
 					qApp->quit();
@@ -37,7 +37,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 			if(!_genFile->remove())
 				throw tr("Failed to remove qpmx_generated.pri with error: %1").arg(_genFile->errorString());
-			if(!QFile::remove(cachePath))
+			if(QFile::exists(cachePath) && !QFile::remove(cachePath))
 				throw tr("Failed to remove qpmx cache file");
 		}
 

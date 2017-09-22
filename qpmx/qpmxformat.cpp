@@ -59,7 +59,9 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 		try {
 			QJsonSerializer ser;
 			ser.addJsonTypeConverter(new VersionConverter());
-			return ser.deserializeFrom<QpmxFormat>(&qpmxFile);
+			auto format = ser.deserializeFrom<QpmxFormat>(&qpmxFile);
+			format.checkDuplicates();
+			return format;
 		} catch(QJsonSerializerException &e) {
 			qDebug() << e.what();
 			throw tr("%1 contains invalid data").arg(fileName);
@@ -96,28 +98,43 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 		throw tr("Failed to save qpmx.json with error: %1").arg(qpmxFile.errorString());
 }
 
-QpmxDevData::QpmxDevData() :
-	active(false),
-	devDeps()
+void QpmxFormat::checkDuplicates()
+{
+	for(auto i = 0; i < dependencies.size() - 1; i++) {
+		if(dependencies.indexOf(dependencies[i], i + 1) != -1)
+			throw tr("Duplicated dependency found: %1").arg(dependencies[i].toString());
+	}
+}
+
+QpmxDevDependency::QpmxDevDependency() :
+	QpmxDependency(),
+	path()
 {}
 
-bool QpmxDevData::operator!=(const QpmxDevData &other) const
+QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, const QString &localPath) :
+	QpmxDependency(dep),
+	path(localPath)
+{}
+
+bool QpmxDevDependency::operator==(const QpmxDependency &other) const
 {
-	return active != other.active &&
-		devDeps != other.devDeps;
+	return QpmxDependency::operator ==(other);
 }
+
 
 QpmxUserFormat::QpmxUserFormat() :
 	QpmxFormat(),
-	dev()
+	devmode()
 {}
 
 QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format) :
 	QpmxFormat(format),
-	dev(userFormat.dev)
+	devmode(userFormat.devmode)
 {
-	if(dev.active)
+	if(!devmode.isEmpty())
 		source = true;
+	foreach(auto dep, devmode)
+		dependencies.removeOne(dep);
 }
 
 QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)
@@ -145,7 +162,9 @@ QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName
 		try {
 			QJsonSerializer ser;
 			ser.addJsonTypeConverter(new VersionConverter());
-			return ser.deserializeFrom<QpmxUserFormat>(&qpmxUserFile);
+			auto format = ser.deserializeFrom<QpmxUserFormat>(&qpmxUserFile);
+			format.checkDuplicates();
+			return format;
 		} catch(QJsonSerializerException &e) {
 			qDebug() << e.what();
 			throw tr("%1 contains invalid data").arg(fileName);
@@ -167,9 +186,7 @@ bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
 	try {
 		QJsonSerializer ser;
 		ser.addJsonTypeConverter(new VersionConverter());
-		//ser.serializeTo(&qpmxFile, data);
-		auto json = ser.serialize(data);
-		qpmxUserFile.write(QJsonDocument(json).toJson(QJsonDocument::Indented));
+		ser.serializeTo(&qpmxUserFile, data);
 	} catch(QJsonSerializerException &e) {
 		qDebug() << e.what();
 		qWarning().noquote() << tr("Failed to write .qpmx.cache");
