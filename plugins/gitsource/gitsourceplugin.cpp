@@ -5,6 +5,8 @@
 #include <QSet>
 #include <QTimer>
 #include <QDateTime>
+#include <QTextStream>
+#include <QDebug>
 
 QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.#]*)\.([^\.#]*)(?:#(.*))?$)__"));
 
@@ -23,7 +25,7 @@ bool GitSourcePlugin::canSearch(const QString &provider) const
 bool GitSourcePlugin::canPublish(const QString &provider) const
 {
 	Q_UNUSED(provider)
-	return false;
+	return true;
 }
 
 QString GitSourcePlugin::packageSyntax(const QString &provider) const
@@ -49,7 +51,29 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 
 QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
 {
+	QFile console;
+	if(!console.open(stdin, QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to access console with error: %1").arg(console.errorString());
 
+	QTextStream stream(&console);
+	if(provider == QStringLiteral("git")) {
+		QJsonObject object;
+		qInfo().noquote() << tr("Enter the remote-url to push the package to:");
+		object[QStringLiteral("url")] = stream.readLine();
+		qInfo().noquote() << tr("Enter a version prefix (optional):");
+		object[QStringLiteral("prefix")] = stream.readLine();
+		return object;
+	} else if(provider == QStringLiteral("github")) {
+		QJsonObject object;
+		qInfo().noquote() << tr("Enter the users name to push to:");
+		object[QStringLiteral("user")] = stream.readLine();
+		qInfo().noquote() << tr("Enter the repository name to push to:");
+		object[QStringLiteral("repository")] = stream.readLine();
+		qInfo().noquote() << tr("Enter a version prefix (optional):");
+		object[QStringLiteral("prefix")] = stream.readLine();
+		return object;
+	} else
+		return {};
 }
 
 void GitSourcePlugin::cancelAll(int timeout)
