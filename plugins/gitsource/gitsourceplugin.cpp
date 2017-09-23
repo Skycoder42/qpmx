@@ -52,25 +52,37 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
 {
 	QFile console;
-	if(!console.open(stdin, QIODevice::WriteOnly | QIODevice::Text))
+	if(!console.open(stdin, QIODevice::ReadOnly | QIODevice::Text))
 		throw tr("Failed to access console with error: %1").arg(console.errorString());
 
 	QTextStream stream(&console);
 	if(provider == QStringLiteral("git")) {
-		QJsonObject object;
-		qInfo().noquote() << tr("Enter the remote-url to push the package to:");
-		object[QStringLiteral("url")] = stream.readLine();
+		QString pUrl;
+		forever {
+			qInfo().noquote() << tr("Enter the remote-url to push the package to:");
+			pUrl = stream.readLine().trimmed().toLower();
+			QUrl url(pUrl);
+			if(!url.isValid() || !url.path().endsWith(QStringLiteral(".git")))
+				qWarning().noquote() << tr("Invalid url! Enter a valid url that ends with \".git\"");
+			else
+				break;
+		}
+
 		qInfo().noquote() << tr("Enter a version prefix (optional):");
-		object[QStringLiteral("prefix")] = stream.readLine();
+		auto pPrefix = stream.readLine().trimmed().toLower();
+
+		QJsonObject object;
+		object[QStringLiteral("url")] = pUrl;
+		object[QStringLiteral("prefix")] = pPrefix;
 		return object;
 	} else if(provider == QStringLiteral("github")) {
 		QJsonObject object;
 		qInfo().noquote() << tr("Enter the users name to push to:");
-		object[QStringLiteral("user")] = stream.readLine();
+		object[QStringLiteral("user")] = stream.readLine().trimmed().toLower();
 		qInfo().noquote() << tr("Enter the repository name to push to:");
-		object[QStringLiteral("repository")] = stream.readLine();
+		object[QStringLiteral("repository")] = stream.readLine().trimmed().toLower();
 		qInfo().noquote() << tr("Enter a version prefix (optional):");
-		object[QStringLiteral("prefix")] = stream.readLine();
+		object[QStringLiteral("prefix")] = stream.readLine().trimmed().toLower();
 		return object;
 	} else
 		return {};

@@ -7,9 +7,10 @@
 #include "uninstallcommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
+#include "preparecommand.h"
+#include "devcommand.h"
 #include "initcommand.h"
 #include "translatecommand.h"
-#include "devcommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -37,6 +38,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName(QStringLiteral(COMPANY));
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
+	QJsonSerializer::registerAllConverters<QJsonObject>();
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
 	QJsonSerializer::registerAllConverters<QpmxDevDependency>();
 	qRegisterMetaType<QVersionNumber>();
@@ -50,6 +52,7 @@ int main(int argc, char *argv[])
 	addCommand<UninstallCommand>(commands);
 	addCommand<CompileCommand>(commands);
 	addCommand<GenerateCommand>(commands);
+	addCommand<PrepareCommand>(commands);
 	addCommand<DevCommand>(commands);
 	addCommand<InitCommand>(commands);
 	addCommand<TranslateCommand>(commands);

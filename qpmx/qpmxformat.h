@@ -6,6 +6,8 @@
 #include <QCoreApplication>
 #include <QJsonTypeConverter>
 #include <QDir>
+#include <QMap>
+#include <QJsonObject>
 
 #include "packageinfo.h"
 
@@ -53,6 +55,8 @@ class QpmxFormat
 	Q_PROPERTY(QStringList qmakeExtraFlags MEMBER qmakeExtraFlags)
 	Q_PROPERTY(QStringList localIncludes MEMBER localIncludes)
 
+	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers)
+
 public:
 	QpmxFormat();
 
@@ -67,6 +71,7 @@ public:
 	QList<QpmxDependency> dependencies;
 	QStringList qmakeExtraFlags;
 	QStringList localIncludes;
+	QMap<QString, QJsonObject> publishers;
 
 protected:
 	virtual void checkDuplicates();
