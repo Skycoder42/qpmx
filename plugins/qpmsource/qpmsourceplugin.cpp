@@ -18,6 +18,11 @@ bool QpmSourcePlugin::canSearch() const
 	return true;
 }
 
+bool QpmSourcePlugin::canPublish() const
+{
+	return false;
+}
+
 QString QpmSourcePlugin::packageSyntax(const QString &provider) const
 {
 	if(provider == QStringLiteral("qpm"))
@@ -30,6 +35,11 @@ bool QpmSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 {
 	Q_UNUSED(package)
 	return true;
+}
+
+QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
+{
+
 }
 
 void QpmSourcePlugin::cancelAll(int timeout)
@@ -114,6 +124,11 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
 	}
+}
+
+void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo)
+{
+
 }
 
 void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)

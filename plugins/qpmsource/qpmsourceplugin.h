@@ -23,8 +23,11 @@ public:
 	QpmSourcePlugin(QObject *parent = nullptr);
 
 	bool canSearch() const override;
+	bool canPublish() const override;
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
+
+	QJsonObject createPublisherInfo(const QString &provider) const override;
 
 	void cancelAll(int timeout) override;
 
@@ -32,12 +35,14 @@ public slots:
 	void searchPackage(int requestId, const QString &provider, const QString &query) override;
 	void findPackageVersion(int requestId, const qpmx::PackageInfo &package) override;
 	void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) override;
+	void publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) override;
 
 signals:
-	void searchResult(int requestId, const QStringList &packageNames) override;
-	void versionResult(int requestId, const QVersionNumber &version) override;
-	void sourceFetched(int requestId) override;
-	void sourceError(int requestId, const QString &error) override;
+	void searchResult(int requestId, const QStringList &packageNames) final;
+	void versionResult(int requestId, const QVersionNumber &version) final;
+	void sourceFetched(int requestId) final;
+	void packagePublished(int requestId) final;
+	void sourceError(int requestId, const QString &error) final;
 
 private slots:
 	void finished(int exitCode, QProcess::ExitStatus exitStatus);

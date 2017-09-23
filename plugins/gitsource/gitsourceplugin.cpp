@@ -19,6 +19,11 @@ bool GitSourcePlugin::canSearch() const
 	return false;
 }
 
+bool GitSourcePlugin::canPublish() const
+{
+	return false;
+}
+
 QString GitSourcePlugin::packageSyntax(const QString &provider) const
 {
 	if(provider == QStringLiteral("git"))
@@ -38,6 +43,11 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 		return _githubRegex.match(package.package()).hasMatch();
 	else
 		return false;
+}
+
+QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
+{
+
 }
 
 void GitSourcePlugin::cancelAll(int timeout)
@@ -117,6 +127,11 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
 	}
+}
+
+void GitSourcePlugin::publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo)
+{
+
 }
 
 void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)

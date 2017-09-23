@@ -23,7 +23,7 @@ void Command::fin()
 	finalize();
 	_registry->cancelAll();
 	for(auto it = _locks.begin(); it != _locks.end(); it++) {
-		xDebug() << QStringLiteral("Freeing remaining lock fro %1/%2")
+		xDebug() << QStringLiteral("Freeing remaining lock for %1/%2")
 					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))
 					.arg(it.key().second);
 		it.value()->release();
