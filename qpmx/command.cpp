@@ -97,7 +97,7 @@ QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool f
 		if(fullPkgOnly &&
 		   (info.provider().isEmpty() ||
 			info.version().isNull()))
-			throw tr("You must specify provider, package name and version to compile explicitly");
+			throw tr("You must explicitly specify provider, package name and version for this command");
 		pkgList.append(info);
 		xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
 					.arg(info.package())

@@ -67,9 +67,55 @@ public:
 	QList<QpmxDependency> dependencies;
 	QStringList qmakeExtraFlags;
 	QStringList localIncludes;
+
+protected:
+	virtual void checkDuplicates();
+	template <typename T>
+	static void checkDuplicatesImpl(const QList<T> &data);
+};
+
+class QpmxDevDependency : public QpmxDependency
+{
+	Q_GADGET
+
+	Q_PROPERTY(QString path MEMBER path)
+
+public:
+	QpmxDevDependency();
+	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath = {});
+
+	bool operator==(const QpmxDependency &other) const;
+
+	QString path;
+};
+
+class QpmxUserFormat : public QpmxFormat
+{
+	Q_GADGET
+	Q_DECLARE_TR_FUNCTIONS(QpmxFormat)
+
+	Q_PROPERTY(QList<QpmxDevDependency> devmode MEMBER devmode)
+
+public:
+	QpmxUserFormat();
+	QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format);
+
+	static QpmxUserFormat readDefault(bool mustExist = false);
+	static QpmxUserFormat readCached(const QDir &dir, bool mustExist = false);
+	static QpmxUserFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
+
+	static void writeUser(const QpmxUserFormat &data);
+	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
+
+	QList<QpmxDevDependency> devmode;
+
+protected:
+	void checkDuplicates() override;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)
 Q_DECLARE_METATYPE(QpmxFormat)
+Q_DECLARE_METATYPE(QpmxDevDependency)
+Q_DECLARE_METATYPE(QpmxUserFormat)
 
 #endif // QPMXFORMAT_H

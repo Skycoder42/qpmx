@@ -24,10 +24,10 @@ void GenerateCommand::initialize(QCliParser &parser)
 		if(!QFile::exists(_qmake))
 			throw tr("Choosen qmake executable \"%1\" does not exist").arg(_qmake);
 
-		auto mainFormat = QpmxFormat::readDefault(true);
+		auto mainFormat = QpmxUserFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
-				auto cacheFormat = QpmxFormat::readFile(tDir, QStringLiteral(".qpmx.cache"));
+				auto cacheFormat = QpmxUserFormat::readCached(tDir, false);
 				if(!hasChanged(mainFormat, cacheFormat)) {
 					xDebug() << tr("Unchanged configuration. Skipping generation");
 					qApp->quit();
@@ -37,14 +37,14 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 			if(!_genFile->remove())
 				throw tr("Failed to remove qpmx_generated.pri with error: %1").arg(_genFile->errorString());
-			if(!QFile::remove(cachePath))
+			if(QFile::exists(cachePath) && !QFile::remove(cachePath))
 				throw tr("Failed to remove qpmx cache file");
 		}
 
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
 		createPriFile(mainFormat);
-		if(!QFile::copy(QStringLiteral("qpmx.json"), cachePath))
+		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
 			xWarning() << tr("Failed to cache qpmx.json file. This means generate will always recreate the qpmx_generated.pri");
 
 		xDebug() << tr("Pri-File generation completed");
@@ -54,7 +54,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 	}
 }
 
-bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &cache)
+bool GenerateCommand::hasChanged(const QpmxUserFormat &current, const QpmxUserFormat &cache)
 {
 	if(current.source != cache.source ||
 	   current.prcFile != cache.prcFile ||
@@ -71,11 +71,26 @@ bool GenerateCommand::hasChanged(const QpmxFormat &current, const QpmxFormat &ca
 		if(dep.version != cCache.takeAt(cIdx).version)
 			return true;
 	}
+	if(!cCache.isEmpty())
+		return true;
 
-	return !cCache.isEmpty();
+	auto dCache = cache.devmode;
+	foreach(auto dep, current.devmode) {
+		auto cIdx = dCache.indexOf(dep);
+		if(cIdx == -1)
+			return true;
+		auto dDep = dCache.takeAt(cIdx);
+		if(dep.version != dDep.version ||
+		   dep.path != dDep.path)
+			return true;
+	}
+	if(!dCache.isEmpty())
+		return true;
+
+	return false;
 }
 
-void GenerateCommand::createPriFile(const QpmxFormat &current)
+void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 {
 	if(!_genFile->open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open qpmx_generated.pri with error: %1").arg(_genFile->errorString());
@@ -114,6 +129,12 @@ void GenerateCommand::createPriFile(const QpmxFormat &current)
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
+
+	//add dev dependencies
+	stream << "\n#dev dependencies\n";
+	auto crDir = QDir::current();
+	foreach(auto dep, current.devmode)
+		stream << "include(" << QDir::cleanPath(crDir.absoluteFilePath(dep.path)) << ")\n";
 
 	//add translations
 	stream << "\n#translations\n";

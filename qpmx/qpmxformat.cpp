@@ -50,19 +50,24 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 {
 	QFile qpmxFile(dir.absoluteFilePath(fileName));
 	if(qpmxFile.exists()) {
-		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text))
-			throw tr("Failed to open qpmx.json with error: %1").arg(qpmxFile.errorString());
+		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			throw tr("Failed to open %1 with error: %2")
+					.arg(fileName)
+					.arg(qpmxFile.errorString());
+		}
 
 		try {
 			QJsonSerializer ser;
 			ser.addJsonTypeConverter(new VersionConverter());
-			return ser.deserializeFrom<QpmxFormat>(&qpmxFile);
+			auto format = ser.deserializeFrom<QpmxFormat>(&qpmxFile);
+			format.checkDuplicates();
+			return format;
 		} catch(QJsonSerializerException &e) {
 			qDebug() << e.what();
-			throw tr("qpmx.json contains invalid data");
+			throw tr("%1 contains invalid data").arg(fileName);
 		}
 	} else if(mustExist)
-		throw tr("qpmx.json file does not exist");
+		throw tr("%1 file does not exist").arg(fileName);
 	else
 		return {};
 }
@@ -92,6 +97,147 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 	if(!qpmxFile.commit())
 		throw tr("Failed to save qpmx.json with error: %1").arg(qpmxFile.errorString());
 }
+
+void QpmxFormat::checkDuplicates()
+{
+	checkDuplicatesImpl(dependencies);
+}
+
+template<typename T>
+void QpmxFormat::checkDuplicatesImpl(const QList<T> &data)
+{
+	static_assert(std::is_base_of<QpmxDependency, T>::value, "checkDuplicates is only available for QpmxDependency classes");
+	for(auto i = 0; i < data.size() - 1; i++) {
+		if(data.indexOf(data[i], i + 1) != -1)
+			throw tr("Duplicated dependency found: %1").arg(data[i].toString());
+	}
+}
+
+
+QpmxDevDependency::QpmxDevDependency() :
+	QpmxDependency(),
+	path()
+{}
+
+QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, const QString &localPath) :
+	QpmxDependency(dep),
+	path(localPath)
+{}
+
+bool QpmxDevDependency::operator==(const QpmxDependency &other) const
+{
+	return QpmxDependency::operator ==(other);
+}
+
+
+QpmxUserFormat::QpmxUserFormat() :
+	QpmxFormat(),
+	devmode()
+{}
+
+QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format) :
+	QpmxFormat(format),
+	devmode(userFormat.devmode)
+{
+	if(!devmode.isEmpty())
+		source = true;
+	foreach(auto dep, devmode)
+		dependencies.removeOne(dep);
+}
+
+QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)
+{
+	auto baseFormat = QpmxFormat::readDefault(mustExist);
+	auto userFormat = readFile(QDir::current(), QStringLiteral("qpmx.json.user"), false);
+	return {userFormat, baseFormat};
+}
+
+QpmxUserFormat QpmxUserFormat::readCached(const QDir &dir, bool mustExist)
+{
+	return readFile(dir, QStringLiteral(".qpmx.cache"), mustExist);
+}
+
+QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName, bool mustExist)
+{
+	QFile qpmxUserFile(dir.absoluteFilePath(fileName));
+	if(qpmxUserFile.exists()) {
+		if(!qpmxUserFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			throw tr("Failed to open %1 with error: %2")
+					.arg(fileName)
+					.arg(qpmxUserFile.errorString());
+		}
+
+		try {
+			QJsonSerializer ser;
+			ser.addJsonTypeConverter(new VersionConverter());
+			auto format = ser.deserializeFrom<QpmxUserFormat>(&qpmxUserFile);
+			format.checkDuplicates();
+			return format;
+		} catch(QJsonSerializerException &e) {
+			qDebug() << e.what();
+			throw tr("%1 contains invalid data").arg(fileName);
+		}
+	} else if(mustExist)
+		throw tr("%1 file does not exist").arg(fileName);
+	else
+		return {};
+}
+
+void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
+{
+	QSaveFile qpmxUserFile(QDir::current().absoluteFilePath(QStringLiteral("qpmx.json.user")));
+	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		throw tr("Failed to open qpmx.json.user with error: %1").arg(qpmxUserFile.errorString());
+
+	try {
+		QJsonSerializer ser;
+		ser.addJsonTypeConverter(new VersionConverter());
+		auto json = ser.serialize(data);
+
+		QJsonObject userReduced;
+		userReduced[QStringLiteral("devmode")] = json[QStringLiteral("devmode")];
+
+		qpmxUserFile.write(QJsonDocument(userReduced).toJson(QJsonDocument::Indented));
+	} catch(QJsonSerializerException &e) {
+		qDebug() << e.what();
+		throw tr("Failed to write .qpmx.cache");
+	}
+
+	if(!qpmxUserFile.commit())
+		throw tr("Failed to save .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+}
+
+bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
+{
+	QSaveFile qpmxUserFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
+	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		qWarning().noquote() << tr("Failed to open .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+		return false;
+	}
+
+	try {
+		QJsonSerializer ser;
+		ser.addJsonTypeConverter(new VersionConverter());
+		ser.serializeTo(&qpmxUserFile, data);
+	} catch(QJsonSerializerException &e) {
+		qDebug() << e.what();
+		qWarning().noquote() << tr("Failed to write .qpmx.cache");
+		return false;
+	}
+
+	if(!qpmxUserFile.commit()) {
+		qWarning().noquote() << tr("Failed to save .qpmx.cache with error: %1").arg(qpmxUserFile.errorString());
+		return false;
+	} else
+		return true;
+}
+
+void QpmxUserFormat::checkDuplicates()
+{
+	QpmxFormat::checkDuplicates();
+	checkDuplicatesImpl(devmode);
+}
+
 
 
 

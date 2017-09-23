@@ -17,10 +17,8 @@ private:
 	QFile *_genFile;
 	QString _qmake;
 
-	bool hasChanged(const QpmxFormat &current, const QpmxFormat &cache);
-	void createPriFile(const QpmxFormat &current);
-	void createSrcFile(QTextStream &stream, const QpmxFormat &current);
-	void createCmpFile(QTextStream &stream, const QpmxFormat &current);
+	bool hasChanged(const QpmxUserFormat &current, const QpmxUserFormat &cache);
+	void createPriFile(const QpmxUserFormat &current);
 };
 
 #endif // GENERATECOMMAND_H
