@@ -18,12 +18,14 @@ public:
 	virtual QString packageSyntax(const QString &provider) const = 0;
 	virtual bool packageValid(const qpmx::PackageInfo &package) const = 0;
 
-public:
+	virtual void cancelAll(int timeout) = 0;
+
+public Q_SLOTS:
 	virtual void searchPackage(int requestId, const QString &provider, const QString &query) = 0;
 	virtual void findPackageVersion(int requestId, const qpmx::PackageInfo &package) = 0;
 	virtual void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) = 0;
 
-public:
+Q_SIGNALS:
 	virtual void searchResult(int requestId, const QStringList &packageNames) = 0;
 	virtual void versionResult(int requestId, const QVersionNumber &version) = 0;
 	virtual void sourceFetched(int requestId) = 0;

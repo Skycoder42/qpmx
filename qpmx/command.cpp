@@ -10,12 +10,18 @@ Command::Command(QObject *parent) :
 	_registry(new PluginRegistry(this)),
 	_settings(new QSettings(this)),
 	_locks()
+{}
+
+void Command::init(QCliParser &parser)
 {
 	qsrand(QDateTime::currentMSecsSinceEpoch());
+	initialize(parser);
 }
 
-void Command::finalize()
+void Command::fin()
 {
+	finalize();
+
 	for(auto it = _locks.begin(); it != _locks.end(); it++) {
 		xDebug() << QStringLiteral("Freeing remaining lock fro %1/%2")
 					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))
@@ -24,6 +30,8 @@ void Command::finalize()
 		delete it.value();
 	}
 }
+
+void Command::finalize() {}
 
 PluginRegistry *Command::registry()
 {

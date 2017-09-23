@@ -26,6 +26,8 @@ public:
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 
+	void cancelAll(int timeout) override;
+
 public slots:
 	void searchPackage(int requestId, const QString &provider, const QString &query) override;
 	void findPackageVersion(int requestId, const qpmx::PackageInfo &package) override;

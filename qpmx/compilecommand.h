@@ -50,8 +50,9 @@ public:
 	QString commandDescription() override;
 	QSharedPointer<QCliNode> createCliNode() override;
 
-public slots:
+protected slots:
 	void initialize(QCliParser &parser) override;
+	void finalize() override;
 
 private slots:
 	void finished(int exitCode, QProcess::ExitStatus exitStatus);

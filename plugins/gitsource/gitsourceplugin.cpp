@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QSet>
 #include <QTimer>
+#include <QDateTime>
 
 QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.#]*)\.([^\.#]*)(?:#(.*))?$)__"));
 
@@ -37,6 +38,29 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 		return _githubRegex.match(package.package()).hasMatch();
 	else
 		return false;
+}
+
+void GitSourcePlugin::cancelAll(int timeout)
+{
+	auto procs = _processCache.keys();
+	_processCache.clear();
+
+	foreach(auto proc, procs) {
+		proc->disconnect();
+		proc->terminate();
+	}
+
+	foreach(auto proc, procs) {
+		auto startTime = QDateTime::currentMSecsSinceEpoch();
+		if(!proc->waitForFinished(timeout)) {
+			timeout = 1;
+			proc->kill();
+			proc->waitForFinished(100);
+		} else {
+			auto endTime = QDateTime::currentMSecsSinceEpoch();
+			timeout = qMax(1ll, timeout - (endTime - startTime));
+		}
+	}
 }
 
 void GitSourcePlugin::searchPackage(int requestId, const QString &provider, const QString &query)

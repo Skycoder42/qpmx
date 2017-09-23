@@ -9,7 +9,9 @@
 using namespace qpmx;
 
 PluginRegistry::PluginRegistry(QObject *parent) :
-	QObject(parent)
+	QObject(parent),
+	_srcCache(),
+	_loadCache()
 {}
 
 QStringList PluginRegistry::providerNames()
@@ -20,6 +22,10 @@ QStringList PluginRegistry::providerNames()
 
 SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 {
+	auto srcPlg = _loadCache.value(provider, nullptr);
+	if(srcPlg)
+	   return srcPlg;
+
 	initSrcCache();
 
 	auto loader = _srcCache.value(provider);
@@ -33,10 +39,17 @@ SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 				.arg(loader->errorString());
 	}
 
-	auto srcPlg = qobject_cast<SourcePlugin*>(instance);
+	srcPlg = qobject_cast<SourcePlugin*>(instance);
 	if(!srcPlg)
 		throw tr("Plugin \"%1\" is not a qpmx::SourcePlugin").arg(loader->fileName());
+	_loadCache.insert(provider, srcPlg);
 	return srcPlg;
+}
+
+void PluginRegistry::cancelAll()
+{
+	foreach(auto loadedPlg, _loadCache.values())
+		loadedPlg->cancelAll(2500);
 }
 
 void PluginRegistry::initSrcCache()

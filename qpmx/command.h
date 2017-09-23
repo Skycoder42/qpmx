@@ -24,7 +24,10 @@ public:
 	virtual QString commandDescription() = 0;
 	virtual QSharedPointer<QCliNode> createCliNode() = 0;
 
-public slots:
+	void init(QCliParser &parser);
+	void fin();
+
+protected slots:
 	virtual void initialize(QCliParser &parser) = 0;
 	virtual void finalize();
 

@@ -121,6 +121,17 @@ void CompileCommand::initialize(QCliParser &parser)
 	}
 }
 
+void CompileCommand::finalize()
+{
+	if(_process) {
+		_process->terminate();
+		if(!_process->waitForFinished(2500)) {
+			_process->kill();
+			_process->waitForFinished(100);
+		}
+	}
+}
+
 void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 {
 	if(exitStatus == QProcess::CrashExit)
@@ -282,7 +293,6 @@ void CompileCommand::qmake()
 	auto args = _format.qmakeExtraFlags;
 	args.append(proFile);
 	_process->setArguments(args);
-	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }
 
@@ -300,7 +310,6 @@ void CompileCommand::make()
 		initProcess();
 		_process->setProgram(findMake());
 		_process->setArguments({QStringLiteral("all")});
-		_process->setWorkingDirectory(_compileDir->path());
 		_process->start();
 	}
 }
@@ -311,7 +320,6 @@ void CompileCommand::install()
 	initProcess();
 	_process->setProgram(findMake());
 	_process->setArguments({QStringLiteral("all-install")});
-	_process->setWorkingDirectory(_compileDir->path());
 	_process->start();
 }
 
@@ -418,6 +426,7 @@ void CompileCommand::initProcess()
 	if(_process)
 		_process->deleteLater();
 	_process = new QProcess(this);
+	_process->setWorkingDirectory(_compileDir->path());
 
 	QString logBase;
 	switch (_stage) {

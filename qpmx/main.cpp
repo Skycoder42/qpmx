@@ -110,9 +110,9 @@ int main(int argc, char *argv[])
 	}
 
 	QObject::connect(qApp, &QCoreApplication::aboutToQuit,
-					 cmd, &Command::finalize);
+					 cmd, &Command::fin);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
-		cmd->initialize(parser);
+		cmd->init(parser);
 		parser.leaveContext();
 	});
 	return a.exec();
