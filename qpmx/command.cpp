@@ -7,7 +7,7 @@ using namespace qpmx;
 
 Command::Command(QObject *parent) :
 	QObject(parent),
-	_registry(new PluginRegistry(this)),
+	_registry(PluginRegistry::instance()),
 	_settings(new QSettings(this)),
 	_locks()
 {}
@@ -21,7 +21,7 @@ void Command::init(QCliParser &parser)
 void Command::fin()
 {
 	finalize();
-
+	_registry->cancelAll();
 	for(auto it = _locks.begin(); it != _locks.end(); it++) {
 		xDebug() << QStringLiteral("Freeing remaining lock fro %1/%2")
 					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))

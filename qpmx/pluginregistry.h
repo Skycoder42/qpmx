@@ -12,7 +12,9 @@ class PluginRegistry : public QObject
 	Q_OBJECT
 
 public:
-	explicit PluginRegistry(QObject *parent = nullptr);
+	explicit PluginRegistry();
+
+	static PluginRegistry *instance();
 
 	QStringList providerNames();
 	qpmx::SourcePlugin *sourcePlugin(const QString &provider);

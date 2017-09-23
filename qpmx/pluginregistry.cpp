@@ -8,11 +8,18 @@
 #include "command.h"
 using namespace qpmx;
 
-PluginRegistry::PluginRegistry(QObject *parent) :
-	QObject(parent),
+Q_GLOBAL_STATIC(PluginRegistry, registry)
+
+PluginRegistry::PluginRegistry() :
+	QObject(),
 	_srcCache(),
 	_loadCache()
 {}
+
+PluginRegistry *PluginRegistry::instance()
+{
+	return registry;
+}
 
 QStringList PluginRegistry::providerNames()
 {
