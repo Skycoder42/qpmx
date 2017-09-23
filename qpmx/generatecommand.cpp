@@ -1,4 +1,6 @@
 #include "generatecommand.h"
+
+#include <QStandardPaths>
 using namespace qpmx;
 
 GenerateCommand::GenerateCommand(QObject *parent) :
@@ -6,6 +8,35 @@ GenerateCommand::GenerateCommand(QObject *parent) :
 	_genFile(nullptr),
 	_qmake()
 {}
+
+QString GenerateCommand::commandName()
+{
+	return QStringLiteral("generate");
+}
+
+QString GenerateCommand::commandDescription()
+{
+	return tr("Generate the qpmx_generated.pri, internally used to include compiled packages.");
+}
+
+QSharedPointer<QCliNode> GenerateCommand::createCliNode()
+{
+	auto generateNode = QSharedPointer<QCliLeaf>::create();
+	generateNode->addPositionalArgument(QStringLiteral("outdir"),
+										tr("The directory to generate the file in."));
+	generateNode->addOption({
+								{QStringLiteral("m"), QStringLiteral("qmake")},
+								tr("The <qmake> version to include compiled binaries for. If not specified "
+																	  "the qmake from path is be used."),
+								tr("qmake"),
+								QStandardPaths::findExecutable(QStringLiteral("qmake"))
+							});
+	generateNode->addOption({
+								{QStringLiteral("r"), QStringLiteral("recreate")},
+								tr("Always delete and recreate the file if it exists, not only when the configuration changed."),
+						   });
+	return generateNode;
+}
 
 void GenerateCommand::initialize(QCliParser &parser)
 {

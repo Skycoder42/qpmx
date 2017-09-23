@@ -10,6 +10,31 @@ ListCommand::ListCommand(QObject *parent) :
 	Command(parent)
 {}
 
+QString ListCommand::commandName()
+{
+	return QStringLiteral("list");
+}
+
+QString ListCommand::commandDescription()
+{
+	return tr("List things like providers, qmake versions and other components of qpmx.");
+}
+
+QSharedPointer<QCliNode> ListCommand::createCliNode()
+{
+	auto listNode = QSharedPointer<QCliContext>::create();
+	listNode->addOption({
+							QStringLiteral("short"),
+							QStringLiteral("Only list provider/qmake names, no other details.")
+						});
+	listNode->addLeafNode(QStringLiteral("providers"),
+						  tr("List the package provider backends that are available for qpmx."));
+	listNode->addLeafNode(QStringLiteral("kits"),
+						  tr("List all currently known Qt kits and the corresponding qmake executable."));
+
+	return listNode;
+}
+
 void ListCommand::initialize(QCliParser &parser)
 {
 	try {

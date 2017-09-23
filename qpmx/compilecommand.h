@@ -46,6 +46,10 @@ public:
 
 	explicit CompileCommand(QObject *parent = nullptr);
 
+	QString commandName() override;
+	QString commandDescription() override;
+	QSharedPointer<QCliNode> createCliNode() override;
+
 public slots:
 	void initialize(QCliParser &parser) override;
 

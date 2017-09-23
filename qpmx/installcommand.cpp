@@ -15,6 +15,37 @@ InstallCommand::InstallCommand(QObject *parent) :
 	_connectCache()
 {}
 
+QString InstallCommand::commandName()
+{
+	return QStringLiteral("install");
+}
+
+QString InstallCommand::commandDescription()
+{
+	return tr("Install a qpmx package for the current project.");
+}
+
+QSharedPointer<QCliNode> InstallCommand::createCliNode()
+{
+	auto installNode = QSharedPointer<QCliLeaf>::create();
+	installNode->addOption({
+							   {QStringLiteral("r"), QStringLiteral("renew")},
+							   tr("Force a reinstallation. If the package was already downloaded, "
+								  "the existing sources and other artifacts will be deleted before downloading."),
+						   });
+	installNode->addOption({
+							   {QStringLiteral("c"), QStringLiteral("cache")},
+							   tr("Only download and cache the sources. Do not add the package to a qpmx.json."),
+						   });
+	installNode->addPositionalArgument(QStringLiteral("packages"),
+									   tr("The packages to be installed. The provider determines which backend to use for the download. "
+										  "If left empty, all providers are searched for the package. If the version is left out, "
+										  "the latest version is installed. If no packages are specified, the packages from the qpmx.json "
+										  "file will be installed."),
+									   QStringLiteral("[[<provider>::]<package>[@<version>] ...]"));
+	return installNode;
+}
+
 void InstallCommand::initialize(QCliParser &parser)
 {
 	try {

@@ -7,6 +7,40 @@ InitCommand::InitCommand(QObject *parent) :
 	Command(parent)
 {}
 
+QString InitCommand::commandName()
+{
+	return QStringLiteral("init");
+}
+
+QString InitCommand::commandDescription()
+{
+	return tr("Initialize a qpmx based project by downloading and compiling sources, "
+			  "as well as generation the required includes. Call\n"
+			  "qpmx init --prepare <path_to_profile>\n"
+			  "to prepare a pro file to automatically initialize with qmake.");
+}
+
+QSharedPointer<QCliNode> InitCommand::createCliNode()
+{
+	auto initNode = QSharedPointer<QCliLeaf>::create();
+	initNode->addOption({
+							QStringLiteral("r"),
+							tr("Pass the -r option to the install, compile and generate commands."),
+					   });
+	initNode->addOption({
+							QStringLiteral("prepare"),
+							tr("Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
+							   "option, no initialization is performed."),
+							tr("pro-file")
+					   });
+	initNode->addPositionalArgument(QStringLiteral("qmake-path"),
+									tr("The path to the qmake to use for compilation of the qpmx dependencies."));
+	initNode->addPositionalArgument(QStringLiteral("outdir"),
+									tr("The directory to generate the files in. Passed to the generate step."));
+	return initNode;
+
+}
+
 void InitCommand::initialize(QCliParser &parser)
 {
 	try {

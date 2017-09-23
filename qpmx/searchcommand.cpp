@@ -10,6 +10,37 @@ SearchCommand::SearchCommand(QObject *parent) :
 	_searchResults()
 {}
 
+QString SearchCommand::commandName()
+{
+	return QStringLiteral("search");
+}
+
+QString SearchCommand::commandDescription()
+{
+	return tr("Search for a package by it's name");
+}
+
+QSharedPointer<QCliNode> SearchCommand::createCliNode()
+{
+	auto searchNode = QSharedPointer<QCliLeaf>::create();
+	searchNode->addOption({
+							  {QStringLiteral("p"), QStringLiteral("provider")},
+							  tr("Specify the <provider> to search for this package. Can be specified "
+								 "multiple times to search multiple providers. If not specified, all "
+								 "providers that support searching are searched."),
+							  tr("provider")
+						  });
+	searchNode->addOption({
+							  QStringLiteral("short"),
+							  QStringLiteral("Only list package names (with provider) as space seperated list, no category based listing.")
+						  });
+	searchNode->addPositionalArgument(QStringLiteral("query"),
+									  tr("The query to search by. Typically, a \"contains\" search is "
+										 "performed, but some providers may support wildcard or regex expressions. "
+										 "If you can't find a package, try a different search pattern first."));
+	return searchNode;
+}
+
 void SearchCommand::initialize(QCliParser &parser)
 {
 	try {

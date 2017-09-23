@@ -1,6 +1,8 @@
 #include "translatecommand.h"
 
+#include <QStandardPaths>
 #include <iostream>
+using namespace qpmx;
 
 TranslateCommand::TranslateCommand(QObject *parent) :
 	Command(parent),
@@ -12,6 +14,60 @@ TranslateCommand::TranslateCommand(QObject *parent) :
 	_lrelease(),
 	_qpmxTsFiles()
 {}
+
+QString TranslateCommand::commandName()
+{
+	return QStringLiteral("translate");
+}
+
+QString TranslateCommand::commandDescription()
+{
+	return tr("Prepare translations by compiling the projects translations and combining "
+			  "it with the translations of qpmx packages");
+}
+
+QSharedPointer<QCliNode> TranslateCommand::createCliNode()
+{
+	auto translateNode = QSharedPointer<QCliLeaf>::create();
+	translateNode->setHidden(true);
+	translateNode->addOption({
+								 QStringLiteral("lconvert"),
+								 tr("The <path> to the lconvert binary to be used (binary builds only)."),
+								 tr("path")
+							 });
+	translateNode->addOption({
+								 {QStringLiteral("m"), QStringLiteral("qmake")},
+								 tr("The <qmake> version to use to find the corresponding translations. If not specified "
+									"the qmake from path is used (binary builds only)."),
+								 tr("qmake"),
+								 QStandardPaths::findExecutable(QStringLiteral("qmake"))
+							 });
+	translateNode->addOption({
+								 QStringLiteral("outdir"),
+								 tr("The <directory> to generate the translation files in. If not passed, the current directoy is used."),
+								 tr("directory")
+							 });
+	translateNode->addOption({
+								 QStringLiteral("qpmx"),
+								 tr("The qpmx <file> with the dependencies to use to collect the translations (required)."),
+								 tr("file")
+							 });
+	translateNode->addOption({
+								 QStringLiteral("ts-file"),
+								 tr("The ts <file> to translate and combine with the qpmx translations (required)."),
+								 tr("file")
+							 });
+	translateNode->addPositionalArgument(QStringLiteral("lrelease"),
+										 tr("The path to the lrelease binary, as well as additional arguments.\n"
+											"IMPORTANT: Extra arguments like \"-nounfinished\" must NOT be specified with the "
+											"leading \"-\"! Instead, use a \"+\". It is replaced internally. Example: \"+nounfinished\"."),
+										 QStringLiteral("<lrelease> [<arguments> ...]"));
+	translateNode->addPositionalArgument(QStringLiteral("qpmx-translations"),
+										 tr("The ts-files to combine with the specified translations. "
+											"Typically, the QPMX_TRANSLATIONS qmake variable is passed (source builds only)."),
+										 QStringLiteral("[%% <ts-files> ...]"));
+	return translateNode;
+}
 
 void TranslateCommand::initialize(QCliParser &parser)
 {

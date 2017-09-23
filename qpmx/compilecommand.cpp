@@ -23,6 +23,45 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_hasBinary(true)
 {}
 
+QString CompileCommand::commandName()
+{
+	return QStringLiteral("compile");
+}
+
+QString CompileCommand::commandDescription()
+{
+	return tr("Compile or recompile source packages to generate the precompiled libraries "
+			  "for faster building explicitly.");
+}
+
+QSharedPointer<QCliNode> CompileCommand::createCliNode()
+{
+	auto compileNode = QSharedPointer<QCliLeaf>::create();
+	compileNode->addOption({
+							   {QStringLiteral("m"), QStringLiteral("qmake")},
+							   tr("The different <qmake> versions to generate binaries for. Can be specified "
+								  "multiple times. Binaries are precompiled for every qmake in the list. If "
+								  "not specified, binaries are generated for all known qmakes."),
+							   tr("qmake")
+						   });
+	compileNode->addOption({
+							   {QStringLiteral("g"), QStringLiteral("global")},
+							   tr("Don't limit the packages to rebuild to only the ones specified in the qpmx.json. "
+								  "Instead, build every ever cached package (Ignored if packages are specified as arguments)."),
+						   });
+	compileNode->addOption({
+							   {QStringLiteral("r"), QStringLiteral("recompile")},
+							   tr("By default, compilation is skipped for unchanged packages. By specifying "
+								  "this flags, all packages are recompiled."),
+						   });
+	compileNode->addPositionalArgument(QStringLiteral("packages"),
+									   tr("The packages to compile binaries for. Installed packages are "
+										  "matched against those, and binaries compiled for all of them. If no "
+										  "packages are specified, all installed packages will be compiled."),
+									   QStringLiteral("[<provider>::<package>@<version> ...]"));
+	return compileNode;
+}
+
 void CompileCommand::initialize(QCliParser &parser)
 {
 	try {

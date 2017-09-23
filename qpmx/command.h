@@ -20,6 +20,10 @@ class Command : public QObject
 public:
 	explicit Command(QObject *parent = nullptr);
 
+	virtual QString commandName() = 0;
+	virtual QString commandDescription() = 0;
+	virtual QSharedPointer<QCliNode> createCliNode() = 0;
+
 public slots:
 	virtual void initialize(QCliParser &parser) = 0;
 	virtual void finalize();

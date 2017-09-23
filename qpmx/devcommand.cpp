@@ -1,8 +1,38 @@
 #include "devcommand.h"
+using namespace qpmx;
 
 DevCommand::DevCommand(QObject *parent) :
 	Command(parent)
 {}
+
+QString DevCommand::commandName()
+{
+	return QStringLiteral("dev");
+}
+
+QString DevCommand::commandDescription()
+{
+	return tr("Switch packages from or to developer mode.");
+}
+
+QSharedPointer<QCliNode> DevCommand::createCliNode()
+{
+	auto devNode = QSharedPointer<QCliContext>::create();
+	auto devAddNode = devNode->addLeafNode(QStringLiteral("add"),
+										   tr("Add a packages as \"dev package\" to the qpmx.json.user file."));
+	devAddNode->addPositionalArgument(QStringLiteral("package"),
+									  tr("The package(s) to add as dev package"),
+									  QStringLiteral("<provider>::<package>@<version>"));
+	devAddNode->addPositionalArgument(QStringLiteral("pri-path"),
+									  tr("The local path to the pri file to be used to replace the preceding package with."),
+									  QStringLiteral("<pri-path> ..."));
+	auto devRemoveNode = devNode->addLeafNode(QStringLiteral("remove"),
+											  tr("Remove a \"dev package\" from the qpmx.json.user file."));
+	devRemoveNode->addPositionalArgument(QStringLiteral("packages"),
+										 tr("The packages to remove from the dev packages"),
+										 QStringLiteral("<provider>::<package>@<version> ..."));
+	return devNode;
+}
 
 void DevCommand::initialize(QCliParser &parser)
 {

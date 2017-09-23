@@ -7,6 +7,29 @@ UninstallCommand::UninstallCommand(QObject *parent) :
 	_format()
 {}
 
+QString UninstallCommand::commandName()
+{
+	return QStringLiteral("uninstall");
+}
+
+QString UninstallCommand::commandDescription()
+{
+	return tr("Uninstall a qpmx package from the current project.");
+}
+
+QSharedPointer<QCliNode> UninstallCommand::createCliNode()
+{
+	auto uninstallNode = QSharedPointer<QCliLeaf>::create();
+	uninstallNode->addOption({
+								 {QStringLiteral("c"), QStringLiteral("cached")},
+								 tr("Not only remove the dependency from the qpmx.json, but remove all cached sources and compiled libraries.")
+							 });
+	uninstallNode->addPositionalArgument(QStringLiteral("packages"),
+										 tr("The packages to remove from the qpmx.json."),
+										 QStringLiteral("[<provider>::]<package>[@<version>] ..."));
+	return uninstallNode;
+}
+
 void UninstallCommand::initialize(QCliParser &parser)
 {
 	try {
