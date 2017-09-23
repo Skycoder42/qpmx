@@ -62,8 +62,9 @@ protected:
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
 
 	QUuid findKit(const QString &qmake) const;
-
 	void cleanCaches(const qpmx::PackageInfo &package);
+
+	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
 
 	static QDir srcDir();
 	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);

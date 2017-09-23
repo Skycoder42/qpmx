@@ -3,6 +3,12 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
+
+#include <iostream>
+#ifdef Q_OS_UNIX
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 using namespace qpmx;
 
 Command::Command(QObject *parent) :
@@ -158,6 +164,39 @@ void Command::cleanCaches(const PackageInfo &package)
 	}
 	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
+
+#define print(x) std::cout << QString(x).toStdString() << std::endl
+
+void Command::printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows)
+{
+	QStringList maskList;
+	for(auto i = 0; i < headers.size(); i++)
+		maskList.append(QStringLiteral("%%1").arg(i + 1));
+	QString mask = QLatin1Char(' ') + maskList.join(tr(" | ")) + QLatin1Char(' ');
+
+	auto hString = mask;
+	for(auto i = 0; i < headers.size(); i++)
+		hString = hString.arg(headers[i], -1 * minimals[i]);
+	print(hString);
+
+	auto sLine = tr("-").repeated(80);//TODO console window width
+	auto ctr = -1;
+	for(auto i = 0; i < headers.size() - 1; i++) { //skip the last one
+		ctr += 3 + qMax(headers[i].size(), minimals[i]);
+		sLine.replace(ctr, 1, QLatin1Char('|'));
+	}
+	print(sLine);
+
+	foreach(auto row, rows) {
+		Q_ASSERT_X(row.size() == headers.size(), Q_FUNC_INFO, "tables must have constant row lengths!");
+		auto rString = mask;
+		for(auto i = 0; i < headers.size(); i++)
+			rString = rString.arg(row[i], -1 * qMax(headers[i].size(), minimals[i]));
+		print(rString);
+	}
+}
+
+#undef print
 
 QDir Command::srcDir()
 {
