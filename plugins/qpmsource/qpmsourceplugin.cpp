@@ -13,13 +13,15 @@ QpmSourcePlugin::QpmSourcePlugin(QObject *parent) :
 	SourcePlugin()
 {}
 
-bool QpmSourcePlugin::canSearch() const
+bool QpmSourcePlugin::canSearch(const QString &provider) const
 {
+	Q_UNUSED(provider)
 	return true;
 }
 
-bool QpmSourcePlugin::canPublish() const
+bool QpmSourcePlugin::canPublish(const QString &provider) const
 {
+	Q_UNUSED(provider)
 	return false;
 }
 

@@ -14,13 +14,15 @@ GitSourcePlugin::GitSourcePlugin(QObject *parent) :
 	_processCache()
 {}
 
-bool GitSourcePlugin::canSearch() const
+bool GitSourcePlugin::canSearch(const QString &provider) const
 {
+	Q_UNUSED(provider)
 	return false;
 }
 
-bool GitSourcePlugin::canPublish() const
+bool GitSourcePlugin::canPublish(const QString &provider) const
 {
+	Q_UNUSED(provider)
 	return false;
 }
 

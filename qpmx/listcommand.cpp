@@ -61,8 +61,8 @@ void ListCommand::listProviders(const QCliParser &parser)
 			auto plugin = registry()->sourcePlugin(provider);
 			rows.append({
 							provider,
-							plugin->canSearch() ? tr("yes") : tr("no"),
-							plugin->canPublish() ? tr("yes") : tr("no"),
+							plugin->canSearch(provider) ? tr("yes") : tr("no"),
+							plugin->canPublish(provider) ? tr("yes") : tr("no"),
 							plugin->packageSyntax(provider)
 						});
 		}

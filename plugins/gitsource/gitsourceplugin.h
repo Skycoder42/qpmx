@@ -15,8 +15,8 @@ class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
 public:
 	GitSourcePlugin(QObject *parent = nullptr);
 
-	bool canSearch() const override;
-	bool canPublish() const override;
+	bool canSearch(const QString &provider) const override;
+	bool canPublish(const QString &provider) const override;
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 

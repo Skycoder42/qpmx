@@ -53,12 +53,12 @@ void SearchCommand::initialize(QCliParser &parser)
 		auto providers = parser.values(QStringLiteral("provider"));
 		if(!providers.isEmpty()) {
 			foreach(auto provider, providers) {
-				if(!registry()->sourcePlugin(provider)->canSearch())
+				if(!registry()->sourcePlugin(provider)->canSearch(provider))
 					throw tr("Provider \"%1\" does not support searching").arg(provider);
 			}
 		} else {
 			foreach(auto provider, registry()->providerNames()) {
-				if(registry()->sourcePlugin(provider)->canSearch())
+				if(registry()->sourcePlugin(provider)->canSearch(provider))
 					providers.append(provider);
 			}
 			xDebug() << tr("Searching providers: %1").arg(providers.join(tr(", ")));
