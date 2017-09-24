@@ -126,19 +126,19 @@ void GitSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 		QString prefix;
 		auto url = pkgUrl(package, &prefix);
 
-		QStringList arguments{
-								  QStringLiteral("ls-remote"),
-								  QStringLiteral("--tags"),
-								  QStringLiteral("--exit-code"),
-								  url
-							  };
+		QStringList arguments {
+			QStringLiteral("ls-remote"),
+			QStringLiteral("--tags"),
+			QStringLiteral("--exit-code"),
+			url
+		};
 		if(!package.version().isNull())
 			arguments.append(pkgTag(package));
 		else if(!prefix.isNull())
 			arguments.append(prefix + QLatin1Char('*'));
 
 		auto proc = createProcess(QStringLiteral("ls-remote"), arguments);
-		_processCache.insert(proc, {requestId, false});
+		_processCache.insert(proc, {requestId, LsRemote, {}});
 		proc->start();
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
@@ -151,17 +151,17 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		auto url = pkgUrl(package);
 		auto tag = pkgTag(package);
 
-		QStringList arguments{
-								  QStringLiteral("clone"),
-								  url,
-								  QStringLiteral("--recurse-submodules"),
-								  QStringLiteral("--branch"),
-								  tag,
-								  targetDir.absolutePath()
-							  };
+		QStringList arguments {
+			QStringLiteral("clone"),
+			url,
+			QStringLiteral("--recurse-submodules"),
+			QStringLiteral("--branch"),
+			tag,
+			targetDir.absolutePath()
+		};
 
 		auto proc = createProcess(QStringLiteral("clone"), arguments, true);
-		_processCache.insert(proc, {requestId, true});
+		_processCache.insert(proc, {requestId, Clone, {}});
 		proc->start();
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
@@ -181,9 +181,10 @@ void GitSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		emit sourceError(requestId, tr("Unsupported provider"));
 	}
 
+	auto tag = version.toString();
 	auto prefix = publisherInfo[QStringLiteral("prefix")].toString();
 	if(!prefix.isEmpty())
-		url += QLatin1Char('#') + prefix;
+		tag.prepend(prefix);
 
 	//verify the url and get the origin
 	QString remote;
@@ -202,10 +203,23 @@ void GitSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		}
 	}
 
-	if(remote.isEmpty())
-		qWarning().noquote() << tr("Unable to determine remote based of url. Using default remote.");
+	if(remote.isEmpty()) {
+		qWarning().noquote() << tr("Unable to determine remote based of url. Pushing to url directly");
+		remote = url;
+	}
 
 	//create the tag
+	QStringList arguments {
+		QStringLiteral("tag"),
+		tag
+	};
+
+	auto proc = createProcess(QStringLiteral("tag"), arguments, true);
+	QVariantHash params;
+	params.insert(QStringLiteral("remote"), remote);
+	params.insert(QStringLiteral("tag"), tag);
+	_processCache.insert(proc, {requestId, Tag, params});
+	proc->start();
 }
 
 void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -214,44 +228,26 @@ void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, {-1, false});
-		if(data.first != -1) {
+		auto data = _processCache.value(proc, {-1, Invalid, {}});
+		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
-			if(data.second) {
-				if(exitCode == EXIT_SUCCESS)
-					emit sourceFetched(data.first);
-				else {
-					emit sourceError(data.first,
-									 tr("Failed to clone source with exit code %1. "
-										"Check the logs at \"%2\" for more details")
-									 .arg(exitCode)
-									 .arg(proc->property("logDir").toString()));
-				}
-			} else {
-				if(exitCode == EXIT_SUCCESS) {
-					//parse output
-					QSet<QVersionNumber> versions;
-					QRegularExpression tagRegex(QStringLiteral(R"__(^\w+\trefs\/tags\/(.*)$)__"));
-					foreach(auto line, proc->readAllStandardOutput().split('\n')) {
-						auto match = tagRegex.match(QString::fromUtf8(line));
-						if(match.hasMatch())
-							versions.insert(QVersionNumber::fromString(match.captured(1)));
-					}
-
-					auto vList = versions.toList();
-					std::sort(vList.begin(), vList.end());
-					emit versionResult(data.first, vList.last());
-				} else {
-					if(exitCode == 2) {
-						emit versionResult(data.first, {});
-					} else {
-						emit sourceError(data.first,
-										 tr("Failed to list versions with exit code %1. "
-											"Check the logs at \"%2\" for more details")
-										 .arg(exitCode)
-										 .arg(proc->property("logDir").toString()));
-					}
-				}
+			switch (std::get<1>(data)) {
+			case GitSourcePlugin::Invalid:
+				break;//ignore
+			case GitSourcePlugin::LsRemote:
+				lsRemoteDone(std::get<0>(data), proc, exitCode);
+				break;
+			case GitSourcePlugin::Clone:
+				cloneDone(std::get<0>(data), proc, exitCode);
+				break;
+			case GitSourcePlugin::Tag:
+				tagDone(std::get<0>(data), proc, exitCode, std::get<2>(data));
+				break;
+			case GitSourcePlugin::Push:
+				break;
+			default:
+				Q_UNREACHABLE();
+				break;
 			}
 		}
 		proc->deleteLater();
@@ -262,18 +258,32 @@ void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, {-1, false});
-	if(data.first != -1) {
+	auto data = _processCache.value(proc, {-1, Invalid, {}});
+	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
-		if(data.second) {
-			emit sourceError(data.first,
-							 tr("Failed to clone source with process error: %1")
-							 .arg(proc->errorString()));
-		} else {
-			emit sourceError(data.first,
-							 tr("Failed to list versions with process error: %1")
-							 .arg(proc->errorString()));
+		QString op;
+		switch (std::get<1>(data)) {
+		case GitSourcePlugin::Invalid:
+			break;//ignore
+		case GitSourcePlugin::LsRemote:
+			op = tr("list versions");
+			break;
+		case GitSourcePlugin::Clone:
+			op = tr("clone sources");
+			break;
+		case GitSourcePlugin::Tag:
+			op = tr("create version tag");
+			break;
+		case GitSourcePlugin::Push:
+			break;
+		default:
+			Q_UNREACHABLE();
+			break;
 		}
+		emit sourceError(std::get<0>(data),
+						 tr("Failed to %1 with process error: %2")
+						 .arg(op)
+						 .arg(proc->errorString()));
 	}
 	proc->deleteLater();
 }
@@ -367,4 +377,50 @@ QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList 
 	});
 
 	return proc;
+}
+
+void GitSourcePlugin::lsRemoteDone(int requestId, QProcess *proc, int exitCode)
+{
+	if(exitCode == EXIT_SUCCESS) {
+		//parse output
+		QSet<QVersionNumber> versions;
+		QRegularExpression tagRegex(QStringLiteral(R"__(^\w+\trefs\/tags\/(.*)$)__"));
+		foreach(auto line, proc->readAllStandardOutput().split('\n')) {
+			auto match = tagRegex.match(QString::fromUtf8(line));
+			if(match.hasMatch())
+				versions.insert(QVersionNumber::fromString(match.captured(1)));
+		}
+
+		auto vList = versions.toList();
+		std::sort(vList.begin(), vList.end());
+		emit versionResult(requestId, vList.last());
+	} else {
+		if(exitCode == 2) {
+			emit versionResult(requestId, {});
+		} else {
+			emit sourceError(requestId,
+							 tr("Failed to list versions with exit code %1. "
+								"Check the logs at \"%2\" for more details")
+							 .arg(exitCode)
+							 .arg(proc->property("logDir").toString()));
+		}
+	}
+}
+
+void GitSourcePlugin::cloneDone(int requestId, QProcess *proc, int exitCode)
+{
+	if(exitCode == EXIT_SUCCESS)
+		emit sourceFetched(requestId);
+	else {
+		emit sourceError(requestId,
+						 tr("Failed to clone source with exit code %1. "
+							"Check the logs at \"%2\" for more details")
+						 .arg(exitCode)
+						 .arg(proc->property("logDir").toString()));
+	}
+}
+
+void GitSourcePlugin::tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params)
+{
+	//TODO here
 }

@@ -5,6 +5,7 @@
 
 #include <QProcess>
 #include <QHash>
+#include <tuple>
 
 class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
 {
@@ -13,6 +14,15 @@ class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
 	Q_PLUGIN_METADATA(IID SourcePlugin_iid FILE "gitsource.json")
 
 public:
+	enum ProcessMode {
+		Invalid,
+		LsRemote,
+		Clone,
+		Tag,
+		Push
+	};
+	Q_ENUM(ProcessMode)
+
 	GitSourcePlugin(QObject *parent = nullptr);
 
 	bool canSearch(const QString &provider) const override;
@@ -42,14 +52,19 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
+	typedef std::tuple<int, ProcessMode, QVariantHash> ProcessInfo;
 	static QRegularExpression _githubRegex;
-	QHash<QProcess*, QPair<int, bool>> _processCache;
+	QHash<QProcess*, ProcessInfo> _processCache;
 
 	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
 	QString pkgTag(const qpmx::PackageInfo &package);
 
 	QDir createLogDir(const QString &action);
 	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);
+
+	void lsRemoteDone(int requestId, QProcess *proc, int exitCode);
+	void cloneDone(int requestId, QProcess *proc, int exitCode);
+	void tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
 };
 
 #endif // GITSOURCEPLUGIN_H
