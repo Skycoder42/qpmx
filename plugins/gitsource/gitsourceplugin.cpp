@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QTextStream>
 #include <QDebug>
+#include <QSettings>
 
 QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.#]*)\.([^\.#]*)(?:#(.*))?$)__"));
 
@@ -169,7 +170,42 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 
 void GitSourcePlugin::publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo)
 {
+	QString url;
+	if(provider == QStringLiteral("git"))
+		url = publisherInfo[QStringLiteral("url")].toString();
+	else if(provider == QStringLiteral("github")) {
+		url = QStringLiteral("https://github.com/%1/%2.git")
+			  .arg(publisherInfo[QStringLiteral("user")].toString())
+			  .arg(publisherInfo[QStringLiteral("repository")].toString());
+	} else {
+		emit sourceError(requestId, tr("Unsupported provider"));
+	}
 
+	auto prefix = publisherInfo[QStringLiteral("prefix")].toString();
+	if(!prefix.isEmpty())
+		url += QLatin1Char('#') + prefix;
+
+	//verify the url and get the origin
+	QString remote;
+	QSettings gitConfig(qpmxDir.absoluteFilePath(QStringLiteral(".git/config")), QSettings::IniFormat);
+	QRegularExpression regex(QStringLiteral(R"__(remote\s*"(.+)")__"));
+	foreach(auto group, gitConfig.childGroups()) {
+		auto match = regex.match(group);
+		if(match.hasMatch()) {
+			gitConfig.beginGroup(group);
+			if(gitConfig.value(QStringLiteral("url")).toString() == url) {
+				gitConfig.endGroup();
+				remote = match.captured(1);
+				break;
+			}
+			gitConfig.endGroup();
+		}
+	}
+
+	if(remote.isEmpty())
+		qWarning().noquote() << tr("Unable to determine remote based of url. Using default remote.");
+
+	//create the tag
 }
 
 void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
