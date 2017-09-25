@@ -165,7 +165,7 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		params.insert(QStringLiteral("dir"), targetDir.absolutePath());
 
 		auto proc = createProcess(QStringLiteral("clone"), arguments, true);
-		_processCache.insert(proc, {requestId, Clone, params});
+		_processCache.insert(proc, ProcessInfo{requestId, Clone, params});
 		proc->start();
 	} catch(QString &s) {
 		emit sourceError(requestId, s);

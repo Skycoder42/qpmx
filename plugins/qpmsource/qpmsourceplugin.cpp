@@ -41,7 +41,7 @@ bool QpmSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 
 QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
 {
-
+	return {};
 }
 
 void QpmSourcePlugin::cancelAll(int timeout)

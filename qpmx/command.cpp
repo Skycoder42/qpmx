@@ -179,7 +179,7 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 		hString = hString.arg(headers[i], -1 * minimals[i]);
 	print(hString);
 
-	auto sLine = tr("-").repeated(80);//TODO console window width
+	auto sLine = tr("-").repeated(80);
 	auto ctr = -1;
 	for(auto i = 0; i < headers.size() - 1; i++) { //skip the last one
 		ctr += 3 + qMax(headers[i].size(), minimals[i]);
