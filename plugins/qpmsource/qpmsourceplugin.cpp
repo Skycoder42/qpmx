@@ -22,7 +22,7 @@ bool QpmSourcePlugin::canSearch(const QString &provider) const
 bool QpmSourcePlugin::canPublish(const QString &provider) const
 {
 	Q_UNUSED(provider)
-	return false;
+	return true;
 }
 
 QString QpmSourcePlugin::packageSyntax(const QString &provider) const
@@ -41,7 +41,41 @@ bool QpmSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 
 QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
 {
-	return {};
+	QFile console;
+	if(!console.open(stdin, QIODevice::ReadOnly | QIODevice::Text))
+		throw tr("Failed to access console with error: %1").arg(console.errorString());
+
+	QTextStream stream(&console);
+	if(provider == QStringLiteral("qpm")) {
+		QJsonObject object;
+		qInfo().noquote() << tr("Enter the package name:");
+		object[QStringLiteral("name")] = stream.readLine().trimmed().toLower();
+
+		QJsonObject repository;
+		qInfo().noquote() << tr("Enter the repository type [GITHUB]:");
+		auto type = stream.readLine().trimmed().toLower();
+		if(type.isEmpty())
+			type = QStringLiteral("GITHUB");
+		repository[QStringLiteral("type")] = type;
+		qInfo().noquote() << tr("Enter the repository clone url:");
+		repository[QStringLiteral("url")] = stream.readLine().trimmed().toLower();
+		object[QStringLiteral("repository")] = repository;
+
+		QJsonObject author;
+		qInfo().noquote() << tr("Enter your name:");
+		author[QStringLiteral("name")] = stream.readLine().trimmed().toLower();
+		qInfo().noquote() << tr("Enter your email:");
+		author[QStringLiteral("email")] = stream.readLine().trimmed().toLower();
+		object[QStringLiteral("author")] = author;
+
+		qInfo().noquote() << tr("Enter the package description (optional):");
+		object[QStringLiteral("description")] = stream.readLine().trimmed().toLower();
+		qInfo().noquote() << tr("Enter a link to a website (optional):");
+		object[QStringLiteral("webpage")] = stream.readLine().trimmed().toLower();
+
+		return object;
+	} else
+		return {};
 }
 
 void QpmSourcePlugin::cancelAll(int timeout)
@@ -79,7 +113,7 @@ void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 							  };
 
 		auto proc = createProcess(QStringLiteral("search"), arguments);
-		_processCache.insert(proc, tpl{requestId, Search, {}, {}});
+		_processCache.insert(proc, tpl{requestId, Search, {}});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -98,7 +132,7 @@ void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 							  };
 
 		auto proc = createProcess(QStringLiteral("search"), arguments);
-		_processCache.insert(proc, tpl{requestId, Version, {}, {}});
+		_processCache.insert(proc, tpl{requestId, Version, {}});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -119,9 +153,12 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 								  package.package()
 							  };
 
+		QVariantHash params;
+		params.insert(QStringLiteral("dir"), targetDir.absolutePath());
+		params.insert(QStringLiteral("package"), package.package());
 		auto proc = createProcess(QStringLiteral("install"), arguments);
 		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
-		_processCache.insert(proc, tpl{requestId, Install, targetDir, package.package()});
+		_processCache.insert(proc, tpl{requestId, Install, params});
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -140,7 +177,7 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, tpl{-1, Search, {}, {}});
+		auto data = _processCache.value(proc, tpl{-1, Search, {}});
 		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
 			switch (std::get<1>(data)) {
@@ -151,7 +188,7 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 				completeVersion(std::get<0>(data), proc);
 				break;
 			case Install:
-				completeInstall(std::get<0>(data), proc, std::get<2>(data), std::get<3>(data));
+				completeInstall(std::get<0>(data), proc, std::get<2>(data));
 				break;
 			default:
 				Q_UNREACHABLE();
@@ -166,7 +203,7 @@ void QpmSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, tpl{-1, Search, {}, {}});
+	auto data = _processCache.value(proc, tpl{-1, Search, {}});
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
 		switch (std::get<1>(data)) {
@@ -282,9 +319,11 @@ void QpmSourcePlugin::completeVersion(int id, QProcess *proc)
 	emit versionResult(id, version);
 }
 
-void QpmSourcePlugin::completeInstall(int id, QProcess *proc, QDir tDir, QString package)
+void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash &params)
 {
 	try {
+		QDir tDir(params.value(QStringLiteral("dir")).toString());
+		auto package = params.value(QStringLiteral("package")).toString();
 		auto subPath = QStringLiteral(".qpm/vendor/%1")
 					   .arg(package.replace(QLatin1Char('.'), QLatin1Char('/')));
 		if(!tDir.exists(QStringLiteral("%1/qpm.json").arg(subPath))) {

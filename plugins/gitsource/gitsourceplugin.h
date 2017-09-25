@@ -52,9 +52,9 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
-	typedef std::tuple<int, ProcessMode, QVariantHash> ProcessInfo;
+	typedef std::tuple<int, ProcessMode, QVariantHash> tpl;
 	static QRegularExpression _githubRegex;
-	QHash<QProcess*, ProcessInfo> _processCache;
+	QHash<QProcess*, tpl> _processCache;
 
 	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
 	QString pkgTag(const qpmx::PackageInfo &package);

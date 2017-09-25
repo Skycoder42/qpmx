@@ -265,3 +265,9 @@ QVariant VersionConverter::deserialize(int propertyType, const QJsonValue &value
 	Q_UNUSED(parent)
 	return QVariant::fromValue(QVersionNumber::fromString(value.toString()));
 }
+
+bool QpmxFormatLicense::operator!=(const QpmxFormatLicense &other) const
+{
+	return name != other.name ||
+		file != other.file;
+}

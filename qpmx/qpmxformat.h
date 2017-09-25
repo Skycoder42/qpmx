@@ -41,6 +41,21 @@ public:
 	QVersionNumber version;
 };
 
+class QpmxFormatLicense
+{
+	Q_GADGET
+
+	Q_PROPERTY(QString name MEMBER name)
+	Q_PROPERTY(QString file MEMBER file)
+
+public:
+	QString name;
+	QString file;
+
+	bool operator!=(const QpmxFormatLicense &other) const;
+
+};
+
 class QpmxFormat
 {
 	Q_GADGET
@@ -55,6 +70,7 @@ class QpmxFormat
 	Q_PROPERTY(QStringList qmakeExtraFlags MEMBER qmakeExtraFlags)
 	Q_PROPERTY(QStringList localIncludes MEMBER localIncludes)
 
+	Q_PROPERTY(QpmxFormatLicense license MEMBER license)
 	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers)
 
 public:
@@ -71,6 +87,7 @@ public:
 	QList<QpmxDependency> dependencies;
 	QStringList qmakeExtraFlags;
 	QStringList localIncludes;
+	QpmxFormatLicense license;
 	QMap<QString, QJsonObject> publishers;
 
 protected:
@@ -119,6 +136,7 @@ protected:
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)
+Q_DECLARE_METATYPE(QpmxFormatLicense)
 Q_DECLARE_METATYPE(QpmxFormat)
 Q_DECLARE_METATYPE(QpmxDevDependency)
 Q_DECLARE_METATYPE(QpmxUserFormat)

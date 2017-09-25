@@ -49,7 +49,7 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
-	typedef std::tuple<int, Mode, QDir, QString> tpl;
+	typedef std::tuple<int, Mode, QVariantHash> tpl;
 	QHash<QProcess*, tpl> _processCache;
 
 	QDir createLogDir(const QString &action);
@@ -57,7 +57,7 @@ private:
 
 	void completeSearch(int id, QProcess *proc);
 	void completeVersion(int id, QProcess *proc);
-	void completeInstall(int id, QProcess *proc, QDir tDir, QString package);
+	void completeInstall(int id, QProcess *proc, const QVariantHash &params);
 };
 
 #endif // QPMSOURCEPLUGIN_H

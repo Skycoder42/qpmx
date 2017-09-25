@@ -138,7 +138,7 @@ void GitSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 			arguments.append(prefix + QLatin1Char('*'));
 
 		auto proc = createProcess(QStringLiteral("ls-remote"), arguments);
-		_processCache.insert(proc, ProcessInfo{requestId, LsRemote, {}});
+		_processCache.insert(proc, tpl{requestId, LsRemote, {}});
 		proc->start();
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
@@ -165,7 +165,7 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		params.insert(QStringLiteral("dir"), targetDir.absolutePath());
 
 		auto proc = createProcess(QStringLiteral("clone"), arguments, true);
-		_processCache.insert(proc, ProcessInfo{requestId, Clone, params});
+		_processCache.insert(proc, tpl{requestId, Clone, params});
 		proc->start();
 	} catch(QString &s) {
 		emit sourceError(requestId, s);
@@ -222,7 +222,7 @@ void GitSourcePlugin::publishPackage(int requestId, const QString &provider, con
 	QVariantHash params;
 	params.insert(QStringLiteral("remote"), remote);
 	params.insert(QStringLiteral("tag"), tag);
-	_processCache.insert(proc, ProcessInfo{requestId, Tag, params});
+	_processCache.insert(proc, tpl{requestId, Tag, params});
 	proc->start();
 }
 
@@ -232,7 +232,7 @@ void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, ProcessInfo{-1, Invalid, {}});
+		auto data = _processCache.value(proc, tpl{-1, Invalid, {}});
 		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
 			switch (std::get<1>(data)) {
@@ -263,7 +263,7 @@ void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, ProcessInfo{-1, Invalid, {}});
+	auto data = _processCache.value(proc, tpl{-1, Invalid, {}});
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
 		QString op;
@@ -455,7 +455,7 @@ void GitSourcePlugin::tagDone(int requestId, QProcess *proc, int exitCode, const
 	auto nProc = createProcess(QStringLiteral("push"), arguments, false, false);
 	nProc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 	nProc->setInputChannelMode(QProcess::ForwardedInputChannel);
-	_processCache.insert(nProc, ProcessInfo{requestId, Push, {}});
+	_processCache.insert(nProc, tpl{requestId, Push, {}});
 	nProc->start();
 }
 
