@@ -60,7 +60,7 @@ private:
 	QString pkgTag(const qpmx::PackageInfo &package);
 
 	QDir createLogDir(const QString &action);
-	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);
+	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false, bool timeout = true);
 
 	void lsRemoteDone(int requestId, QProcess *proc, int exitCode);
 	void cloneDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);

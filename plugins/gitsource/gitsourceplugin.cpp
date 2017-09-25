@@ -354,7 +354,7 @@ QDir GitSourcePlugin::createLogDir(const QString &action)
 		throw tr("Failed to create log directory \"%1\"").arg(tDir.path());
 }
 
-QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool stdLog)
+QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool stdLog, bool timeout)
 {
 	auto logDir = createLogDir(type);
 
@@ -362,8 +362,6 @@ QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList 
 	proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("git")));
 	if(stdLog)
 		proc->setStandardOutputFile(logDir.absoluteFilePath(QStringLiteral("stdout.log")));
-	else
-		proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 	proc->setStandardErrorFile(logDir.absoluteFilePath(QStringLiteral("stderr.log")));
 	proc->setArguments(arguments);
 	proc->setProperty("logDir", logDir.absolutePath());
@@ -375,14 +373,16 @@ QProcess *GitSourcePlugin::createProcess(const QString &type, const QStringList 
 			this, &GitSourcePlugin::errorOccurred,
 			Qt::QueuedConnection);
 
-	//timeout after 30 seconds
-	QTimer::singleShot(30000, this, [proc, this](){
-		if(_processCache.contains(proc)) {
-			proc->kill();
-			if(!proc->waitForFinished(1000))
-				proc->terminate();
-		}
-	});
+	if(timeout) {
+		//timeout after 30 seconds
+		QTimer::singleShot(30000, this, [proc, this](){
+			if(_processCache.contains(proc)) {
+				proc->kill();
+				if(!proc->waitForFinished(1000))
+					proc->terminate();
+			}
+		});
+	}
 
 	return proc;
 }
@@ -452,7 +452,8 @@ void GitSourcePlugin::tagDone(int requestId, QProcess *proc, int exitCode, const
 		tag
 	};
 
-	auto nProc = createProcess(QStringLiteral("push"), arguments, false);
+	auto nProc = createProcess(QStringLiteral("push"), arguments, false, false);
+	nProc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 	nProc->setInputChannelMode(QProcess::ForwardedInputChannel);
 	_processCache.insert(nProc, ProcessInfo{requestId, Push, {}});
 	nProc->start();

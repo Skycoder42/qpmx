@@ -60,6 +60,8 @@ protected:
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
+	template <typename T>
+	int randId(QHash<int, T> &cache);
 
 	QUuid findKit(const QString &qmake) const;
 	void cleanCaches(const qpmx::PackageInfo &package);
@@ -88,6 +90,16 @@ private:
 	void lock(bool isSource, const QString &key);
 	void unlock(bool isSource, const QString &key);
 };
+
+template <typename T>
+int Command::randId(QHash<int, T> &cache)
+{
+	int id;
+	do {
+		id = qrand();
+	} while(cache.contains(id));
+	return id;
+}
 
 #define xDebug(...) qDebug(__VA_ARGS__).noquote()
 #define xInfo(...) qInfo(__VA_ARGS__).noquote()

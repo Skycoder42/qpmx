@@ -8,6 +8,7 @@
 #include "compilecommand.h"
 #include "generatecommand.h"
 #include "preparecommand.h"
+#include "publishcommand.h"
 #include "devcommand.h"
 #include "initcommand.h"
 #include "translatecommand.h"
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
 	addCommand<CompileCommand>(commands);
 	addCommand<GenerateCommand>(commands);
 	addCommand<PrepareCommand>(commands);
+	addCommand<PublishCommand>(commands);
 	addCommand<DevCommand>(commands);
 	addCommand<InitCommand>(commands);
 	addCommand<TranslateCommand>(commands);

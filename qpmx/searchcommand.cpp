@@ -74,10 +74,7 @@ void SearchCommand::initialize(QCliParser &parser)
 					this, SLOT(sourceError(int,QString)),
 					Qt::QueuedConnection);
 
-			int id;
-			do {
-				id = qrand();
-			} while(_providerCache.contains(id));
+			auto id = randId(_providerCache);
 			_providerCache.insert(id, provider);
 			plg->searchPackage(id, provider, query);
 		}

@@ -31,6 +31,8 @@ void PrepareCommand::initialize(QCliParser &parser)
 
 		auto provider = parser.positionalArguments().first();
 		auto plugin = registry()->sourcePlugin(provider);
+		if(!plugin->canPublish(provider))
+			throw tr("Provider \"%1\" cannot publish packages via qpmx!").arg(provider);
 
 		auto format = QpmxFormat::readDefault();
 		format.publishers.insert(provider, plugin->createPublisherInfo(provider));

@@ -56,7 +56,6 @@ private:
 	void completeSource();
 	void completeInstall();
 
-	int randId();
 	void connectPlg(qpmx::SourcePlugin *plugin);
 	void createSrcInclude(const QpmxFormat &format);
 };

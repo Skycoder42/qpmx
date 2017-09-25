@@ -194,7 +194,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 {
 	if(_current.version.isNull()) {
 		//use the latest version -> query for it
-		auto id = randId();
+		auto id = randId(_actionCache);
 		_actionCache.insert(id, {SrcAction::Version, provider, nullptr, mustWork, plugin});
 		connectPlg(plugin);
 		plugin->findPackageVersion(id, _current.pkg(provider));
@@ -213,7 +213,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			srcUnlock(_current.pkg(provider));
 
 			//trick: add the request and then trigger the fetched slot to simulate a download
-			auto id = randId();
+			auto id = randId(_actionCache);
 			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
 			QMetaObject::invokeMethod(this, "sourceFetched", Qt::QueuedConnection,
 									  Q_ARG(int, id));
@@ -225,7 +225,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(!tDir->isValid())
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
-	auto id = randId();
+	auto id = randId(_actionCache);
 	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin});
 	connectPlg(plugin);
 	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
@@ -332,15 +332,6 @@ void InstallCommand::completeInstall()
 	}
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
-}
-
-int InstallCommand::randId()
-{
-	int id;
-	do {
-		id = qrand();
-	} while(_actionCache.contains(id));
-	return id;
 }
 
 void InstallCommand::connectPlg(SourcePlugin *plugin)
