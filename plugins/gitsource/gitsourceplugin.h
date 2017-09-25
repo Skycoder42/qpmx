@@ -63,8 +63,9 @@ private:
 	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);
 
 	void lsRemoteDone(int requestId, QProcess *proc, int exitCode);
-	void cloneDone(int requestId, QProcess *proc, int exitCode);
+	void cloneDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
 	void tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
+	void pushDone(int requestId, QProcess *proc, int exitCode);
 };
 
 #endif // GITSOURCEPLUGIN_H

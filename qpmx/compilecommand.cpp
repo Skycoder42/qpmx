@@ -243,7 +243,7 @@ void CompileCommand::makeStep()
 		case Source:
 			_stage = PriGen;
 			priGen();
-			xDebug() << tr("Completed installation for \"%1\"")
+			xDebug() << tr("Completed installation for %1")
 						.arg(_current.toString());
 			//done -> unlock (both)
 			srcUnlock(_current);
