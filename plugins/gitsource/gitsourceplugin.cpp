@@ -8,6 +8,12 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QSettings>
+#include <iostream>
+
+#define print(x) do { \
+	std::cout << QString(x).toStdString(); \
+	std::cout.flush(); \
+} while(false)
 
 QRegularExpression GitSourcePlugin::_githubRegex(QStringLiteral(R"__(^com\.github\.([^\.#]*)\.([^\.#]*)(?:#(.*))?$)__"));
 
@@ -60,7 +66,7 @@ QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
 	if(provider == QStringLiteral("git")) {
 		QString pUrl;
 		forever {
-			qInfo().noquote() << tr("Enter the remote-url to push the package to:");
+			print(tr("Enter the remote-url to push the package to: "));
 			pUrl = stream.readLine().trimmed().toLower();
 			QUrl url(pUrl);
 			if(!url.isValid() || !url.path().endsWith(QStringLiteral(".git")))
@@ -69,7 +75,7 @@ QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
 				break;
 		}
 
-		qInfo().noquote() << tr("Enter a version prefix (optional):");
+		print(tr("Enter a version prefix (optional): "));
 		auto pPrefix = stream.readLine().trimmed().toLower();
 
 		QJsonObject object;
@@ -78,11 +84,11 @@ QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
 		return object;
 	} else if(provider == QStringLiteral("github")) {
 		QJsonObject object;
-		qInfo().noquote() << tr("Enter the users name to push to:");
+		print(tr("Enter the users name to push to: "));
 		object[QStringLiteral("user")] = stream.readLine().trimmed().toLower();
-		qInfo().noquote() << tr("Enter the repository name to push to:");
+		print(tr("Enter the repository name to push to: "));
 		object[QStringLiteral("repository")] = stream.readLine().trimmed().toLower();
-		qInfo().noquote() << tr("Enter a version prefix (optional):");
+		print(tr("Enter a version prefix (optional): "));
 		object[QStringLiteral("prefix")] = stream.readLine().trimmed().toLower();
 		return object;
 	} else
