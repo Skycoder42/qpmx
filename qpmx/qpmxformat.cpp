@@ -67,7 +67,7 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 			throw tr("%1 contains invalid data").arg(fileName);
 		}
 	} else if(mustExist)
-		throw tr("%1 file does not exist").arg(fileName);
+		throw tr("%1 does not exist").arg(fileName);
 	else
 		return {};
 }
@@ -178,7 +178,7 @@ QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName
 			throw tr("%1 contains invalid data").arg(fileName);
 		}
 	} else if(mustExist)
-		throw tr("%1 file does not exist").arg(fileName);
+		throw tr("%1 does not exist").arg(fileName);
 	else
 		return {};
 }

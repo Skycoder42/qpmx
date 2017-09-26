@@ -63,14 +63,6 @@ int main(int argc, char *argv[])
 	setupParser(parser, commands);
 	parser.process(a, true);
 
-	if(parser.isSet(QStringLiteral("dir"))){
-		if(!QDir::setCurrent(parser.value(QStringLiteral("dir")))) {
-			xCritical() << QCoreApplication::translate("parser", "Failed to enter working directory \"%1\"")
-						   .arg(parser.value(QStringLiteral("dir")));
-			return EXIT_FAILURE;
-		}
-	}
-
 	//setup logging
 #ifndef Q_OS_WIN
 	colored = !parser.isSet(QStringLiteral("no-color"));
@@ -101,6 +93,15 @@ int main(int argc, char *argv[])
 			logLevel.insert(QtWarningMsg);
 	}
 	qInstallMessageHandler(qpmxMessageHandler);
+
+	//perform cd
+	if(parser.isSet(QStringLiteral("dir"))){
+		if(!QDir::setCurrent(parser.value(QStringLiteral("dir")))) {
+			xCritical() << QCoreApplication::translate("parser", "Failed to enter working directory \"%1\"")
+						   .arg(parser.value(QStringLiteral("dir")));
+			return EXIT_FAILURE;
+		}
+	}
 
 	Command *cmd = nullptr;
 	for(auto it = commands.begin(); it != commands.end(); it++) {
@@ -173,19 +174,20 @@ static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context
 	auto message = qFormatLogMessage(type, context, msg);
 	if(colored) {
 		message.replace(QStringLiteral("%{pkg}"), QStringLiteral("\033[36m"));
+		message.replace(QStringLiteral("%{bld}"), QStringLiteral("\033[32m"));
 		switch (type) {
 		case QtDebugMsg:
 		case QtInfoMsg:
-			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[0m"));
+			message.replace(QStringLiteral("%{end}"), QStringLiteral("\033[0m"));
 			break;
 		case QtWarningMsg:
-			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[33m"));
+			message.replace(QStringLiteral("%{end}"), QStringLiteral("\033[33m"));
 			break;
 		case QtCriticalMsg:
-			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[31m"));
+			message.replace(QStringLiteral("%{end}"), QStringLiteral("\033[31m"));
 			break;
 		case QtFatalMsg:
-			message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\033[35m"));
+			message.replace(QStringLiteral("%{end}"), QStringLiteral("\033[35m"));
 			break;
 		default:
 			Q_UNREACHABLE();
@@ -193,7 +195,8 @@ static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context
 		}
 	} else {
 		message.replace(QStringLiteral("%{pkg}"), QStringLiteral("\""));
-		message.replace(QStringLiteral("%{endpkg}"), QStringLiteral("\""));
+		message.replace(QStringLiteral("%{bld}"), QStringLiteral("\""));
+		message.replace(QStringLiteral("%{end}"), QStringLiteral("\""));
 	}
 
 	if(type == QtDebugMsg || type == QtInfoMsg)

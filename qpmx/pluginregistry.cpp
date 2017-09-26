@@ -37,18 +37,18 @@ SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 
 	auto loader = _srcCache.value(provider);
 	if(!loader)
-		throw tr("Unable to find a plugin for provider \"%1\"").arg(provider);
+		throw tr("Unable to find a plugin for provider %{bld}%1%{end}").arg(provider);
 
 	auto instance = loader->instance();
 	if(!instance) {
-		throw tr("Failed to load plugin \"%1\" with error: %2")
+		throw tr("Failed to load plugin %{bld}%1%{end} with error: %2")
 				.arg(loader->fileName())
 				.arg(loader->errorString());
 	}
 
 	srcPlg = qobject_cast<SourcePlugin*>(instance);
 	if(!srcPlg)
-		throw tr("Plugin \"%1\" is not a qpmx::SourcePlugin").arg(loader->fileName());
+		throw tr("Plugin %{bld}%1%{end} is not a qpmx::SourcePlugin").arg(loader->fileName());
 	_loadCache.insert(provider, srcPlg);
 	return srcPlg;
 }

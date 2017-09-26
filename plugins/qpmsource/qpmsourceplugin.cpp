@@ -47,7 +47,7 @@ QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
 
 	QTextStream stream(&console);
 	if(provider == QStringLiteral("qpm")) {
-		qInfo().noquote() << tr("%{pkg}## Step 1:%{endpkg} Run qpm initialization. You can leave the license and pri file parts empty:");
+		qInfo().noquote() << tr("%{pkg}## Step 1:%{end} Run qpm initialization. You can leave the license and pri file parts empty:");
 		qWarning().noquote() << tr("Do NOT generate boilerplate code!");
 
 		QProcess p;
@@ -61,7 +61,7 @@ QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
 		if(p.exitStatus() != QProcess::NormalExit || p.exitCode() != EXIT_SUCCESS)
 			throw tr("Failed to run qpm initialization step");
 
-		qInfo().noquote() << tr("%{pkg}## Step 2:%{endpkg} Add additional data. You can now modify the qpm.json to provide extra data. Press <ENTER> once you are done...");
+		qInfo().noquote() << tr("%{pkg}## Step 2:%{end} Add additional data. You can now modify the qpm.json to provide extra data. Press <ENTER> once you are done...");
 		console.readLine();
 
 		QFile qpmFile(QStringLiteral("qpm.json"));
@@ -184,7 +184,7 @@ void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		if(provider != QStringLiteral("qpm"))
 			throw tr("Unsupported provider \"%1\"").arg(provider);
 
-		qInfo().noquote() << tr("%{pkg}## Step 1:%{endpkg} Preparing publishing...");
+		qInfo().noquote() << tr("%{pkg}## Step 1:%{end} Preparing publishing...");
 		//read qpmx.json
 		QFile qpmxFile(qpmxDir.absoluteFilePath(QStringLiteral("qpmx.json")));
 		if(!qpmxFile.exists())
@@ -235,11 +235,11 @@ void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		QFile console;
 		if(!console.open(stdin, QIODevice::ReadOnly | QIODevice::Text))
 			throw tr("Failed to access console with error: %1").arg(console.errorString());
-		qInfo().noquote() << tr("%{pkg}## Step 2:%{endpkg} qpm file created. Please commit the changes and push it to the remote!");
+		qInfo().noquote() << tr("%{pkg}## Step 2:%{end} qpm file created. Please commit the changes and push it to the remote!");
 		console.readLine();
 
 		// publish via qpm
-		qInfo().noquote() << tr("%{pkg}## Step 3:%{endpkg} Publishing the package via qpm...");
+		qInfo().noquote() << tr("%{pkg}## Step 3:%{end} Publishing the package via qpm...");
 		auto proc = createProcess(QStringLiteral("publish"), {QStringLiteral("publish")}, false, false);
 		proc->setWorkingDirectory(qpmxDir.absolutePath());
 		proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);

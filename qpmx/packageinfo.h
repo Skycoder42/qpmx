@@ -45,7 +45,7 @@ public:
 		if(!d->version.isNull())
 			res.append(QLatin1Char('@') + d->version.toString());
 		if(scoped)
-			return QStringLiteral("%{pkg}") + res + QStringLiteral("%{endpkg}");
+			return QStringLiteral("%{pkg}") + res + QStringLiteral("%{end}");
 		else
 			return res;
 	}

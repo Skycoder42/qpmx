@@ -29,7 +29,7 @@ void Command::fin()
 	finalize();
 	_registry->cancelAll();
 	for(auto it = _locks.begin(); it != _locks.end(); it++) {
-		xDebug() << QStringLiteral("Freeing remaining lock for %1/%2")
+		xDebug() << QStringLiteral("Freeing remaining lock for %{bld}%1/%2%{end}")
 					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))
 					.arg(it.key().second);
 		it.value()->release();
@@ -103,7 +103,7 @@ QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool f
 	foreach(auto arg, arguments) {
 		auto match = regex.match(arg);
 		if(!match.hasMatch())
-			throw tr("Malformed package: \"%1\"").arg(arg);
+			throw tr("Malformed package: %1").arg(arg);
 
 		PackageInfo info(match.captured(1),
 						 match.captured(2),
@@ -162,7 +162,7 @@ void Command::cleanCaches(const PackageInfo &package)
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
 		buildUnlock(cmpDir, package);
 	}
-	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());
+	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());//TODO no package name
 }
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
@@ -308,7 +308,7 @@ void Command::lock(bool isSource, const QString &key)
 {
 	auto prefix = isSource ? QStringLiteral("src") : QStringLiteral("build");
 	if(_locks.contains({isSource, key})){
-		throw tr("Resource \"%1/%2\" has already been locked")
+		throw tr("Resource %{bld}%1/%2%{end} has already been locked")
 				.arg(prefix)
 				.arg(key);
 	}
