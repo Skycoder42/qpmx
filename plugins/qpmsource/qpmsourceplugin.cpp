@@ -47,33 +47,46 @@ QJsonObject QpmSourcePlugin::createPublisherInfo(const QString &provider) const
 
 	QTextStream stream(&console);
 	if(provider == QStringLiteral("qpm")) {
-		QJsonObject object;
-		qInfo().noquote() << tr("Enter the package name:");
-		object[QStringLiteral("name")] = stream.readLine().trimmed().toLower();
+		qInfo().noquote() << tr("%{pkg}## Step 1:%{endpkg} Run qpm initialization. You can leave the license and pri file parts empty:");
+		qWarning().noquote() << tr("Do NOT generate boilerplate code!");
 
-		QJsonObject repository;
-		qInfo().noquote() << tr("Enter the repository type [GITHUB]:");
-		auto type = stream.readLine().trimmed().toLower();
-		if(type.isEmpty())
-			type = QStringLiteral("GITHUB");
-		repository[QStringLiteral("type")] = type;
-		qInfo().noquote() << tr("Enter the repository clone url:");
-		repository[QStringLiteral("url")] = stream.readLine().trimmed().toLower();
-		object[QStringLiteral("repository")] = repository;
+		QProcess p;
+		p.setProgram(QStringLiteral("qpm"));
+		p.setArguments({QStringLiteral("init")});
+		p.setProcessChannelMode(QProcess::ForwardedChannels);
+		p.setInputChannelMode(QProcess::ForwardedInputChannel);
+		p.start();
+		p.waitForFinished(-1);
 
-		QJsonObject author;
-		qInfo().noquote() << tr("Enter your name:");
-		author[QStringLiteral("name")] = stream.readLine().trimmed().toLower();
-		qInfo().noquote() << tr("Enter your email:");
-		author[QStringLiteral("email")] = stream.readLine().trimmed().toLower();
-		object[QStringLiteral("author")] = author;
+		if(p.exitStatus() != QProcess::NormalExit || p.exitCode() != EXIT_SUCCESS)
+			throw tr("Failed to run qpm initialization step");
 
-		qInfo().noquote() << tr("Enter the package description (optional):");
-		object[QStringLiteral("description")] = stream.readLine().trimmed().toLower();
-		qInfo().noquote() << tr("Enter a link to a website (optional):");
-		object[QStringLiteral("webpage")] = stream.readLine().trimmed().toLower();
+		qInfo().noquote() << tr("%{pkg}## Step 2:%{endpkg} Add additional data. You can now modify the qpm.json to provide extra data. Press <ENTER> once you are done...");
+		console.readLine();
 
-		return object;
+		QFile qpmFile(QStringLiteral("qpm.json"));
+		if(!qpmFile.exists())
+			throw tr("qpm.json does not exist, unable to read data");
+		if(!qpmFile.open(QIODevice::ReadOnly | QIODevice::Text))
+			throw tr("Failed to open qpm.json file with error: %1").arg(qpmFile.errorString());
+
+		QJsonParseError error;
+		auto qpmJson = QJsonDocument::fromJson(qpmFile.readAll(), &error).object();
+		if(error.error != QJsonParseError::NoError)
+			throw tr("Failed to read qpm.json file with error: %1").arg(error.errorString());
+
+		qpmFile.close();
+		if(!qpmFile.remove())
+			qWarning().noquote() << tr("Failed to remove temporary qpm.json file");
+
+		//remove unneeded fields
+		qpmJson.remove(QStringLiteral("version"));
+		qpmJson.remove(QStringLiteral("dependencies"));
+		qpmJson.remove(QStringLiteral("license"));
+		qpmJson.remove(QStringLiteral("pri_filename"));
+		qpmJson.remove(QStringLiteral("priFilename"));
+
+		return qpmJson;
 	} else
 		return {};
 }
