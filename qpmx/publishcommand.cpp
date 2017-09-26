@@ -45,7 +45,7 @@ void PublishCommand::initialize(QCliParser &parser)
 			throw tr("Invalid version! Please pass a valid version name");
 		_format = QpmxFormat::readDefault(true);
 
-		xInfo() << tr("Publishing package for version \"%1\"").arg(_version.toString());
+		xInfo() << tr("Publishing package for version %1").arg(_version.toString());
 
 		_providers.append(parser.values(QStringLiteral("provider")));
 		if(_providers.isEmpty()) {
@@ -78,7 +78,7 @@ void PublishCommand::sourceError(int requestId, const QString &error)
 	if(provider.isNull())
 		return;
 
-	xCritical() << tr("Failed to publish package for provider \"%1\" with error: %2")
+	xCritical() << tr("Failed to publish package for provider %{bld}%1%{end} with error: %2")
 				   .arg(provider)
 				   .arg(error);
 }
@@ -95,15 +95,15 @@ void PublishCommand::publishNext()
 	auto plugin = registry()->sourcePlugin(provider);
 
 	if(!plugin->canPublish(provider))
-		throw tr("Provider \"%1\" cannot publish packages via qpmx!").arg(provider);
+		throw tr("Provider %{bld}%1%{end} cannot publish packages via qpmx!").arg(provider);
 	if(!_format.publishers.contains(provider)) {
-		throw tr("Package has not been prepare for provider \"%1\". "
+		throw tr("Package has not been prepare for provider %{bld}%1%{end}. "
 				 "Run the following command to prepare it: qpmx prepare %1")
 				.arg(provider);
 	}
 
 	connectPlg(plugin);
-	xInfo() << tr("Publishing for provider \"%1\"").arg(provider);
+	xInfo() << tr("Publishing for provider %{bld}%1%{end}").arg(provider);
 
 	auto id = randId(_providerCache);
 	_providerCache.insert(id, provider);

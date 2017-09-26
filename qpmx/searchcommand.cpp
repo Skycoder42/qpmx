@@ -54,7 +54,7 @@ void SearchCommand::initialize(QCliParser &parser)
 		if(!providers.isEmpty()) {
 			foreach(auto provider, providers) {
 				if(!registry()->sourcePlugin(provider)->canSearch(provider))
-					throw tr("Provider \"%1\" does not support searching").arg(provider);
+					throw tr("Provider %{bld}%1%{end} does not support searching").arg(provider);
 			}
 		} else {
 			foreach(auto provider, registry()->providerNames()) {
@@ -89,7 +89,7 @@ void SearchCommand::searchResult(int requestId, const QStringList &packageNames)
 	if(provider.isNull())
 		return;
 
-	xDebug() << tr("Found %n result(s) for provider \"%1\"", "", packageNames.size()).arg(provider);
+	xDebug() << tr("Found %n result(s) for provider %{bld}%1%{end}", "", packageNames.size()).arg(provider);
 	if(!packageNames.isEmpty())
 		_searchResults.append({provider, packageNames});
 	if(_providerCache.isEmpty())
@@ -102,7 +102,7 @@ void SearchCommand::sourceError(int requestId, const QString &error)
    if(provider.isNull())
 	   return;
 
-   xCritical() << tr("Failed to search provider \"%1\" with error: %2")
+   xCritical() << tr("Failed to search provider %{bld}%1%{end} with error: %2")
 				  .arg(provider)
 				  .arg(error);
 }

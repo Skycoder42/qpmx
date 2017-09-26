@@ -162,7 +162,7 @@ void Command::cleanCaches(const PackageInfo &package)
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
 		buildUnlock(cmpDir, package);
 	}
-	xDebug() << tr("Removed cached sources and binaries for %1").arg(package.toString());//TODO no package name
+	xInfo() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl

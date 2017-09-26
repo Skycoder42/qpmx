@@ -71,7 +71,7 @@ void DevCommand::addDev(const QCliParser &parser)
 		QpmxDevDependency devDep(pkg, path);
 		auto dIdx = userFormat.devmode.indexOf(devDep);
 		if(dIdx != -1) {
-			xWarning() << tr("Package %1 is already a dependency. Replacing with the given version and path").arg(devDep.toString());
+			xWarning() << tr("Package %1 is already a dev dependency. Replacing with the given version and path").arg(devDep.toString());
 			userFormat.devmode[dIdx] = devDep;
 		} else
 			userFormat.devmode.append(devDep);

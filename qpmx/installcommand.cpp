@@ -83,10 +83,9 @@ void InstallCommand::sourceFetched(int requestId)
 
 		if(data.type != SrcAction::Exists) {
 			if(data.mustWork)
-				xDebug() << tr("Downloaded sources for %1").arg(_current.toString());
+				xDebug() << tr("Downloaded sources");
 			else {
-				xDebug() << tr("Downloaded sources for %1 from provider \"%3\"")
-							.arg(_current.toString())
+				xDebug() << tr("Downloaded sources from provider %{bld}%1%{end}")
 							.arg(data.provider);
 			}
 		}
@@ -103,21 +102,20 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 		return;
 
 	if(version.isNull()) {
-		auto str = tr("Package %1 does not exist for provider \"%2\"")
-				   .arg(_current.toString())
+		auto str = tr("Package%2does not exist for provider %{bld}%1%{end}")
 				   .arg(data.provider);
 		if(data.mustWork)
-			xCritical() << str;
+			xCritical() << str.arg(tr(" %1 ").arg(_current.toString()));
 		else {
-			xDebug() << str;
+			xDebug() << str.arg(tr(" "));
 			completeSource();
 		}
 	} else {
 		if(data.mustWork)
-			xDebug() << tr("Fetched latest version for %1").arg(_current.toString());
+			xDebug() << tr("Fetched latest version as %1").arg(version.toString());
 		else {
-			xDebug() << tr("Fetched latest version for %1 from provider \"%3\"")
-						.arg(_current.toString())
+			xDebug() << tr("Fetched latest version as %1 from provider %{bld}%2%{end}")
+						.arg(version.toString())
 						.arg(data.provider);
 		}
 
@@ -134,18 +132,18 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 	if(!data)
 		return;
 
-	//unlock source, as it is not used anymore
-	if(data.type == SrcAction::Install)
-		srcUnlock(_current.pkg(data.provider));
+	QString str;
+	if(data.type == SrcAction::Install) {
+		srcUnlock(_current.pkg(data.provider));//unlock source, as it is not used anymore
+		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error: %2");
+	} else
+		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error: %2");
+	str = str.arg(data.provider).arg(error);
 
-	auto str = tr("Failed to get sources for %1 from provider \"%2\" with error: %3")
-			   .arg(_current.toString())
-			   .arg(data.provider)
-			   .arg(error);
 	if(data.mustWork)
-		xCritical() << str;
+		xCritical() << str.arg(tr(" for %1 ").arg(_current.toString()));
 	else {
-		xDebug() << str;
+		xDebug() << str.arg(tr(" "));
 		completeSource();
 	}
 }
@@ -182,7 +180,7 @@ void InstallCommand::getNext()
 	} else {
 		auto plugin = registry()->sourcePlugin(_current.provider);
 		if(!plugin->packageValid(_current.pkg())) {
-			throw tr("The package name %1 is not valid for provider \"%2\"")
+			throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
 					.arg(_current.package)
 					.arg(_current.provider);
 		}
@@ -193,6 +191,7 @@ void InstallCommand::getNext()
 void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
 	if(_current.version.isNull()) {
+		xDebug() << tr("Searching for latest version of %1").arg(_current.toString());
 		//use the latest version -> query for it
 		auto id = randId(_actionCache);
 		_actionCache.insert(id, {SrcAction::Version, provider, nullptr, mustWork, plugin});
@@ -225,6 +224,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(!tDir->isValid())
 		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
 
+	xDebug() << tr("Gettings sources for package %1").arg(_current.toString());
 	auto id = randId(_actionCache);
 	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin});
 	connectPlg(plugin);
@@ -239,12 +239,12 @@ void InstallCommand::completeSource()
 
 	try {
 		if(_resCache.isEmpty())
-			throw tr("Unable to find a provider for package %1").arg(_current.toString());
+			throw tr("Unable to find any provider for package %1").arg(_current.toString());
 		else if(_resCache.size() > 1) {
 			QStringList provList;
 			foreach(auto data, _resCache)
 				provList.append(data.provider);
-			throw tr("Found more then one provider for package %1.\nProviders are: %2")
+			throw tr("Found more then one provider for package %1. Providers are: %2")
 					.arg(_current.toString())
 					.arg(provList.join(tr(", ")));
 		}
@@ -263,13 +263,9 @@ void InstallCommand::completeSource()
 			return;
 		}
 
-		auto str = tr("Using provider \"%1\" for package %2")
-				   .arg(data.provider)
-				   .arg(_current.toString());
-		if(data.mustWork)
-			xDebug() << str;
-		else
-			xInfo() << str;
+		auto str = tr("Using provider %{bld}%1%{end}")
+				   .arg(data.provider);
+		xDebug() << str;
 
 		//load the format from the temp dir
 		auto format = QpmxFormat::readFile(data.tDir->path(), true);
@@ -284,10 +280,8 @@ void InstallCommand::completeSource()
 		auto tDir = srcDir(_current.provider, _current.package);
 		auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
 		if(!path.dir().rename(path.fileName(), vSubDir))
-			throw tr("Failed to move downloaded sources from temporary directory to cache directory!");
-		xDebug() << tr("Moved sources for %1 to \"%2\"")
-					.arg(_current.toString())
-					.arg(vSubDir);
+			throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
+		xDebug() << tr("Moved sources to cache directory");
 
 		//create the src_include in the build dir
 		createSrcInclude(format);

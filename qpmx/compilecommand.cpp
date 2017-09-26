@@ -139,11 +139,11 @@ void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 	else {
 		if(exitCode != EXIT_SUCCESS) {
 			_compileDir->setAutoRemove(false);
-			xCritical() << tr("Failed to run %1 step for %2 compilation. Exit code %3. Check the error logs at \"%4\"")
+			xCritical() << tr("Failed to run %1 step for %2 compilation with exit code %3. Check the error logs at \"%4\"")
 						   .arg(stage())
 						   .arg(_current.toString())
 						   .arg(exitCode)
-						   .arg(_compileDir->path());
+						   .arg(_compileDir->path());//TODO output (q)make error log?
 			_process->deleteLater();
 			_process = nullptr;
 		} else
@@ -158,7 +158,7 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 	xCritical() << tr("Failed to run %1 step for %2 compilation. Error: %3")
 				   .arg(stage())
 				   .arg(_current.toString())
-				   .arg(_process->errorString());
+				   .arg(_process->errorString());//TODO output (q)make error log?
 	_process->deleteLater();
 	_process = nullptr;
 }
@@ -184,6 +184,9 @@ void CompileCommand::compileNext()
 	auto bDir = buildDir(_kit.id, _current);
 	if(bDir.exists(QStringLiteral("include.pri"))) {
 		if(_recompile) {
+			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
+					   .arg(_current.toString())
+					   .arg(_kit.path);
 			if(!bDir.removeRecursively()) {
 				throw tr("Failed to remove previous build of %1 with \"%2\"")
 				.arg(_current.toString())
@@ -201,6 +204,10 @@ void CompileCommand::compileNext()
 			compileNext();
 			return;
 		}
+	} else {
+		xInfo() << tr("Compiling package %1 with qmake \"%2\"")
+				   .arg(_current.toString())
+				   .arg(_kit.path);
 	}
 
 	//create temp dir and load qpmx.json
@@ -223,34 +230,26 @@ void CompileCommand::makeStep()
 		switch (_stage) {
 		case None:
 			_stage = QMake;
-			xDebug() << tr("Beginning compilation of %1 with qmake \"%2\"")
-						.arg(_current.toString())
-						.arg(_kit.path);
+			xDebug() << tr("Setting up build via qmake");
 			qmake();
 			break;
 		case QMake:
 			_stage = Make;
-			xDebug() << tr("Completed qmake for %1. Continuing with compile (make)")
-						.arg(_current.toString());
+			xDebug() << tr("Completed setup. Continuing with compile (make)");
 			make();
 			break;
 		case Make:
 			_stage = Source;
-			xDebug() << tr("Completed compile (make) for %1. Installing to cache directory")
-						.arg(_current.toString());
+			xDebug() << tr("Completed compile. Installing to cache directory");
 			install();
 			break;
 		case Source:
 			_stage = PriGen;
 			priGen();
-			xDebug() << tr("Completed installation for %1")
-						.arg(_current.toString());
+			xDebug() << tr("Completed installation. Compliation succeeded");
 			//done -> unlock (both)
 			srcUnlock(_current);
 			buildUnlock(_kit.id, _current);
-			xInfo() << tr("Successfully compiled %1 with qmake \"%2\"")
-					   .arg(_current.toString())
-					   .arg(_kit.path);
 			compileNext();
 			break;
 		default:
@@ -274,7 +273,7 @@ void CompileCommand::qmake()
 	//create qmake.conf file
 	QFile confFile(_compileDir->filePath(QStringLiteral(".qmake.conf")));
 	if(!confFile.open(QIODevice::WriteOnly | QIODevice::Text))
-		throw tr("Failed to create qmake config with error: \"%1\"").arg(confFile.errorString());
+		throw tr("Failed to create qmake config with error: %1").arg(confFile.errorString());
 	QTextStream stream(&confFile);
 	stream << "QPMX_TARGET=" << priBase << "\n"
 		   << "QPMX_VERSION=" << _current.version().toString() << "\n"
@@ -330,7 +329,7 @@ void CompileCommand::priGen()
 	//create include.pri file
 	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(!metaFile.open(QIODevice::WriteOnly | QIODevice::Text))
-		throw tr("Failed to create meta.pri with error: \"%1\"").arg(metaFile.errorString());
+		throw tr("Failed to create meta.pri with error: %1").arg(metaFile.errorString());
 	auto libName = QFileInfo(_format.priFile).completeBaseName();
 	QTextStream stream(&metaFile);
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package() << "\") {\n"
@@ -464,7 +463,6 @@ void CompileCommand::initKits(const QStringList &qmakes)
 
 	//collect the kits to use, and ALWAYS update them!
 	if(qmakes.isEmpty()) {
-		// no kits -> try to find qmakes!
 		// update all known kits
 		QStringList pathsCache;
 		for(auto i = 0; i < allKits.size(); i++) {
@@ -543,7 +541,7 @@ QtKitInfo CompileCommand::createKit(const QString &qmakePath)
 	if(!proc.waitForFinished(2500)) {
 		proc.terminate();
 		proc.waitForFinished(500);
-		throw tr("Failed to run qmake with path \"%1\"").arg(qmakePath);
+		throw tr("Failed to run qmake \"%1\"").arg(qmakePath);
 	}
 
 	if(proc.exitStatus() == QProcess::CrashExit) {
@@ -560,7 +558,7 @@ QtKitInfo CompileCommand::createKit(const QString &qmakePath)
 	auto data = proc.readAllStandardOutput();
 	auto results = data.split('\n');
 	if(results.size() < 7)
-		throw tr("qmake output for qmake \"%1\" is invalid").arg(qmakePath);
+		throw tr("qmake output for qmake \"%1\" is invalid (not a qt5 qmake?)").arg(qmakePath);
 
 	//assing values
 	QByteArrayList params;
@@ -585,6 +583,7 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 			xDebug() << tr("Validated existing qmake configuration for \"%1\"").arg(oldKit.path);
 			return oldKit;
 		} else {
+			xInfo() << tr("Updating existing qmake configuration for \"%1\"...").arg(oldKit.path);
 			auto oDir = buildDir(oldKit.id);
 			if(!oDir.removeRecursively())
 				throw tr("Failed to remove build cache directory for \"%1\"").arg(oldKit.path);

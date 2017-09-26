@@ -91,7 +91,7 @@ void TranslateCommand::initialize(QCliParser &parser)
 			QString arg = pArgs.takeFirst();
 			if(arg == QStringLiteral("%%")) {
 				_qpmxTsFiles = pArgs;
-				xDebug() << tr("Extracted translation files as: %1").arg(_qpmxTsFiles.join(tr(", ")));
+				xDebug() << tr("Extracted qpmx translation files as: %1").arg(_qpmxTsFiles.join(tr(", ")));
 				break;
 			}
 			_lrelease.append(arg.replace(QRegularExpression(QStringLiteral("^\\+")), QStringLiteral("-")));
