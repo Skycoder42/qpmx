@@ -158,7 +158,7 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 	xCritical() << tr("Failed to run %1 step for %2 compilation. Error: %3")
 				   .arg(stage())
 				   .arg(_current.toString())
-				   .arg(_process->errorString());//TODO output (q)make error log?
+				   .arg(_process->errorString());
 	_process->deleteLater();
 	_process = nullptr;
 }

@@ -59,8 +59,8 @@ private:
 	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
 	QString pkgTag(const qpmx::PackageInfo &package);
 
-	QDir createLogDir(const QString &action);
-	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false, bool timeout = true);
+	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false, bool timeout = true);
+	QString formatProcError(const QString &type, QProcess *proc);
 
 	void lsRemoteDone(int requestId, QProcess *proc, int exitCode);
 	void cloneDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
