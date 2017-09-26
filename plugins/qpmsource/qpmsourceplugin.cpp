@@ -180,7 +180,75 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 
 void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo)
 {
+	try {
+		if(provider != QStringLiteral("qpm"))
+			throw tr("Unsupported provider \"%1\"").arg(provider);
 
+		qInfo().noquote() << tr("%{pkg}## Step 1:%{endpkg} Preparing publishing...");
+		//read qpmx.json
+		QFile qpmxFile(qpmxDir.absoluteFilePath(QStringLiteral("qpmx.json")));
+		if(!qpmxFile.exists())
+			throw tr("qpmx.json does not exist, unable to read data");
+		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text))
+			throw tr("Failed to open qpmx.json file with error: %1").arg(qpmxFile.errorString());
+
+		QJsonParseError error;
+		auto qpmxJson = QJsonDocument::fromJson(qpmxFile.readAll(), &error).object();
+		if(error.error != QJsonParseError::NoError)
+			throw tr("Failed to read qpm.json file with error: %1").arg(error.errorString());
+		qpmxFile.close();
+
+		//create the qpm file
+		auto qpmJson = publisherInfo;
+
+		QJsonObject vJson;
+		vJson[QStringLiteral("label")] = version.toString();
+		vJson[QStringLiteral("revision")] = QString();
+		vJson[QStringLiteral("fingerprint")] = QString();
+		qpmJson[QStringLiteral("version")] = vJson;
+
+		QJsonArray dArray;
+		foreach(auto dep, qpmxJson[QStringLiteral("dependencies")].toArray()) {
+			auto depObj = dep.toObject();
+			if(depObj[QStringLiteral("provider")].toString() != QStringLiteral("qpm"))
+				throw tr("A qpm package can only have qpm dependencies. Other providers are not allowed");
+			dArray.append(QStringLiteral("%1@%2")
+						  .arg(depObj[QStringLiteral("package")].toString())
+						  .arg(depObj[QStringLiteral("version")].toString()));
+		}
+		qpmJson[QStringLiteral("dependencies")] = dArray;
+
+		if(!qpmJson.contains(QStringLiteral("license"))) {
+			qpmJson[QStringLiteral("license")] = qpmxJson[QStringLiteral("license")]
+					.toObject()[QStringLiteral("name")]
+					.toString();
+		}
+		qpmJson[QStringLiteral("pri_filename")] = qpmxJson[QStringLiteral("priFile")].toString();
+
+		//and write it
+		QFile qpmFile(qpmxDir.absoluteFilePath(QStringLiteral("qpm.json")));
+		if(!qpmFile.open(QIODevice::WriteOnly | QIODevice::Text))
+			throw tr("Failed to create qpm.json file with error: %1").arg(qpmFile.errorString());
+		qpmFile.write(QJsonDocument(qpmJson).toJson(QJsonDocument::Indented));
+		qpmFile.close();
+
+		QFile console;
+		if(!console.open(stdin, QIODevice::ReadOnly | QIODevice::Text))
+			throw tr("Failed to access console with error: %1").arg(console.errorString());
+		qInfo().noquote() << tr("%{pkg}## Step 2:%{endpkg} qpm file created. Please commit the changes and push it to the remote!");
+		console.readLine();
+
+		// publish via qpm
+		qInfo().noquote() << tr("%{pkg}## Step 3:%{endpkg} Publishing the package via qpm...");
+		auto proc = createProcess(QStringLiteral("publish"), {QStringLiteral("publish")}, false, false);
+		proc->setWorkingDirectory(qpmxDir.absolutePath());
+		proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
+		proc->setInputChannelMode(QProcess::ForwardedInputChannel);
+		_processCache.insert(proc, tpl{requestId, Publish, {}});
+		proc->start();
+	} catch (QString &s) {
+		emit sourceError(requestId, s);
+	}
 }
 
 void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -203,6 +271,9 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 			case Install:
 				completeInstall(std::get<0>(data), proc, std::get<2>(data));
 				break;
+			case Publish:
+				completePublish(std::get<0>(data), proc);
+				break;
 			default:
 				Q_UNREACHABLE();
 				break;
@@ -219,26 +290,28 @@ void QpmSourcePlugin::errorOccurred(QProcess::ProcessError error)
 	auto data = _processCache.value(proc, tpl{-1, Search, {}});
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
+		QString reason;
 		switch (std::get<1>(data)) {
 		case Search:
-			emit sourceError(std::get<0>(data),
-							 tr("Failed to search qpm package with process error: %1")
-							 .arg(proc->errorString()));
+			reason = tr("search qpm package");
 			break;
 		case Version:
-			emit sourceError(std::get<0>(data),
-							 tr("Failed to find qpm package version with process error: %1")
-							 .arg(proc->errorString()));
+			reason = tr("find qpm package version");
 			break;
 		case Install:
-			emit sourceError(std::get<0>(data),
-							 tr("Failed to download qpm package with process error: %1")
-							 .arg(proc->errorString()));
+			reason = tr("download qpm package");
+			break;
+		case Publish:
+			reason = tr("publish qpm package");
 			break;
 		default:
 			Q_UNREACHABLE();
 			break;
 		}
+		emit sourceError(std::get<0>(data),
+						 tr("Failed to %1 with process error: %2")
+						 .arg(reason)
+						 .arg(proc->errorString()));
 	}
 	proc->deleteLater();
 }
@@ -259,7 +332,7 @@ QDir QpmSourcePlugin::createLogDir(const QString &action)
 		throw tr("Failed to create log directory \"%1\"").arg(tDir.path());
 }
 
-QProcess *QpmSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool stdLog)
+QProcess *QpmSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool stdLog, bool timeout)
 {
 	auto logDir = createLogDir(type);
 
@@ -278,14 +351,16 @@ QProcess *QpmSourcePlugin::createProcess(const QString &type, const QStringList 
 			this, &QpmSourcePlugin::errorOccurred,
 			Qt::QueuedConnection);
 
-	//timeout after 30 seconds
-	QTimer::singleShot(30000, this, [proc, this](){
-		if(_processCache.contains(proc)) {
-			proc->kill();
-			if(!proc->waitForFinished(1000))
-				proc->terminate();
-		}
-	});
+	if(timeout) {
+		//timeout after 30 seconds
+		QTimer::singleShot(30000, this, [proc, this](){
+			if(_processCache.contains(proc)) {
+				proc->kill();
+				if(!proc->waitForFinished(1000))
+					proc->terminate();
+			}
+		});
+	}
 
 	return proc;
 }
@@ -401,4 +476,10 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash
 	} catch (QString &s) {
 		emit sourceError(id, s);
 	}
+}
+
+void QpmSourcePlugin::completePublish(int id, QProcess *proc)
+{
+	Q_UNUSED(proc)
+	emit packagePublished(id);//hopefully... qpm does not provide ANY information regarding the success
 }

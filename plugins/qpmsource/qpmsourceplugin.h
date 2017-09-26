@@ -16,7 +16,8 @@ public:
 	enum Mode {
 		Search,
 		Version,
-		Install
+		Install,
+		Publish
 	};
 	Q_ENUM(Mode)
 
@@ -53,11 +54,12 @@ private:
 	QHash<QProcess*, tpl> _processCache;
 
 	QDir createLogDir(const QString &action);
-	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false);
+	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false, bool timeout = true);
 
 	void completeSearch(int id, QProcess *proc);
 	void completeVersion(int id, QProcess *proc);
 	void completeInstall(int id, QProcess *proc, const QVariantHash &params);
+	void completePublish(int id, QProcess *proc);
 };
 
 #endif // QPMSOURCEPLUGIN_H
