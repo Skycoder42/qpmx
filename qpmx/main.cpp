@@ -66,23 +66,28 @@ int main(int argc, char *argv[])
 	parser.process(a, true);
 
 	//setup logging
+	QString prefix;
+	if(parser.isSet(QStringLiteral("qmake-run")))
+		prefix = QStringLiteral("qpmx.json:1: ");
 #ifndef Q_OS_WIN
 	colored = !parser.isSet(QStringLiteral("no-color"));
 	if(colored) {
-		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33mwarning: %{endif}"
-																 "%{if-critical}\033[31merror: %{endif}"
-																 "%{if-fatal}\033[35mfatal error: %{endif}"
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}\033[33m%1Warning: %{endif}"
+																 "%{if-critical}\033[31m%1Error: %{endif}"
+																 "%{if-fatal}\033[35m%1Fatal Error: %{endif}"
 																 "%{if-category}%{category}: %{endif}%{message}"
 																 "%{if-warning}\033[0m%{endif}"
 																 "%{if-critical}\033[0m%{endif}"
-																 "%{if-fatal}\033[0m%{endif}"));
+																 "%{if-fatal}\033[0m%{endif}")
+						   .arg(prefix));
 	} else
 #endif
 	{
-		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}warning: %{endif}"
-																 "%{if-critical}error: %{endif}"
-																 "%{if-fatal}fatal error: %{endif}"
-																 "%{if-category}%{category}: %{endif}%{message}"));
+		qSetMessagePattern(QCoreApplication::translate("parser", "%{if-warning}%1Warning: %{endif}"
+																 "%{if-critical}%1Error: %{endif}"
+																 "%{if-fatal}%1Fatal Error: %{endif}"
+																 "%{if-category}%{category}: %{endif}%{message}")
+						   .arg(prefix));
 	}
 
 	if(!parser.isSet(QStringLiteral("quiet"))) {
@@ -160,6 +165,9 @@ static void setupParser(QCliParser &parser, const QHash<QString, Command*> &comm
 						 QCoreApplication::translate("parser", "directory"),
 						 QDir::currentPath()
 					 });
+	QCommandLineOption qOpt(QStringLiteral("qmake-run"));
+	qOpt.setFlags(QCommandLineOption::HiddenFromHelp);
+	parser.addOption(qOpt);
 
 	foreach(auto cmd, commands) {
 		parser.addCliNode(cmd->commandName(),
