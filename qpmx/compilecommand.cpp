@@ -11,6 +11,7 @@ using namespace qpmx;
 CompileCommand::CompileCommand(QObject *parent) :
 	Command(parent),
 	_recompile(false),
+	_fwdStderr(false),
 	_pkgList(),
 	_qtKits(),
 	_current(),
@@ -54,6 +55,11 @@ QSharedPointer<QCliNode> CompileCommand::createCliNode()
 							   tr("By default, compilation is skipped for unchanged packages. By specifying "
 								  "this flags, all packages are recompiled."),
 						   });
+	compileNode->addOption({
+							   {QStringLiteral("e"), QStringLiteral("stderr")},
+							   tr("Forward stderr of sub-processes like qmake to this processes stderr instead of "
+								  "logging it to a file in the compile directory."),
+						   });
 	compileNode->addPositionalArgument(QStringLiteral("packages"),
 									   tr("The packages to compile binaries for. Installed packages are "
 										  "matched against those, and binaries compiled for all of them. If no "
@@ -67,6 +73,7 @@ void CompileCommand::initialize(QCliParser &parser)
 	try {
 		auto global = parser.isSet(QStringLiteral("global"));
 		_recompile = parser.isSet(QStringLiteral("recompile"));
+		_fwdStderr = parser.isSet(QStringLiteral("stderr"));
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
@@ -446,7 +453,10 @@ void CompileCommand::initProcess()
 		break;
 	}
 	_process->setStandardOutputFile(_compileDir->filePath(QStringLiteral("%1.stdout.log").arg(logBase)));
-	_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
+	if(_fwdStderr)
+		_process->setProcessChannelMode(QProcess::ForwardedErrorChannel);
+	else
+		_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
 
 	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
 			this, &CompileCommand::finished,

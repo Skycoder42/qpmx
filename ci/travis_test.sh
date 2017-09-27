@@ -30,20 +30,9 @@ for i in 0 1 2; do
 	mkdir build-$PLATFORM/tests-$i
 	pushd build-$PLATFORM/tests-$i
 
-	/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/ || (
-		res=$?
-		for log in $(find /var/folders/bb/ -iname "*qpmx*"); do
-			cat $log/qmake.stdout.log
-			cat $log/qmake.stderr.log
-			cat $log/make.stdout.log
-			cat $log/make.stderr.log
-			cat $log/install.stdout.log
-			cat $log/install.stderr.log
-		done
-		exit $res
-	)
-
+	/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
 	make
+
 	QT_QPA_PLATFORM=minimal ./test
 	popd
 done

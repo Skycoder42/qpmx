@@ -25,23 +25,12 @@ for /L %%i IN (0, 1, 2) DO (
 	mkdir build-%qtplatform%\tests-%%i
 	cd build-%qtplatform%\tests-%%i
 
-	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || (
-		for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
-			type %%G\qmake.stdout.log
-			type %%G\qmake.stderr.log
-			type %%G\make.stdout.log
-			type %%G\make.stderr.log
-			type %%G\install.stdout.log
-			type %%G\install.stderr.log
-		)
-		exit /B 1
-	)
-
+	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
 	nmake all || exit /B 1
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1
-	
+
 	cd ..\..
 )
 

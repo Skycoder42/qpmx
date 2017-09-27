@@ -60,6 +60,7 @@ private slots:
 
 private:
 	bool _recompile;
+	bool _fwdStderr;
 
 	QList<qpmx::PackageInfo> _pkgList;
 	QList<QtKitInfo> _qtKits;
