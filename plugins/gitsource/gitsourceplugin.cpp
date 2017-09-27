@@ -381,6 +381,7 @@ QString GitSourcePlugin::formatProcError(const QString &type, QProcess *proc)
 	auto res = tr("Failed to %1 with exit code %2 and stderr:")
 			   .arg(type)
 			   .arg(proc->exitCode());
+	proc->setReadChannel(QProcess::StandardError);
 	while(!proc->atEnd()) {
 		auto line = QString::fromUtf8(proc->readLine()).trimmed();
 		res.append(QStringLiteral("\n\t%1").arg(line));
@@ -392,6 +393,7 @@ void GitSourcePlugin::lsRemoteDone(int requestId, QProcess *proc, int exitCode)
 {
 	if(exitCode == EXIT_SUCCESS) {
 		//parse output
+		qDebug().noquote() << tr("Parsing ls-remote output");
 		QSet<QVersionNumber> versions;
 		QRegularExpression tagRegex(QStringLiteral(R"__(^\w+\trefs\/tags\/(.*)$)__"));
 		foreach(auto line, proc->readAllStandardOutput().split('\n')) {

@@ -135,9 +135,9 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 	QString str;
 	if(data.type == SrcAction::Install) {
 		srcUnlock(_current.pkg(data.provider));//unlock source, as it is not used anymore
-		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error: %2");
+		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error:\n%2");
 	} else
-		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error: %2");
+		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error:\n%2");
 	str = str.arg(data.provider).arg(error);
 
 	if(data.mustWork)

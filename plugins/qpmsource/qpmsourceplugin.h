@@ -53,8 +53,8 @@ private:
 	typedef std::tuple<int, Mode, QVariantHash> tpl;
 	QHash<QProcess*, tpl> _processCache;
 
-	QDir createLogDir(const QString &action);
-	QProcess *createProcess(const QString &type, const QStringList &arguments, bool stdLog = false, bool timeout = true);
+	QProcess *createProcess(const QString &type, const QStringList &arguments, bool keepStdout = false, bool timeout = true);
+	QString formatProcError(const QString &type, QProcess *proc);
 
 	void completeSearch(int id, QProcess *proc);
 	void completeVersion(int id, QProcess *proc);

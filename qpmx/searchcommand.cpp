@@ -102,7 +102,7 @@ void SearchCommand::sourceError(int requestId, const QString &error)
    if(provider.isNull())
 	   return;
 
-   xCritical() << tr("Failed to search provider %{bld}%1%{end} with error: %2")
+   xCritical() << tr("Failed to search provider %{bld}%1%{end} with error:\n%2")
 				  .arg(provider)
 				  .arg(error);
 }
