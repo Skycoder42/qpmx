@@ -27,6 +27,7 @@ for /L %%i IN (0, 1, 2) DO (
 
 	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
 	nmake all || exit /B 1
+	nmake lrelease || exit /B 1
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1

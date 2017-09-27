@@ -150,7 +150,7 @@ void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 						   .arg(stage())
 						   .arg(_current.toString())
 						   .arg(exitCode)
-						   .arg(_compileDir->path());//TODO output (q)make error log?
+						   .arg(_compileDir->path());
 			_process->deleteLater();
 			_process = nullptr;
 		} else
