@@ -89,8 +89,7 @@ bool GenerateCommand::hasChanged(const QpmxUserFormat &current, const QpmxUserFo
 {
 	if(current.source != cache.source ||
 	   current.prcFile != cache.prcFile ||
-	   current.qmakeExtraFlags != cache.qmakeExtraFlags ||
-	   current.localIncludes != cache.localIncludes ||
+	   current.priIncludes != cache.priIncludes ||
 	   current.dependencies.size() != cache.dependencies.size())
 		return true;
 
@@ -133,18 +132,18 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		stream << "CONFIG += qpmx_src_build\n";
 
 	//add possible includes
-	stream << "\n#local includes\n";
+	stream << "\n#local qpmx pri includes\n";
 	if(current.source) {//only add include paths
-		foreach(auto inc, current.localIncludes)
+		foreach(auto inc, current.priIncludes)
 			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)";
 	} else {
 		stream << "gcc:!mac:!gcc_skip_group {\n"
 			   << "\tCONFIG += gcc_skip_group\n";
-		foreach(auto inc, current.localIncludes)
+		foreach(auto inc, current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
 		stream << "\tCONFIG -= gcc_skip_group\n"
 			   << "} else {\n";
-		foreach(auto inc, current.localIncludes)
+		foreach(auto inc, current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
 		stream << "}\n";
 	}

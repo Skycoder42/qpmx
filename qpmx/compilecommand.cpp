@@ -296,7 +296,7 @@ void CompileCommand::qmake()
 
 	initProcess();
 	_process->setProgram(_kit.path);
-	auto args = _format.qmakeExtraFlags;
+	QStringList args;
 	args.append(proFile);
 	_process->setArguments(args);
 	_process->start();

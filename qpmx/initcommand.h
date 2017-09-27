@@ -18,8 +18,6 @@ protected slots:
 	void initialize(QCliParser &parser) override;
 
 private:
-	static QString dashed(QString option);
-
 	void prepare(const QString &proFile);
 	void exec(const QString &step, const QStringList &arguments);
 };

@@ -265,6 +265,14 @@ QDir Command::tmpDir()
 	return dir;
 }
 
+QString Command::dashed(QString option)
+{
+	if(option.size() == 1)
+		return QLatin1Char('-') + option;
+	else
+		return QStringLiteral("--") + option;
+}
+
 QDir Command::subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
 {
 	if(mkDir) {

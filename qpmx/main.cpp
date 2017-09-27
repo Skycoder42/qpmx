@@ -7,6 +7,7 @@
 #include "uninstallcommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
+#include "createcommand.h"
 #include "preparecommand.h"
 #include "publishcommand.h"
 #include "devcommand.h"
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
 	addCommand<UninstallCommand>(commands);
 	addCommand<CompileCommand>(commands);
 	addCommand<GenerateCommand>(commands);
+	addCommand<CreateCommand>(commands);
 	addCommand<PrepareCommand>(commands);
 	addCommand<PublishCommand>(commands);
 	addCommand<DevCommand>(commands);

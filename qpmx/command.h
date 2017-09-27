@@ -81,6 +81,8 @@ protected:
 
 	static QDir tmpDir();
 
+	static QString dashed(QString option);
+
 private:
 	PluginRegistry *_registry;
 	QSettings *_settings;

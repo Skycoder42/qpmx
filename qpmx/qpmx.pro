@@ -39,7 +39,8 @@ HEADERS += $$PUBLIC_HEADERS \
     translatecommand.h \
     devcommand.h \
     preparecommand.h \
-    publishcommand.h
+    publishcommand.h \
+    createcommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -55,7 +56,8 @@ SOURCES += main.cpp \
     translatecommand.cpp \
     devcommand.cpp \
     preparecommand.cpp \
-    publishcommand.cpp
+    publishcommand.cpp \
+    createcommand.cpp
 
 RESOURCES += \
 	qpmx.qrc

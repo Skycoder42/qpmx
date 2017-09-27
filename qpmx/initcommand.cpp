@@ -109,14 +109,6 @@ void InitCommand::initialize(QCliParser &parser)
 	}
 }
 
-QString InitCommand::dashed(QString option)
-{
-	if(option.size() == 1)
-		return QLatin1Char('-') + option;
-	else
-		return QStringLiteral("--") + option;
-}
-
 void InitCommand::prepare(const QString &proFile)
 {
 	QFile file(proFile);

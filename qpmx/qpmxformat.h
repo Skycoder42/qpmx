@@ -66,9 +66,7 @@ class QpmxFormat
 	Q_PROPERTY(bool source MEMBER source)
 
 	Q_PROPERTY(QList<QpmxDependency> dependencies MEMBER dependencies)
-
-	Q_PROPERTY(QStringList qmakeExtraFlags MEMBER qmakeExtraFlags)
-	Q_PROPERTY(QStringList localIncludes MEMBER localIncludes)
+	Q_PROPERTY(QStringList priIncludes MEMBER priIncludes)
 
 	Q_PROPERTY(QpmxFormatLicense license MEMBER license)
 	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers)
@@ -85,8 +83,7 @@ public:
 	QString prcFile;
 	bool source;
 	QList<QpmxDependency> dependencies;
-	QStringList qmakeExtraFlags;
-	QStringList localIncludes;
+	QStringList priIncludes;
 	QpmxFormatLicense license;
 	QMap<QString, QJsonObject> publishers;
 
