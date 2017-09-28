@@ -31,18 +31,27 @@ win32 {
 QMAKE_EXTRA_TARGETS += installall
 
 #translations
-TRANSLATIONS += $$QPMX_TRANSLATIONS
-
 isEmpty(LRELEASE) {
 	qtPrepareTool(LRELEASE, lrelease)
 	LRELEASE += -nounfinished
 }
-ts_target.target = lrelease
-ts_target.commands = $$LRELEASE $$_PRO_FILE_
-QMAKE_EXTRA_TARGETS += ts_target
+
+lrelease_compiler.name = qpmx translate ${QMAKE_FILE_IN}
+lrelease_compiler.input = QPMX_TRANSLATIONS
+lrelease_compiler.variable_out = QPMX_TRANSLATIONS_QM
+lrelease_compiler.commands = $$LRELEASE ${QMAKE_FILE_IN} -qm $$OUT_PWD/${QMAKE_FILE_BASE}.qm
+lrelease_compiler.output = $$OUT_PWD/${QMAKE_FILE_BASE}.qm
+lrelease_compiler.CONFIG += no_link target_predeps
+
+QMAKE_EXTRA_COMPILERS += lrelease_compiler
 
 ts_install.path = $$QPMX_INSTALL/translations
-ts_install.depends += lrelease
 ts_install.CONFIG += no_check_exist
-for(tsfile, TRANSLATIONS): ts_install.files += "$$replace(tsfile, .ts, .qm)"
+ts_install.files += $$QPMX_TRANSLATIONS_QM
 INSTALLS += ts_install
+
+message($$QPMX_TRANSLATIONS_QM)
+message($QPMX_TRANSLATIONS_QM)
+message($$[QPMX_TRANSLATIONS_QM])
+message(${QPMX_TRANSLATIONS_QM})
+message($(QPMX_TRANSLATIONS_QM))
