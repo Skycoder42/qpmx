@@ -1,4 +1,6 @@
 #include "devcommand.h"
+
+#include <QProcess>
 using namespace qpmx;
 
 DevCommand::DevCommand(QObject *parent) :
@@ -24,13 +26,29 @@ QSharedPointer<QCliNode> DevCommand::createCliNode()
 									  tr("The package(s) to add as dev package"),
 									  QStringLiteral("<provider>::<package>@<version>"));
 	devAddNode->addPositionalArgument(QStringLiteral("pri-path"),
-									  tr("The local path to the pri file to be used to replace the preceding package with."),
+									  tr("The local path to the pri file to be used to replace the preceeding package with."),
 									  QStringLiteral("<pri-path> ..."));
 	auto devRemoveNode = devNode->addLeafNode(QStringLiteral("remove"),
 											  tr("Remove a \"dev package\" from the qpmx.json.user file."));
 	devRemoveNode->addPositionalArgument(QStringLiteral("packages"),
 										 tr("The packages to remove from the dev packages"),
 										 QStringLiteral("<provider>::<package>@<version> ..."));
+	auto devCommitNode = devNode->addLeafNode(QStringLiteral("commit"),
+											  tr("Publish a dev package using \"qpmx publish\" and then "
+												 "remove it from beeing a dev package."));
+	devCommitNode->addPositionalArgument(QStringLiteral("package"),
+										 tr("The package(s) to publish and remove from the dev packages."),
+										 QStringLiteral("<provider>::<package>@<version>"));
+	devCommitNode->addPositionalArgument(QStringLiteral("version"),
+										 tr("The new version for the preceeding package to publish."),
+										 QStringLiteral("<version> ..."));
+	devCommitNode->addOption({
+								 {QStringLiteral("p"), QStringLiteral("provider")},
+								 tr("Pass the <provider> to push to. Can be specified multiple times. If not specified, "
+									"the package is published for all providers prepared for the package."),
+								 tr("provider")
+							 });
+
 	return devNode;
 }
 
@@ -41,6 +59,8 @@ void DevCommand::initialize(QCliParser &parser)
 			addDev(parser);
 		else if(parser.enterContext(QStringLiteral("remove")))
 			removeDev(parser);
+		else if(parser.enterContext(QStringLiteral("commit")))
+			commitDev(parser);
 		else
 			Q_UNREACHABLE();
 		qApp->quit();
@@ -55,7 +75,7 @@ void DevCommand::addDev(const QCliParser &parser)
 	if(parser.positionalArguments().isEmpty())
 		throw tr("You must specify at least one package and path");
 	if((parser.positionalArguments().size() %2) != 0)
-		throw tr("You must specify pairs of packages and a local paths");
+		throw tr("You must specify pairs of package and a local path");
 
 	auto userFormat = QpmxUserFormat::readDefault();
 	for(auto i = 0; i < parser.positionalArguments().size(); i += 2) {
@@ -97,3 +117,69 @@ void DevCommand::removeDev(const QCliParser &parser)
 
 	QpmxUserFormat::writeUser(userFormat);
 }
+
+void DevCommand::commitDev(const QCliParser &parser)
+{
+	if(parser.positionalArguments().isEmpty())
+		throw tr("You must specify at least one package and path");
+	if((parser.positionalArguments().size() %2) != 0)
+		throw tr("You must specify pairs of package and version");
+
+	auto userFormat = QpmxUserFormat::readDefault();
+	for(auto i = 0; i < parser.positionalArguments().size(); i += 2) {
+		auto pkgList = readCliPackages(parser.positionalArguments().mid(i, 1), true);
+		if(pkgList.size() != 1)
+			throw tr("You must specify a package and a local path");
+		auto pkg = pkgList.takeFirst();
+
+		QpmxDevDependency dep(pkg);
+		auto depIndex = userFormat.devmode.indexOf(dep);
+		if(depIndex == -1)
+			throw tr("Package %1 is not a dev dependency and cannot be commited").arg(pkg.toString());
+		dep = userFormat.devmode.value(depIndex);
+
+		auto version = QVersionNumber::fromString(parser.positionalArguments()[i + 1]);
+		if(version.isNull())
+			throw tr("The given version \"%1\" is not valid").arg(version.toString());
+
+		//run qpmx publish
+		runPublish(parser.values(QStringLiteral("provider")), dep, version);
+
+		//remove the dev dep
+		userFormat.devmode.removeOne(dep);
+		xDebug() << tr("Removed package %1 from the dev dependencies")
+					.arg(pkg.toString());
+	}
+}
+
+void DevCommand::runPublish(const QStringList &providers, const QpmxDevDependency &dep, const QVersionNumber &version)
+{
+	QStringList args = {
+		QStringLiteral("publish"),
+		version.toString()
+	};
+	foreach(auto provider, providers)
+		args.append({QStringLiteral("--provider"), provider});
+
+	xInfo() << tr("\nPublishing package %1").arg(dep.toString());
+
+	QProcess p;
+	p.setProgram(QCoreApplication::applicationFilePath());
+	p.setArguments(args);
+	p.setWorkingDirectory(QFileInfo(QDir::current().absoluteFilePath(dep.path)).dir().absolutePath());
+	p.setProcessChannelMode(QProcess::ForwardedChannels);
+	p.setInputChannelMode(QProcess::ForwardedInputChannel);
+	p.start();
+	p.waitForFinished(-1);
+
+	if(p.exitStatus() != QProcess::NormalExit)
+		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
+	else if(p.exitCode() == EXIT_SUCCESS)
+		xDebug() << tr("Successfully published package %1").arg(dep.toString());
+	else {
+		throw tr("Publishing %1 failed with exit code: %2")
+				.arg(dep.toString())
+				.arg(p.exitCode());
+	}
+}
+

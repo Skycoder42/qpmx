@@ -20,6 +20,9 @@ protected slots:
 private:
 	void addDev(const QCliParser &parser);
 	void removeDev(const QCliParser &parser);
+	void commitDev(const QCliParser &parser);
+
+	void runPublish(const QStringList &providers, const QpmxDevDependency &dep, const QVersionNumber &version);
 };
 
 #endif // DEVCOMMAND_H

@@ -130,7 +130,7 @@ void InitCommand::initialize(QCliParser &parser)
 	}
 }
 
-void InitCommand::exec(const QString &step, const QStringList &arguments)
+void InitCommand::exec(const QString &step, const QStringList &arguments)//TODO move to command, with stdin working version
 {
 	auto res = QProcess::execute(QCoreApplication::applicationFilePath(), arguments);
 	switch (res) {
