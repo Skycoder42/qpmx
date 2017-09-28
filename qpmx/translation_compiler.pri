@@ -1,7 +1,7 @@
 isEmpty(QPMX_TRANSLATE_DIR):QPMX_TRANSLATE_DIR = .
 debug_and_release {
-	CONFIG(debug, debug|release):SUFFIX = /debug
-	CONFIG(release, debug|release):SUFFIX = /release
+	CONFIG(debug, debug|release): SUFFIX = /debug
+	CONFIG(release, debug|release): SUFFIX = /release
 	QPMX_TRANSLATE_DIR = $$QPMX_TRANSLATE_DIR$$SUFFIX
 }
 
@@ -26,7 +26,15 @@ qpmx_translate.CONFIG += no_link #target_predeps
 QMAKE_EXTRA_COMPILERS += qpmx_translate
 
 lreleaseTarget.target = lrelease
-lreleaseTarget.depends += compiler_qpmx_translate_make_all
+win32:!ReleaseBuild:!DebugBuild: {
+	lreleaseSubTarget.target = lrelease-subtarget
+	lreleaseSubTarget.CONFIG += recursive
+	lreleaseSubTarget.recurse_target = lrelease
+	QMAKE_EXTRA_TARGETS += lreleaseSubTarget
+
+	CONFIG(debug, debug|release): lreleaseTarget.depends += debug-lreleaseSubTarget
+	CONFIG(release, debug|release): lreleaseTarget.depends += release-lreleaseSubTarget
+} else: lreleaseTarget.depends += compiler_qpmx_translate_make_all
 QMAKE_EXTRA_TARGETS += lreleaseTarget
 
 qpmx_ts_target.CONFIG += no_check_exist
