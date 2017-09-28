@@ -28,6 +28,9 @@ for /L %%i IN (0, 1, 2) DO (
 	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || exit /B 1
 	nmake all || exit /B 1
 	nmake lrelease || exit /B 1
+	call :mktemp
+	nmake INSTALL_ROOT=%TMP_DIR% install || exit /B 1
+	
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1
@@ -37,3 +40,10 @@ for /L %%i IN (0, 1, 2) DO (
 
 :: debug
 build-%qtplatform%\qpmx\qtifw-installer\packages\de.skycoder42.qpmx\data\qpmx.exe list providers
+
+:: create tmp dir
+:mktemp
+:uniqLoop
+set "TMP_DIR=\tmp\install~%RANDOM%"
+if exist "C:%TMP_DIR%" goto :uniqLoop
+mkdir "C:%TMP_DIR%"

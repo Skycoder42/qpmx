@@ -33,6 +33,7 @@ for i in 0 1 2; do
 	/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
 	make
 	make lrelease
+	make INSTALL_ROOT=$(mktemp -d) install
 
 	QT_QPA_PLATFORM=minimal ./test
 	popd
