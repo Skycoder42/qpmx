@@ -20,7 +20,7 @@ qpmx_translate.commands = qpmx translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir
 qpmx_src_build:win32: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
 else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE
 qpmx_translate.output = $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm
-qpmx_translate.clean += $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm-base
+qpmx_translate.clean += $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm-base #TODO clean qm files aswell?
 qpmx_translate.CONFIG += no_link #target_predeps
 
 QMAKE_EXTRA_COMPILERS += qpmx_translate
@@ -35,6 +35,7 @@ win32:!ReleaseBuild:!DebugBuild: {
 	CONFIG(debug, debug|release): lreleaseTarget.depends += debug-lreleaseSubTarget
 	CONFIG(release, debug|release): lreleaseTarget.depends += release-lreleaseSubTarget
 } else: lreleaseTarget.depends += compiler_qpmx_translate_make_all
+lreleaseTarget.commands =
 QMAKE_EXTRA_TARGETS += lreleaseTarget
 
 qpmx_ts_target.CONFIG += no_check_exist
