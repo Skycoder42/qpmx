@@ -14,11 +14,12 @@ public:
 	QString commandDescription() override;
 	QSharedPointer<QCliNode> createCliNode() override;
 
+	static void prepare(const QString &proFile, bool info = false);
+
 protected slots:
 	void initialize(QCliParser &parser) override;
 
 private:
-	void prepare(const QString &proFile);
 	void exec(const QString &step, const QStringList &arguments);
 };
 

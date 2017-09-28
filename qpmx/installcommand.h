@@ -27,6 +27,7 @@ private slots:
 private:
 	bool _renew;
 	bool _cacheOnly;
+	bool _noPrepare;
 
 	QList<QpmxDependency> _pkgList;
 	int _pkgIndex;

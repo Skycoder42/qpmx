@@ -203,7 +203,7 @@ void TranslateCommand::execute(QStringList command)
 		throw tr("Running \"%1\" to compile \"%2\" failed with exit code: %3")
 				.arg(pName)
 				.arg(_tsFile)
-				.arg(res);//TODO exit with the given code instead
+				.arg(res);
 		break;
 	}
 }

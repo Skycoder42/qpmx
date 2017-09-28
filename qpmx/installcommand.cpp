@@ -1,3 +1,4 @@
+#include "initcommand.h"
 #include "installcommand.h"
 #include <QDebug>
 #include <QStandardPaths>
@@ -7,6 +8,7 @@ InstallCommand::InstallCommand(QObject *parent) :
 	Command(parent),
 	_renew(false),
 	_cacheOnly(false),
+	_noPrepare(false),
 	_pkgList(),
 	_pkgIndex(-1),
 	_current(),
@@ -37,6 +39,10 @@ QSharedPointer<QCliNode> InstallCommand::createCliNode()
 							   {QStringLiteral("c"), QStringLiteral("cache")},
 							   tr("Only download and cache the sources. Do not add the package to a qpmx.json."),
 						   });
+	installNode->addOption({
+							   QStringLiteral("no-prepare"),
+							   tr("Do not prepare pro-files if the qpmx.json file is newly created."),
+						   });
 	installNode->addPositionalArgument(QStringLiteral("packages"),
 									   tr("The packages to be installed. The provider determines which backend to use for the download. "
 										  "If left empty, all providers are searched for the package. If the version is left out, "
@@ -51,6 +57,7 @@ void InstallCommand::initialize(QCliParser &parser)
 	try {
 		_renew = parser.isSet(QStringLiteral("renew"));
 		_cacheOnly = parser.isSet(QStringLiteral("cache"));
+		_noPrepare = parser.isSet(QStringLiteral("no-prepare"));
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Installing %n package(s) from the command line", "", parser.positionalArguments().size());
@@ -313,6 +320,16 @@ void InstallCommand::completeSource()
 
 void InstallCommand::completeInstall()
 {
+	auto prepare = false;
+	if(!_noPrepare) {
+		try {
+			QpmxFormat::readDefault(true);
+		} catch(QString &) {
+			//file does not exist -> prepare if possible
+			prepare = true;
+		}
+	}
+
 	auto format = QpmxFormat::readDefault();
 	foreach(auto pkg, _pkgList) {
 		auto depIndex = format.dependencies.indexOf(pkg);
@@ -326,6 +343,14 @@ void InstallCommand::completeInstall()
 	}
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
+
+	if(prepare) {
+		auto dir = QDir::current();
+		dir.setFilter(QDir::Files);
+		dir.setNameFilters({QStringLiteral("*.pro")});
+		foreach(auto proFile, dir.entryList())
+			InitCommand::prepare(proFile, true);
+	}
 }
 
 void InstallCommand::connectPlg(SourcePlugin *plugin)

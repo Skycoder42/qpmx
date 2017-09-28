@@ -46,6 +46,27 @@ QSharedPointer<QCliNode> InitCommand::createCliNode()
 
 }
 
+void InitCommand::prepare(const QString &proFile, bool info)
+{
+	QFile file(proFile);
+	if(!file.exists())
+		throw tr("Target file \"%1\" does not exist").arg(proFile);
+	if(!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile).arg(file.errorString());
+
+	QTextStream stream(&file);
+	stream << "\nsystem(qpmx -d $$shell_quote($$_PRO_FILE_PWD_) --qmake-run init $$QPMX_EXTRA_OPTIONS $$shell_quote($$QMAKE_QMAKE) $$shell_quote($$OUT_PWD)):include($$OUT_PWD/qpmx_generated.pri)\n"
+		   << "else: error(" << tr("qpmx initialization failed. Check the compilation log for details.") << ")\n";
+	stream.flush();
+	file.close();
+
+	auto str = tr("Successfully added qpmx init code to pro file \"%1\"").arg(proFile);
+	if(info)
+		xInfo() << str;
+	else
+		xDebug() << str;
+}
+
 void InitCommand::initialize(QCliParser &parser)
 {
 	try {
@@ -107,22 +128,6 @@ void InitCommand::initialize(QCliParser &parser)
 	} catch (QString &s) {
 		xCritical() << s;
 	}
-}
-
-void InitCommand::prepare(const QString &proFile)
-{
-	QFile file(proFile);
-	if(!file.exists())
-		throw tr("Target file \"%1\" does not exist").arg(proFile);
-	if(!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
-		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile).arg(file.errorString());
-
-	QTextStream stream(&file);
-	stream << "\nsystem(qpmx -d $$shell_quote($$_PRO_FILE_PWD_) --qmake-run init $$QPMX_EXTRA_OPTIONS $$shell_quote($$QMAKE_QMAKE) $$shell_quote($$OUT_PWD)):include($$OUT_PWD/qpmx_generated.pri)\n"
-		   << "else: error(" << tr("qpmx initialization failed. Check the compilation log for details.") << ")\n";
-	stream.flush();
-	file.close();
-	xDebug() << tr("Successfully added qpmx init code to pro file \"%1\"").arg(proFile);
 }
 
 void InitCommand::exec(const QString &step, const QStringList &arguments)
