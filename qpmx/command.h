@@ -27,11 +27,15 @@ public:
 	void init(QCliParser &parser);
 	void fin();
 
+	static int exitCode();
+
 protected slots:
 	virtual void initialize(QCliParser &parser) = 0;
 	virtual void finalize();
 
 protected:
+	static int _ExitCode;
+
 	struct BuildId : public QString
 	{
 		inline BuildId() :
@@ -67,6 +71,7 @@ protected:
 	void cleanCaches(const qpmx::PackageInfo &package);
 
 	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
+	void subCall(const QStringList &arguments, const QString &workingDir = {});
 
 	static QDir srcDir();
 	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);

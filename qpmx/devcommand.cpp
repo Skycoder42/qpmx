@@ -1,6 +1,4 @@
 #include "devcommand.h"
-
-#include <QProcess>
 using namespace qpmx;
 
 DevCommand::DevCommand(QObject *parent) :
@@ -162,24 +160,7 @@ void DevCommand::runPublish(const QStringList &providers, const QpmxDevDependenc
 		args.append({QStringLiteral("--provider"), provider});
 
 	xInfo() << tr("\nPublishing package %1").arg(dep.toString());
-
-	QProcess p;
-	p.setProgram(QCoreApplication::applicationFilePath());
-	p.setArguments(args);
-	p.setWorkingDirectory(QFileInfo(QDir::current().absoluteFilePath(dep.path)).dir().absolutePath());
-	p.setProcessChannelMode(QProcess::ForwardedChannels);
-	p.setInputChannelMode(QProcess::ForwardedInputChannel);
-	p.start();
-	p.waitForFinished(-1);
-
-	if(p.exitStatus() != QProcess::NormalExit)
-		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
-	else if(p.exitCode() == EXIT_SUCCESS)
-		xDebug() << tr("Successfully published package %1").arg(dep.toString());
-	else {
-		throw tr("Publishing %1 failed with exit code: %2")
-				.arg(dep.toString())
-				.arg(p.exitCode());
-	}
+	subCall(args, QFileInfo(QDir::current().absoluteFilePath(dep.path)).dir().absolutePath());
+	xDebug() << tr("Successfully published package %1").arg(dep.toString());
 }
 

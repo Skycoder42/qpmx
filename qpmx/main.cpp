@@ -215,5 +215,5 @@ static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context
 		std::cerr << message.toStdString() << std::endl;
 
 	if(type == QtCriticalMsg)
-		qApp->exit(EXIT_FAILURE);
+		qApp->exit(Command::exitCode());
 }

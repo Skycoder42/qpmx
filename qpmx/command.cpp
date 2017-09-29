@@ -4,12 +4,15 @@
 #include <QStandardPaths>
 #include <QUrl>
 
+#include <QProcess>
 #include <iostream>
 #ifdef Q_OS_UNIX
 #include <sys/ioctl.h>
 #include <unistd.h>
 #endif
 using namespace qpmx;
+
+int Command::_ExitCode = EXIT_FAILURE;
 
 Command::Command(QObject *parent) :
 	QObject(parent),
@@ -35,6 +38,11 @@ void Command::fin()
 		it.value()->release();
 		delete it.value();
 	}
+}
+
+int Command::exitCode()
+{
+	return _ExitCode;
 }
 
 void Command::finalize() {}
@@ -193,6 +201,28 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 		for(auto i = 0; i < headers.size(); i++)
 			rString = rString.arg(row[i], -1 * qMax(headers[i].size(), minimals[i]));
 		print(rString);
+	}
+}
+
+void Command::subCall(const QStringList &arguments, const QString &workingDir)
+{
+	QProcess p;
+	p.setProgram(QCoreApplication::applicationFilePath());
+	p.setArguments(arguments);
+	if(!workingDir.isNull())
+		p.setWorkingDirectory(workingDir);
+	p.setProcessChannelMode(QProcess::ForwardedChannels);
+	p.setInputChannelMode(QProcess::ForwardedInputChannel);
+	p.start();
+	p.waitForFinished(-1);
+
+	if(p.error() != QProcess::UnknownError)
+		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
+	if(p.exitStatus() != QProcess::NormalExit)
+		throw tr("Failed to run qpmx subprocess with process - it crashed");
+	else if(p.exitCode() != EXIT_SUCCESS) {
+		_ExitCode = p.exitCode();
+		throw tr("qpmx subprocess failed.");
 	}
 }
 

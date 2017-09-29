@@ -1,6 +1,4 @@
 #include "initcommand.h"
-
-#include <QProcess>
 using namespace qpmx;
 
 InitCommand::InitCommand(QObject *parent) :
@@ -100,7 +98,8 @@ void InitCommand::initialize(QCliParser &parser)
 		//run install
 		auto runArgs = baseArguments;
 		runArgs.append(QStringLiteral("install"));
-		exec(QStringLiteral("install"), runArgs);
+		subCall(runArgs);
+		xDebug() << tr("Successfully ran install step");
 
 		//run compile
 		runArgs = baseArguments;
@@ -111,7 +110,8 @@ void InitCommand::initialize(QCliParser &parser)
 						   QStringLiteral("--qmake"),
 						   qmake
 					   });
-		exec(QStringLiteral("compile"), runArgs);
+		subCall(runArgs);
+		xDebug() << tr("Successfully ran compile step");
 
 		//run generate
 		runArgs = baseArguments;
@@ -121,30 +121,12 @@ void InitCommand::initialize(QCliParser &parser)
 						   qmake,
 						   outdir
 					   });
-		exec(QStringLiteral("generate"), runArgs);
+		subCall(runArgs);
+		xDebug() << tr("Successfully ran generate step");
 
 		xDebug() << tr("Completed qpmx initialization");
 		qApp->quit();
 	} catch (QString &s) {
 		xCritical() << s;
-	}
-}
-
-void InitCommand::exec(const QString &step, const QStringList &arguments)//TODO move to command, with stdin working version
-{
-	auto res = QProcess::execute(QCoreApplication::applicationFilePath(), arguments);
-	switch (res) {
-	case -2://not started
-		throw tr("Failed to start qpmx to perform the %1 step").arg(step);
-		break;
-	case -1://crashed
-		throw tr("Failed to run %1 step - qpmx crashed").arg(step);
-		break;
-	case 0://success
-		xDebug() << tr("Successfully ran %1 step").arg(step);
-		break;
-	default:
-		throw tr("Running %1 step failed").arg(step);
-		break;
 	}
 }

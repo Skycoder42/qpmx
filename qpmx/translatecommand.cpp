@@ -1,6 +1,7 @@
 #include "translatecommand.h"
 
 #include <QStandardPaths>
+#include <QProcess>
 #include <iostream>
 using namespace qpmx;
 

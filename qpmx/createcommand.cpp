@@ -1,7 +1,7 @@
 #include "createcommand.h"
 
-#include <QProcess>
 #include <iostream>
+using namespace qpmx;
 
 #define print(x) do { \
 	std::cout << QString(x).toStdString(); \
@@ -179,24 +179,8 @@ void CreateCommand::runPrepare(QStringList baseArgs, const QString &provider)
 						provider
 					});
 	xInfo() << tr("\nPreparing qpmx.json for provider %{bld}%1%{end}").arg(provider);
-
-	QProcess p;
-	p.setProgram(QCoreApplication::applicationFilePath());
-	p.setArguments(baseArgs);
-	p.setProcessChannelMode(QProcess::ForwardedChannels);
-	p.setInputChannelMode(QProcess::ForwardedInputChannel);
-	p.start();
-	p.waitForFinished(-1);
-
-	if(p.exitStatus() != QProcess::NormalExit)
-		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
-	else if(p.exitCode() == EXIT_SUCCESS)
-		xDebug() << tr("Successfully prepare for provider %{bld}%1%{end}").arg(provider);
-	else {
-		throw tr("Prepare for provider %{bld}%1%{end} failed with exit code: %2")
-				.arg(provider)
-				.arg(p.exitCode());
-	}
+	subCall(baseArgs);
+	xDebug() << tr("Successfully prepare for provider %{bld}%1%{end}").arg(provider);
 }
 
 bool CreateCommand::readBool(QTextStream &stream, bool defaultValue, bool &ok)

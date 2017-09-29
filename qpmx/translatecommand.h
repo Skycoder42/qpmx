@@ -3,9 +3,6 @@
 
 #include "command.h"
 
-#include <QProcess>
-#include <functional>
-
 class TranslateCommand : public Command
 {
 	Q_OBJECT
