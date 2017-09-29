@@ -127,7 +127,8 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 
 	//create & prepare
 	QTextStream stream(_genFile);
-	stream << "gcc:!mac:!gcc_skip_group: LIBS += -Wl,--start-group\n";
+	stream << "gcc:!mac:!qpmx_sub_pri: LIBS += -Wl,--start-group\n"
+		   << "!qpmx_sub_pri: QPMX_TMP_TS = $$TRANSLATIONS\n";
 	if(current.source)
 		stream << "CONFIG += qpmx_src_build\n";
 
@@ -137,11 +138,11 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		foreach(auto inc, current.priIncludes)
 			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)";
 	} else {
-		stream << "gcc:!mac:!gcc_skip_group {\n"
-			   << "\tCONFIG += gcc_skip_group\n";
+		stream << "gcc:!mac:!qpmx_sub_pri {\n"
+			   << "\tCONFIG += qpmx_sub_pri\n";
 		foreach(auto inc, current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
-		stream << "\tCONFIG -= gcc_skip_group\n"
+		stream << "\tCONFIG -= qpmx_sub_pri\n"
 			   << "} else {\n";
 		foreach(auto inc, current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
@@ -166,17 +167,22 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	foreach(auto dep, current.devmode)
 		stream << "include(" << QDir::cleanPath(crDir.absoluteFilePath(dep.path)) << ")\n";
 
+	//top-level pri only
+	stream << "\n!qpmx_sub_pri {\n";
+
 	//add translations
-	stream << "\n#translations\n";
+	stream << "\t#translations\n"
+		   << "\tTRANSLATIONS = $$QPMX_TMP_TS\n";
 	QFile tCmp(QStringLiteral(":/build/translation_compiler.pri"));
 	if(!tCmp.open(QIODevice::ReadOnly | QIODevice::Text))
 		throw tr("Failed to load translation compiler cached code with error: %1").arg(tCmp.errorString());
 	while(!tCmp.atEnd())
-		stream << tCmp.readLine();
+		stream << "\t" << tCmp.readLine();
 	tCmp.close();
 
 	//final
-	stream << "\ngcc:!mac:!gcc_skip_group: LIBS += -Wl,--end-group\n";
+	stream << "\n\tgcc:!mac: LIBS += -Wl,--end-group\n"
+		   << "}\n";
 	stream.flush();
 	_genFile->close();
 }
