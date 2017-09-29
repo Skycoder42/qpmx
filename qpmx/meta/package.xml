@@ -4,7 +4,6 @@
 	<Description>A frontend for qpm, to provide source and build caching.</Description>
 	<Version>1.1.0</Version>
 	<ReleaseDate>2017-09-29</ReleaseDate>
-	<Script>package.js</Script>
 	<ForcedInstallation>true</ForcedInstallation>
 	<Default>true</Default>
 </Package>
