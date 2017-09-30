@@ -20,7 +20,7 @@ qpmx_translate.commands = qpmx translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir
 qpmx_src_build:win32: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
 else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE
 qpmx_translate.output = $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm
-qpmx_translate.clean += $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm-base #TODO clean qm files aswell?
+qpmx_translate.clean += $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm $$QPMX_TRANSLATE_DIR/${QMAKE_FILE_BASE}.qm-base
 qpmx_translate.CONFIG += no_link #target_predeps
 
 QMAKE_EXTRA_COMPILERS += qpmx_translate
