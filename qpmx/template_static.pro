@@ -3,14 +3,14 @@ TEMPLATE = lib
 CONFIG += staticlib
 win32: CONFIG += debug_and_release
 
+# add qtbase modules
+QT *= core gui widgets network xml sql concurrent
+
 TARGET = $$qtLibraryTarget($$QPMX_TARGET)
 VERSION = $$QPMX_VERSION
 
 CONFIG += qpmx_static
 include($$QPMX_PRI_INCLUDE)
-
-# add qtbase modules
-QT *= core gui widgets network xml sql concurrent
 
 # install stuff
 isEmpty(PUBLIC_HEADERS): PUBLIC_HEADERS = $$HEADERS
