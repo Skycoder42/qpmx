@@ -15,6 +15,11 @@ QpmSourcePlugin::QpmSourcePlugin(QObject *parent) :
 	_cachedDownloads()
 {}
 
+QpmSourcePlugin::~QpmSourcePlugin()
+{
+	cleanCaches();
+}
+
 bool QpmSourcePlugin::canSearch(const QString &provider) const
 {
 	Q_UNUSED(provider)
@@ -115,7 +120,7 @@ void QpmSourcePlugin::cancelAll(int timeout)
 		}
 	}
 
-	_cachedDownloads.clear();
+	cleanCaches();
 }
 
 void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, const QString &query)
@@ -146,25 +151,24 @@ void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 		auto name = QStringLiteral("tmp");
 		if(!dir.mkpath(name) || !dir.cd(name))
 			throw tr("Failed to create temporary directory");
-		auto tDir = QSharedPointer<QTemporaryDir>::create(dir.absoluteFilePath(QStringLiteral("qpm.XXXXXX")));
-
-		//create .qpm subfolder
-		QDir targetDir(tDir->path());
-		auto subPath = QStringLiteral(".qpm");
-		if(!targetDir.mkpath(subPath))
-			throw tr("Failed to create download directory");
+		QTemporaryDir tDir(dir.absoluteFilePath(QStringLiteral("qpm.XXXXXX")));
 
 		//run the install process
 		QStringList arguments{
 								  QStringLiteral("install"),
 								  package.package()
 							  };
-		qpmx::PackageInfo tmpPkg(tDir->path(), package.package()); //fake package to uniquely identify in result handler
-		_cachedDownloads.insert(tmpPkg, tDir);
+
+		//fake package to make shure the folder gets deleted on quit
+		qpmx::PackageInfo tmpPkg(tDir.path(), package.package());
+		_cachedDownloads.insert(tmpPkg, tDir.path());
+		tDir.setAutoRemove(false);
+
 		QVariantHash params;
-		params.insert(QStringLiteral("fakePackage"), QVariant::fromValue(tmpPkg));
+		params.insert(QStringLiteral("dir"), tDir.path());
+		params.insert(QStringLiteral("package"), package.package());
 		auto proc = createProcess(arguments);
-		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
+		proc->setWorkingDirectory(tDir.path());
 		_processCache.insert(proc, tpl{requestId, Version, params});
 		qDebug().noquote() << tr("Running qpm install for qpm package %1 to find it's latest version").arg(package.package());
 		proc->start();
@@ -178,6 +182,19 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 	try {
 		if(package.provider() != QStringLiteral("qpm"))
 			throw tr("Unsupported provider \"%1\"").arg(package.provider());
+
+		//check if sources already exist
+		auto cacheDir = _cachedDownloads.value(package);
+		if(!cacheDir.isNull()) {
+			if(completeCopyInstall(package, targetDir, cacheDir)) {
+				_cachedDownloads.remove(package);
+				emit sourceFetched(requestId);
+				return;
+			} else
+				cleanCache(package);
+		}
+
+		//prepare for download
 		auto subPath = QStringLiteral(".qpm");
 		if(!targetDir.mkpath(subPath))
 			throw tr("Failed to create download directory");
@@ -200,6 +217,7 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		qDebug().noquote() << tr("Running qpm install for qpm package %1").arg(qpmPkg);
 		proc->start();
 	} catch (QString &s) {
+		cleanCache(package);
 		emit sourceError(requestId, s);
 	}
 }
@@ -405,21 +423,22 @@ void QpmSourcePlugin::completeVersion(int id, QProcess *proc, const QVariantHash
 {
 	QVersionNumber version;
 
-	try {
-		auto fakePkg = params.value(QStringLiteral("fakePackage")).value<qpmx::PackageInfo>();
-		auto package = fakePkg.package();
-		auto tmpDir = _cachedDownloads.take(fakePkg);
+	qpmx::PackageInfo fakePkg(params.value(QStringLiteral("dir")).toString(),
+							  params.value(QStringLiteral("package")).toString());
+	QDir tDir(fakePkg.provider());
+	auto package = fakePkg.package();
 
+	try {
 		//validate install
 		qDebug().noquote() << tr("Checking for qpm install result");
-		auto subPath = QStringLiteral(".qpm/vendor/%1/qpm.json")
+		auto subPath = QStringLiteral("vendor/%1/qpm.json")
 					   .arg(package.replace(QLatin1Char('.'), QLatin1Char('/')));
-		if(!QFile::exists(tmpDir->filePath(subPath)))
+		if(!QFile::exists(tDir.absoluteFilePath(subPath)))
 			throw formatProcError(tr("download qpm package"), proc);
 
 		//extract version from qpm.json
 		qDebug().noquote() << tr("Extracting version from qpm.json");
-		QFile inFile(tmpDir->filePath(subPath));
+		QFile inFile(tDir.absoluteFilePath(subPath));
 		if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
 			throw tr("Failed to open qpm.json with error: %1").arg(inFile.errorString());
 
@@ -435,20 +454,44 @@ void QpmSourcePlugin::completeVersion(int id, QProcess *proc, const QVariantHash
 		version = QVersionNumber::fromString(versionLabel);
 
 		if(!version.isNull()) {
-			qpmx::PackageInfo cachePkg(QStringLiteral("qpm"), package, version);
-			_cachedDownloads.insert(cachePkg, tmpDir);
-		}
+			qpmx::PackageInfo cachePkg(QStringLiteral("qpm"), fakePkg.package(), version);
+			_cachedDownloads.insert(cachePkg, tDir.absolutePath());
+			_cachedDownloads.remove(fakePkg);
+		} else
+			cleanCache(fakePkg);
 	} catch (QString &s) {
+		cleanCache(fakePkg);
 		emit sourceError(id, s);
 	}
 
 	emit versionResult(id, version);
 }
 
+bool QpmSourcePlugin::completeCopyInstall(const qpmx::PackageInfo &package, QDir targetDir, QDir sourceDir)
+{
+	//verify cached sources, just in case
+	auto subPath = QStringLiteral("vendor/%1")
+				   .arg(package.package().replace(QLatin1Char('.'), QLatin1Char('/')));
+	if(!sourceDir.exists(QStringLiteral("%1/qpm.json").arg(subPath)))
+		return false;
+
+	//move sources into place
+	qDebug().noquote() << tr("Using cached qpm sources");
+	if(!targetDir.removeRecursively())
+		throw tr("Failed to remove dummy directory");
+	if(!sourceDir.rename(subPath, targetDir.absolutePath()))
+		throw tr("Failed to move sources to tmp dir");
+	if(!sourceDir.removeRecursively())
+		throw tr("Failed to remove qpm junk data");
+
+	//transform qpm.json
+	qpmTransform(targetDir);
+	return true;
+}
+
 void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash &params)
 {
 	try {
-		qDebug().noquote() << tr("Preparing qpm sources for qpmx");
 		QDir tDir(params.value(QStringLiteral("dir")).toString());
 		auto package = params.value(QStringLiteral("package")).toString();
 		auto subPath = QStringLiteral(".qpm/vendor/%1")
@@ -456,6 +499,7 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash
 		if(!tDir.exists(QStringLiteral("%1/qpm.json").arg(subPath)))
 			throw formatProcError(tr("download qpm package"), proc);
 
+		qDebug().noquote() << tr("Successfully downloaded qpm sources");
 		//move install data to a new tmp dir, delete the old one and then move back
 		QFileInfo tInfo(tDir.absolutePath());
 		QString nName = tInfo.fileName() + QStringLiteral(".mv");
@@ -468,46 +512,7 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash
 			throw tr("Failed to move sources back to tmp dir");
 
 		//transform qpm.json
-		QFile outFile(tDir.absoluteFilePath(QStringLiteral("qpmx.json")));
-		if(!outFile.exists()) {
-			qDebug().noquote() << tr("Transforming qpm.json to qpmx.json");
-			QFile inFile(tDir.absoluteFilePath(QStringLiteral("qpm.json")));
-			if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
-				throw tr("Failed to open qpm.json with error: %1").arg(inFile.errorString());
-
-			QJsonParseError error;
-			auto doc = QJsonDocument::fromJson(inFile.readAll(), &error);
-			if(error.error != QJsonParseError::NoError)
-				throw tr("Failed to read qpm.json with error: %1").arg(error.errorString());
-			inFile.close();
-			auto qpmRoot = doc.object();
-
-			QJsonArray depArray;
-			foreach(auto dep, qpmRoot[QStringLiteral("dependencies")].toArray()) {
-				auto nDep = dep.toString().split(QLatin1Char('@'));
-				if(nDep.size() != 2) {
-					qWarning().noquote() << tr("Skipping invalid qpm dependency \"%1\"").arg(dep.toString());
-					continue;
-				}
-				QJsonObject qpmxDep;
-				qpmxDep[QStringLiteral("provider")] = QStringLiteral("qpm");
-				qpmxDep[QStringLiteral("package")] = nDep[0];
-				qpmxDep[QStringLiteral("version")] = nDep[1];
-				depArray.append(qpmxDep);
-			}
-
-			QJsonObject qpmxRoot;
-			qpmxRoot[QStringLiteral("dependencies")] = depArray;
-			if(qpmRoot.contains(QStringLiteral("pri_filename")))
-				qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("pri_filename")];
-			else
-				qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("priFilename")];
-
-			if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text))
-				throw tr("Failed to open qpmx.json with error: %1").arg(outFile.errorString());
-			outFile.write(QJsonDocument(qpmxRoot).toJson(QJsonDocument::Indented));
-			outFile.close();
-		}
+		qpmTransform(tDir);
 
 		emit sourceFetched(id);
 	} catch (QString &s) {
@@ -519,4 +524,68 @@ void QpmSourcePlugin::completePublish(int id, QProcess *proc)
 {
 	qWarning() << proc->readAllStandardError();
 	emit packagePublished(id);
+}
+
+void QpmSourcePlugin::cleanCache(const qpmx::PackageInfo &package)
+{
+	if(_cachedDownloads.contains(package)) {
+		QDir cDir(_cachedDownloads.take(package));
+		if(cDir.exists() && !cDir.removeRecursively())
+			qWarning().noquote() << tr("Failed to delete cached directory %1").arg(cDir.absolutePath());
+	}
+}
+
+void QpmSourcePlugin::cleanCaches()
+{
+	foreach(auto dir, _cachedDownloads) {
+		QDir cDir(dir);
+		if(cDir.exists() && !cDir.removeRecursively())
+			qWarning().noquote() << tr("Failed to delete cached directory %1").arg(dir);
+	}
+
+	_cachedDownloads.clear();
+}
+
+void QpmSourcePlugin::qpmTransform(const QDir &tDir)
+{
+	QFile outFile(tDir.absoluteFilePath(QStringLiteral("qpmx.json")));
+	if(!outFile.exists()) {
+		qDebug().noquote() << tr("Transforming qpm.json to qpmx.json");
+		QFile inFile(tDir.absoluteFilePath(QStringLiteral("qpm.json")));
+		if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+			throw tr("Failed to open qpm.json with error: %1").arg(inFile.errorString());
+
+		QJsonParseError error;
+		auto doc = QJsonDocument::fromJson(inFile.readAll(), &error);
+		if(error.error != QJsonParseError::NoError)
+			throw tr("Failed to read qpm.json with error: %1").arg(error.errorString());
+		inFile.close();
+		auto qpmRoot = doc.object();
+
+		QJsonArray depArray;
+		foreach(auto dep, qpmRoot[QStringLiteral("dependencies")].toArray()) {
+			auto nDep = dep.toString().split(QLatin1Char('@'));
+			if(nDep.size() != 2) {
+				qWarning().noquote() << tr("Skipping invalid qpm dependency \"%1\"").arg(dep.toString());
+				continue;
+			}
+			QJsonObject qpmxDep;
+			qpmxDep[QStringLiteral("provider")] = QStringLiteral("qpm");
+			qpmxDep[QStringLiteral("package")] = nDep[0];
+			qpmxDep[QStringLiteral("version")] = nDep[1];
+			depArray.append(qpmxDep);
+		}
+
+		QJsonObject qpmxRoot;
+		qpmxRoot[QStringLiteral("dependencies")] = depArray;
+		if(qpmRoot.contains(QStringLiteral("pri_filename")))
+			qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("pri_filename")];
+		else
+			qpmxRoot[QStringLiteral("priFile")] = qpmRoot[QStringLiteral("priFilename")];
+
+		if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text))
+			throw tr("Failed to open qpmx.json with error: %1").arg(outFile.errorString());
+		outFile.write(QJsonDocument(qpmxRoot).toJson(QJsonDocument::Indented));
+		outFile.close();
+	}
 }

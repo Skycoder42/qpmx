@@ -150,7 +150,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 	if(data.mustWork)
 		xCritical() << str.arg(tr(" for %1 ").arg(_current.toString()));
 	else {
-		xDebug() << str.arg(tr(" "));
+		xWarning() << str.arg(tr(" "));
 		completeSource();
 	}
 }
