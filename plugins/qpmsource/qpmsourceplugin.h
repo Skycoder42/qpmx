@@ -5,6 +5,8 @@
 
 #include <QProcess>
 #include <QHash>
+#include <QTemporaryDir>
+#include <QSharedPointer>
 
 class QpmSourcePlugin : public QObject, public qpmx::SourcePlugin
 {
@@ -52,12 +54,13 @@ private slots:
 private:
 	typedef std::tuple<int, Mode, QVariantHash> tpl;
 	QHash<QProcess*, tpl> _processCache;
+	QHash<qpmx::PackageInfo, QSharedPointer<QTemporaryDir>> _cachedDownloads;
 
 	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false, bool timeout = true);
 	QString formatProcError(const QString &type, QProcess *proc);
 
 	void completeSearch(int id, QProcess *proc);
-	void completeVersion(int id, QProcess *proc);
+	void completeVersion(int id, QProcess *proc, const QVariantHash &params);
 	void completeInstall(int id, QProcess *proc, const QVariantHash &params);
 	void completePublish(int id, QProcess *proc);
 };

@@ -10,7 +10,9 @@
 
 QpmSourcePlugin::QpmSourcePlugin(QObject *parent) :
 	QObject(parent),
-	SourcePlugin()
+	SourcePlugin(),
+	_processCache(),
+	_cachedDownloads()
 {}
 
 bool QpmSourcePlugin::canSearch(const QString &provider) const
@@ -112,6 +114,8 @@ void QpmSourcePlugin::cancelAll(int timeout)
 			timeout = qMax(1ll, timeout - (endTime - startTime));
 		}
 	}
+
+	_cachedDownloads.clear();
 }
 
 void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, const QString &query)
@@ -137,17 +141,32 @@ void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo &package)
 {
 	try {
-		if(package.provider() != QStringLiteral("qpm"))
-			throw tr("Unsupported provider \"%1\"").arg(package.provider());
+		//run qpm install, to a cached temp dir, only "safe" way
+		QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+		auto name = QStringLiteral("tmp");
+		if(!dir.mkpath(name) || !dir.cd(name))
+			throw tr("Failed to create temporary directory");
+		auto tDir = QSharedPointer<QTemporaryDir>::create(dir.absoluteFilePath(QStringLiteral("qpm.XXXXXX")));
 
+		//create .qpm subfolder
+		QDir targetDir(tDir->path());
+		auto subPath = QStringLiteral(".qpm");
+		if(!targetDir.mkpath(subPath))
+			throw tr("Failed to create download directory");
+
+		//run the install process
 		QStringList arguments{
-								  QStringLiteral("search"),
+								  QStringLiteral("install"),
 								  package.package()
 							  };
-
-		auto proc = createProcess(arguments, true);
-		_processCache.insert(proc, tpl{requestId, Version, {}});
-		qDebug().noquote() << tr("Running qpm search for \"%1\" to find latest version").arg(package.package());
+		qpmx::PackageInfo tmpPkg(tDir->path(), package.package()); //fake package to uniquely identify in result handler
+		_cachedDownloads.insert(tmpPkg, tDir);
+		QVariantHash params;
+		params.insert(QStringLiteral("fakePackage"), QVariant::fromValue(tmpPkg));
+		auto proc = createProcess(arguments);
+		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
+		_processCache.insert(proc, tpl{requestId, Version, params});
+		qDebug().noquote() << tr("Running qpm install for qpm package %1 to find it's latest version").arg(package.package());
 		proc->start();
 	} catch (QString &s) {
 		emit sourceError(requestId, s);
@@ -274,7 +293,7 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 				completeSearch(std::get<0>(data), proc);
 				break;
 			case Version:
-				completeVersion(std::get<0>(data), proc);
+				completeVersion(std::get<0>(data), proc, std::get<2>(data));
 				break;
 			case Install:
 				completeInstall(std::get<0>(data), proc, std::get<2>(data));
@@ -382,27 +401,45 @@ void QpmSourcePlugin::completeSearch(int id, QProcess *proc)
 	emit searchResult(id, results);
 }
 
-void QpmSourcePlugin::completeVersion(int id, QProcess *proc)
+void QpmSourcePlugin::completeVersion(int id, QProcess *proc, const QVariantHash &params)
 {
 	QVersionNumber version;
 
-	//skip to first line
-	qDebug().noquote() << tr("Parsing qpm search output");
-	QByteArray header;
-	int vIndex, lIndex;
-	do {
-		header = proc->readLine().trimmed();
-		vIndex = header.indexOf("Version");
-		lIndex = header.indexOf("License");
-	} while(!proc->atEnd() && vIndex == -1);
+	try {
+		auto fakePkg = params.value(QStringLiteral("fakePackage")).value<qpmx::PackageInfo>();
+		auto package = fakePkg.package();
+		auto tmpDir = _cachedDownloads.take(fakePkg);
 
-	if(vIndex != -1) {
-		if(lIndex != -1)
-			lIndex -= vIndex + 1;
+		//validate install
+		qDebug().noquote() << tr("Checking for qpm install result");
+		auto subPath = QStringLiteral(".qpm/vendor/%1/qpm.json")
+					   .arg(package.replace(QLatin1Char('.'), QLatin1Char('/')));
+		if(!QFile::exists(tmpDir->filePath(subPath)))
+			throw formatProcError(tr("download qpm package"), proc);
 
-		proc->readLine();//skip seperator line
-		auto nLine = proc->readLine().mid(vIndex, lIndex).trimmed();
-		version = QVersionNumber::fromString(QString::fromUtf8(nLine));
+		//extract version from qpm.json
+		qDebug().noquote() << tr("Extracting version from qpm.json");
+		QFile inFile(tmpDir->filePath(subPath));
+		if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+			throw tr("Failed to open qpm.json with error: %1").arg(inFile.errorString());
+
+		QJsonParseError error;
+		auto doc = QJsonDocument::fromJson(inFile.readAll(), &error);
+		if(error.error != QJsonParseError::NoError)
+			throw tr("Failed to read qpm.json with error: %1").arg(error.errorString());
+		inFile.close();
+
+		auto qpmRoot = doc.object();
+		auto versionObj = qpmRoot[QStringLiteral("version")].toObject();
+		auto versionLabel = versionObj[QStringLiteral("label")].toString();
+		version = QVersionNumber::fromString(versionLabel);
+
+		if(!version.isNull()) {
+			qpmx::PackageInfo cachePkg(QStringLiteral("qpm"), package, version);
+			_cachedDownloads.insert(cachePkg, tmpDir);
+		}
+	} catch (QString &s) {
+		emit sourceError(id, s);
 	}
 
 	emit versionResult(id, version);
@@ -480,10 +517,6 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash
 
 void QpmSourcePlugin::completePublish(int id, QProcess *proc)
 {
-	Q_UNUSED(proc)
-	proc->setReadChannel(QProcess::StandardError);
-	if(proc->atEnd())
-		emit packagePublished(id);
-	else
-		emit sourceError(id, formatProcError(tr("publish qpm package"), proc));
+	qWarning() << proc->readAllStandardError();
+	emit packagePublished(id);
 }
