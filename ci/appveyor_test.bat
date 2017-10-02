@@ -30,7 +30,7 @@ for /L %%i IN (0, 1, 2) DO (
 	nmake lrelease || exit /B 1
 	call :mktemp
 	nmake INSTALL_ROOT=%TMP_DIR% install || exit /B 1
-	
+
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1
@@ -38,8 +38,10 @@ for /L %%i IN (0, 1, 2) DO (
 	cd ..\..
 )
 
-:: debug
-build-%qtplatform%\qpmx\qtifw-installer\packages\de.skycoder42.qpmx\data\qpmx.exe list providers
+:: extra tests
+:: test install without provider/version
+qpmx install -cr --verbose de.skycoder42.qpathedit https://github.com/Skycoder42/qpmx-sample-package.git
+qpmx list providers
 
 :: create tmp dir
 :mktemp

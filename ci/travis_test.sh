@@ -39,5 +39,7 @@ for i in 0 1 2; do
 	popd
 done
 
-#debug
-build-$PLATFORM/qpmx/qtifw-installer/packages/de.skycoder42.qpmx/data/qpmx list providers
+#extra tests
+#test install without provider/version
+qpmx install -cr --verbose de.skycoder42.qpathedit https://github.com/Skycoder42/qpmx-sample-package.git
+qpmx list providers

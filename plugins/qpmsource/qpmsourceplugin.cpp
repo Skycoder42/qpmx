@@ -522,7 +522,7 @@ void QpmSourcePlugin::completeInstall(int id, QProcess *proc, const QVariantHash
 
 void QpmSourcePlugin::completePublish(int id, QProcess *proc)
 {
-	qWarning() << proc->readAllStandardError();
+	qWarning().noquote() << proc->readAllStandardError();
 	emit packagePublished(id);
 }
 
