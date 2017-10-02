@@ -2,6 +2,7 @@
 #include "qpmxformat.h"
 #include "topsort.h"
 
+#include <QCryptographicHash>
 #include <QProcess>
 #include <QQueue>
 #include <QStandardPaths>
@@ -282,10 +283,11 @@ void CompileCommand::qmake()
 	if(!confFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to create qmake config with error: %1").arg(confFile.errorString());
 	QTextStream stream(&confFile);
-	stream << "QPMX_TARGET=" << priBase << "\n"
-		   << "QPMX_VERSION=" << _current.version().toString() << "\n"
-		   << "QPMX_PRI_INCLUDE=\"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
-		   << "QPMX_INSTALL=\"" << bDir.absolutePath() << "\"\n"
+	stream << "QPMX_TARGET = " << priBase << "\n"
+		   << "QPMX_VERSION = " << _current.version().toString() << "\n"
+		   << "QPMX_PRI_INCLUDE = \"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
+		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
+		   << "QPMX_PKG_HASH = " << pkgHash() << "\n"
 		   << "TS_TMP = $$TRANSLATIONS\n\n";
 	foreach(auto dep, _format.dependencies) {
 		auto depDir = buildDir(_kit.id, dep);
@@ -355,6 +357,9 @@ void CompileCommand::priGen()
 			   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
 			   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
 			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+		//add startup hook (if needed)
+		if(QFile::exists(_compileDir->filePath(QStringLiteral(".qpmx_startup_defined"))))
+			stream << "\tQPMX_STARTUP_HASHES += " << pkgHash() << "\n";
 	}
 	if(!_format.prcFile.isEmpty()) {
 		stream << "\n\t#prc include\n"
@@ -382,6 +387,13 @@ QString CompileCommand::stage()
 		Q_UNREACHABLE();
 		return {};
 	}
+}
+
+QByteArray CompileCommand::pkgHash()
+{
+	return QCryptographicHash::hash(_current.toString(false).toUtf8(),
+									QCryptographicHash::Sha3_224)
+			.toBase64(QByteArray::OmitTrailingEquals);
 }
 
 void CompileCommand::depCollect()

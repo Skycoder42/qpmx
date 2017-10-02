@@ -82,6 +82,7 @@ private:
 	void priGen();
 
 	QString stage();
+	QByteArray pkgHash();
 	void depCollect();
 	QString findMake();
 	void initProcess();
