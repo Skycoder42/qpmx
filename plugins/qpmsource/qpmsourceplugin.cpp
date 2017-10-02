@@ -125,7 +125,7 @@ void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 								  query
 							  };
 
-		auto proc = createProcess(QStringLiteral("search"), arguments, true);
+		auto proc = createProcess(arguments, true);
 		_processCache.insert(proc, tpl{requestId, Search, {}});
 		qDebug().noquote() << tr("Running qpm search for query: %1").arg(query);
 		proc->start();
@@ -145,7 +145,7 @@ void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 								  package.package()
 							  };
 
-		auto proc = createProcess(QStringLiteral("search"), arguments, true);
+		auto proc = createProcess(arguments, true);
 		_processCache.insert(proc, tpl{requestId, Version, {}});
 		qDebug().noquote() << tr("Running qpm search for \"%1\" to find latest version").arg(package.package());
 		proc->start();
@@ -175,7 +175,7 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		QVariantHash params;
 		params.insert(QStringLiteral("dir"), targetDir.absolutePath());
 		params.insert(QStringLiteral("package"), package.package());
-		auto proc = createProcess(QStringLiteral("install"), arguments);
+		auto proc = createProcess(arguments);
 		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
 		_processCache.insert(proc, tpl{requestId, Install, params});
 		qDebug().noquote() << tr("Running qpm install for qpm package %1").arg(qpmPkg);
@@ -247,7 +247,7 @@ void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, con
 
 		// publish via qpm
 		qInfo().noquote() << tr("%{pkg}## Step 3:%{end} Publishing the package via qpm...");
-		auto proc = createProcess(QStringLiteral("publish"), {QStringLiteral("publish")}, true, false);
+		auto proc = createProcess({QStringLiteral("publish")}, true, false);
 		proc->setWorkingDirectory(qpmxDir.absolutePath());
 		proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 		proc->setInputChannelMode(QProcess::ForwardedInputChannel);
@@ -324,7 +324,7 @@ void QpmSourcePlugin::errorOccurred(QProcess::ProcessError error)
 	proc->deleteLater();
 }
 
-QProcess *QpmSourcePlugin::createProcess(const QString &type, const QStringList &arguments, bool keepStdout, bool timeout)
+QProcess *QpmSourcePlugin::createProcess(const QStringList &arguments, bool keepStdout, bool timeout)
 {
 	auto proc = new QProcess(this);
 	proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("qpm")));
