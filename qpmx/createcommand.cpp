@@ -150,7 +150,7 @@ void CreateCommand::runBaseInit()
 				}
 
 				QTextStream priStream(&priFile);
-				priStream << "\n!qpmx_static: include($$PWD/" << format.prcFile << ")\n";
+				priStream << "\ninclude($$PWD/" << format.prcFile << ")\n";
 				priStream.flush();
 				priFile.close();
 				xDebug() << tr("Created default pri-file with prc include");
