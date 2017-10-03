@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/build">
         <file>template_static.pro</file>
-        <file>translation_compiler.pri</file>
+        <file>qpmx_generated_base.pri</file>
         <file>default.pri</file>
     </qresource>
 </RCC>

@@ -170,10 +170,8 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//top-level pri only
 	stream << "\n!qpmx_sub_pri {\n";
 
-	//add translations
-	stream << "\t#translations\n"
-		   << "\tTRANSLATIONS = $$QPMX_TMP_TS\n";
-	QFile tCmp(QStringLiteral(":/build/translation_compiler.pri"));
+	//add fixed part
+	QFile tCmp(QStringLiteral(":/build/qpmx_generated_base.pri"));
 	if(!tCmp.open(QIODevice::ReadOnly | QIODevice::Text))
 		throw tr("Failed to load translation compiler cached code with error: %1").arg(tCmp.errorString());
 	while(!tCmp.atEnd())

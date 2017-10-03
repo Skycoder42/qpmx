@@ -13,6 +13,7 @@
 #include "devcommand.h"
 #include "initcommand.h"
 #include "translatecommand.h"
+#include "hookcommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -60,6 +61,7 @@ int main(int argc, char *argv[])
 	addCommand<DevCommand>(commands);
 	addCommand<InitCommand>(commands);
 	addCommand<TranslateCommand>(commands);
+	addCommand<HookCommand>(commands);
 
 	QCliParser parser;
 	setupParser(parser, commands);
