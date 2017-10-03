@@ -12,6 +12,7 @@
 #include "publishcommand.h"
 #include "devcommand.h"
 #include "initcommand.h"
+#include "clearcachescommand.h"
 #include "translatecommand.h"
 #include "hookcommand.h"
 
@@ -60,6 +61,7 @@ int main(int argc, char *argv[])
 	addCommand<PublishCommand>(commands);
 	addCommand<DevCommand>(commands);
 	addCommand<InitCommand>(commands);
+	addCommand<ClearCachesCommand>(commands);
 	addCommand<TranslateCommand>(commands);
 	addCommand<HookCommand>(commands);
 
