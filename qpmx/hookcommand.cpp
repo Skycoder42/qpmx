@@ -39,32 +39,6 @@ void HookCommand::initialize(QCliParser &parser)
 			throw tr("You must specify the name of the file to generate as --out option");
 
 		QFile out(outFile);
-		QFile hookCache(outFile + QStringLiteral(".cache"));
-
-		if(out.exists() && hookCache.exists()) {
-			if(hookCache.open(QIODevice::ReadOnly | QIODevice::Text)) {
-				QTextStream hookStream(&hookCache);
-				auto allHooks = parser.positionalArguments();
-				while(!hookStream.atEnd()) {
-					auto line = hookStream.readLine().trimmed();
-					if(line.isEmpty())
-						continue;
-					allHooks.removeAll(line);
-				}
-				hookCache.close();
-
-				if(allHooks.isEmpty()) {
-					xDebug() << tr("Unchanged hooks. Doing nothing");
-					qApp->quit();
-					return;
-				} else
-					xDebug() << tr("Hooks changed. Regeneration hook file");
-			} else {
-				xWarning() << tr("Failed to open hook cache. Regenerating hooks. Open Error: %1")
-							  .arg(hookCache.errorString());
-			}
-		}
-
 		if(!out.open(QIODevice::WriteOnly | QIODevice::Text)) {
 			throw tr("Failed to create %1 file with error: %2")
 					.arg(out.fileName())
@@ -86,18 +60,6 @@ void HookCommand::initialize(QCliParser &parser)
 			   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";
 		stream.flush();
 		out.close();
-
-		if(hookCache.open(QIODevice::WriteOnly | QIODevice::Text)) {
-			xDebug() << tr("Creating hook cache");
-			QTextStream hookStream(&hookCache);
-			foreach (auto hook, parser.positionalArguments())
-				hookStream << hook << "\n";
-			hookStream.flush();
-			hookCache.close();
-		} else {
-			xWarning() << tr("Failed to write hook cache with error: %1")
-						  .arg(hookCache.errorString());
-		}
 
 		qApp->quit();
 	} catch (QString &s) {

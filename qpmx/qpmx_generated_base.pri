@@ -8,13 +8,13 @@ debug_and_release {
 
 #qpmx startup hook
 !isEmpty(QPMX_STARTUP_HASHES) {
-	hook_target.target = qpmx-create-hooks
-	hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES
-	hook_target_clean.target = qpmx-create-hooks-clean
-	hook_target_clean.commands = $$QMAKE_DEL_FILE $$shell_quote($$shell_path($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp))*
-	clean.depends += hook_target_clean
-	QMAKE_EXTRA_TARGETS += hook_target hook_target_clean clean
-	PRE_TARGETDEPS += qpmx-create-hooks
+	qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+	qpmx_hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES
+	qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
+	qpmx_hook_target_clean.target = qpmx-create-hooks-clean
+	qpmx_hook_target_clean.commands = $$QMAKE_DEL_FILE $$shell_quote($$shell_path($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp))
+	clean.depends += qpmx_hook_target_clean
+	QMAKE_EXTRA_TARGETS += qpmx_hook_target qpmx_hook_target_clean clean
 	GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
 }
 
