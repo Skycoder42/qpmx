@@ -59,6 +59,7 @@ private:
 
 	void connectPlg(qpmx::SourcePlugin *plugin);
 	void createSrcInclude(const QpmxFormat &format);
+	void detectDeps(const QpmxFormat &format);
 };
 
 #endif // INSTALLCOMMAND_H

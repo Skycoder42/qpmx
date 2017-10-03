@@ -216,8 +216,6 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			cleanCaches(_current.pkg(provider));
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
-			srcUnlock(_current.pkg(provider));
-
 			//trick: add the request and then trigger the fetched slot to simulate a download
 			auto id = randId(_actionCache);
 			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
@@ -262,55 +260,41 @@ void InstallCommand::completeSource()
 		_current.provider = data.provider;
 		_pkgList[_pkgIndex] = _current;
 
+		QpmxFormat format;
 		if(data.type == SrcAction::Version) {//Only version check. thus, download!
 			getSource(data.provider, data.plugin, data.mustWork);
 			return;
-		} else if(data.type == SrcAction::Exists) {//Exists -> finished
-			getNext();
-			return;
+		} else if(data.type == SrcAction::Exists) //Exists -> no more to do
+			format = QpmxFormat::readFile(srcDir(_current), true);
+		else if(data.type == SrcAction::Install) {
+			auto str = tr("Using provider %{bld}%1%{end}")
+					   .arg(data.provider);
+			xDebug() << str;
+
+			//load the format from the temp dir
+			format = QpmxFormat::readFile(data.tDir->path(), true);
+
+			//move the sources to cache
+			auto wp = data.tDir.toWeakRef();
+			data.tDir->setAutoRemove(false);
+			QFileInfo path = data.tDir->path();
+			data.tDir.reset();
+			Q_ASSERT(wp.isNull());
+
+			auto tDir = srcDir(_current.provider, _current.package);
+			auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
+			if(!path.dir().rename(path.fileName(), vSubDir))
+				throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
+			xDebug() << tr("Moved sources to cache directory");
+			xInfo() << tr("Installed package %1").arg(_current.toString());
 		}
-
-		auto str = tr("Using provider %{bld}%1%{end}")
-				   .arg(data.provider);
-		xDebug() << str;
-
-		//load the format from the temp dir
-		auto format = QpmxFormat::readFile(data.tDir->path(), true);
-
-		//move the sources to cache
-		auto wp = data.tDir.toWeakRef();
-		data.tDir->setAutoRemove(false);
-		QFileInfo path = data.tDir->path();
-		data.tDir.reset();
-		Q_ASSERT(wp.isNull());
-
-		auto tDir = srcDir(_current.provider, _current.package);
-		auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
-		if(!path.dir().rename(path.fileName(), vSubDir))
-			throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
-		xDebug() << tr("Moved sources to cache directory");
 
 		//create the src_include in the build dir
 		createSrcInclude(format);
-
 		//add new dependencies
-		foreach(auto dep, format.dependencies) {
-			auto dIndex = -1;
-			do {
-				dIndex = _pkgList.indexOf(dep, dIndex + 1);
-				if(dIndex != -1 && _pkgList[dIndex].version == dep.version) {
-					xDebug() << tr("Skipping dependency %1 as it is already in the install list").arg(dep.toString());
-					break;
-				}
-			} while(dIndex != -1);
-			if(dIndex == -1) {
-				xDebug() << tr("Detected dependency to install: %1").arg(dep.toString());
-				_pkgList.append(dep);
-			}
-		}
-
-		srcUnlock(_current.pkg(data.provider));
-		xInfo() << tr("Installed package %1").arg(_current.toString());
+		detectDeps(format);
+		//unlock & next
+		srcUnlock(_current);
 		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
@@ -379,6 +363,12 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	auto bDir = buildDir(QStringLiteral("src"), _current);
 
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
+	if(srcPriFile.exists()) {
+		qDebug() << "source include.pri already exists. Skipping generation";
+		buildUnlock(QStringLiteral("src"), _current);
+		return;
+	}
+
 	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open src_include.pri with error: %1").arg(srcPriFile.errorString());
 	QTextStream stream(&srcPriFile);
@@ -394,8 +384,27 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 		   << "}\n";
 	stream.flush();
 	srcPriFile.close();
+	xInfo() << tr("Generated source include.pri");
 
 	buildUnlock(QStringLiteral("src"), _current);
+}
+
+void InstallCommand::detectDeps(const QpmxFormat &format)
+{
+	foreach(auto dep, format.dependencies) {
+		auto dIndex = -1;
+		do {
+			dIndex = _pkgList.indexOf(dep, dIndex + 1);
+			if(dIndex != -1 && _pkgList[dIndex].version == dep.version) {
+				xDebug() << tr("Skipping dependency %1 as it is already in the install list").arg(dep.toString());
+				break;
+			}
+		} while(dIndex != -1);
+		if(dIndex == -1) {
+			xDebug() << tr("Detected dependency to install: %1").arg(dep.toString());
+			_pkgList.append(dep);
+		}
+	}
 }
 
 
