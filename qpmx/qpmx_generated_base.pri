@@ -7,7 +7,9 @@ debug_and_release {
 }
 
 #qpmx startup hook
-!isEmpty(QPMX_STARTUP_HASHES) {
+qpmx_src_build {
+	DEFINES += "\'QPMX_STARTUP_HOOK(x)=static void _qpmx_local_startup_hook(){x();} Q_COREAPP_STARTUP_FUNCTION(_qpmx_local_startup_hook)\'"
+} else:!isEmpty(QPMX_STARTUP_HASHES) {
 	qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
 	qpmx_hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES
 	qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
