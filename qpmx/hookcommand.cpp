@@ -45,16 +45,31 @@ void HookCommand::initialize(QCliParser &parser)
 					.arg(out.errorString());
 		}
 
+		bool sep = false;
+		QStringList hooks;
+		QStringList resources;
+		foreach(auto arg, parser.positionalArguments()) {
+			if(sep)
+				resources.append(arg);
+			else if(arg == QStringLiteral("%%"))
+				sep = true;
+			else
+				hooks.append(arg);
+		}
+
 		xDebug() << tr("Creating hook file");
+		QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
 		QTextStream stream(&out);
 		stream << "#include <QtCore/QCoreApplication>\n\n"
 			   << "namespace __qpmx_startup_hooks {\n";
-		foreach(auto hook, parser.positionalArguments())
+		foreach(auto hook, hooks)
 			stream << "\tvoid hook_" << hook << "();\n";
 		stream << "}\n\n";
 		stream << "using namespace __qpmx_startup_hooks;\n"
 			   << "static void __qpmx_root_hook() {\n";
-		foreach(auto hook, parser.positionalArguments())
+		foreach(auto resource, resources)
+			stream << "\tQ_INIT_RESOURCE(" << resource.replace(replaceRegex, QStringLiteral("_")) << ");\n";
+		foreach(auto hook, hooks)
 			stream << "\thook_" << hook << "();\n";
 		stream << "}\n"
 			   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";

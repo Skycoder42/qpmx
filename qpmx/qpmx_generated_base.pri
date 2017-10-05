@@ -6,12 +6,15 @@ debug_and_release {
 	QPMX_WORKINGDIR = $$QPMX_WORKINGDIR$$SUFFIX
 }
 
+win32: QPMX_SRC_SEPERATOR = %%%%
+else: QPMX_SRC_SEPERATOR = %%
+
 #qpmx startup hook
 qpmx_src_build {
 	DEFINES += "\'QPMX_STARTUP_HOOK(x)=static void _qpmx_local_startup_hook(){x();} Q_COREAPP_STARTUP_FUNCTION(_qpmx_local_startup_hook)\'"
-} else:!isEmpty(QPMX_STARTUP_HASHES) {
+} else:!isEmpty(QPMX_STARTUP_HASHES)|!isEmpty(QPMX_RESOURCE_FILES): {
 	qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
-	qpmx_hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES
+	qpmx_hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
 	qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
 	qpmx_hook_target_clean.target = qpmx-create-hooks-clean
 	qpmx_hook_target_clean.commands = $$QMAKE_DEL_FILE $$shell_quote($$shell_path($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp))
@@ -28,8 +31,6 @@ isEmpty(QPMX_LRELEASE) {
 }
 !qpmx_src_build: qtPrepareTool(QPMX_LCONVERT, lconvert)
 
-win32: QPMX_SRC_SEPERATOR = %%%%
-else: QPMX_SRC_SEPERATOR = %%
 qpmx_translate.name = qpmx translate ${QMAKE_FILE_IN}
 qpmx_translate.input = TRANSLATIONS
 qpmx_translate.variable_out = DISTFILES #TRANSLATIONS_QM

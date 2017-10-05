@@ -360,6 +360,20 @@ void CompileCommand::priGen()
 		//add startup hook (if needed)
 		if(QFile::exists(_compileDir->filePath(QStringLiteral(".qpmx_startup_defined"))))
 			stream << "\tQPMX_STARTUP_HASHES += " << pkgHash() << "\n";
+		QFile resourcesFile(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
+		if(resourcesFile.exists()) {
+			if(!resourcesFile.open(QIODevice::ReadOnly | QIODevice::Text))
+				throw tr("Failed to read resources with error: %1").arg(resourcesFile.errorString());
+			QTextStream resStream(&resourcesFile);
+			QStringList resList;
+			while(!resStream.atEnd()) {
+				QFileInfo info(resStream.readLine().trimmed());
+				resList.append(info.completeBaseName());
+			}
+
+			stream << "\tQPMX_RESOURCE_FILES += \"" << resList.join(QStringLiteral("\" \"")) << "\"\n";
+			resourcesFile.close();
+		}
 	}
 	if(!_format.prcFile.isEmpty()) {
 		stream << "\n\t#prc include\n"
@@ -414,9 +428,9 @@ void CompileCommand::depCollect()
 			auto dPkg = dep.pkg();
 			if(!sortHelper.contains(dPkg)) {
 				sortHelper.addData(dPkg);
-				sortHelper.addDependency(pkg, dPkg);
 				queue.enqueue(dPkg);
 			}
+			sortHelper.addDependency(pkg, dPkg);
 		}
 	}
 

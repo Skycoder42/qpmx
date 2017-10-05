@@ -18,6 +18,9 @@ qpmx_startup_hook {
 	write_file($$OUT_PWD/.qpmx_startup_defined)
 } else: DEFINES += "\'QPMX_STARTUP_HOOK(x)=static_assert(false, \"add CONFIG += qpmx_startup_hook to your pri-file to enable qpmx startup hooks\");\'"
 
+# resources
+!isEmpty(RESOURCES): write_file($$OUT_PWD/.qpmx_resources, RESOURCES)
+
 # install stuff
 isEmpty(PUBLIC_HEADERS): PUBLIC_HEADERS = $$HEADERS
 
