@@ -24,6 +24,10 @@ QSharedPointer<QCliNode> HookCommand::createCliNode()
 							tr("The <path> of the file to be generated (required!)."),
 							tr("path")
 						});
+	hookNode->addOption({
+							QStringLiteral("path"),
+							tr("Expect the resources to be paths instead of basenames.")
+						});
 	hookNode->addPositionalArgument(QStringLiteral("hook_ids"),
 									tr("The ids of the hooks to be added to the hookup. Typically defined by the "
 									   "QPMX_STARTUP_HASHES qmake variable."),
@@ -46,19 +50,24 @@ void HookCommand::initialize(QCliParser &parser)
 		}
 
 		bool sep = false;
+		QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
 		QStringList hooks;
 		QStringList resources;
 		foreach(auto arg, parser.positionalArguments()) {
-			if(sep)
-				resources.append(arg);
-			else if(arg == QStringLiteral("%%"))
+			if(sep) {
+				QString res;
+				if(parser.isSet(QStringLiteral("path")))
+					res = QFileInfo(arg).completeBaseName();
+				else
+					res = arg;
+				resources.append(res.replace(replaceRegex, QStringLiteral("_")));
+			} else if(arg == QStringLiteral("%%"))
 				sep = true;
 			else
 				hooks.append(arg);
 		}
 
 		xDebug() << tr("Creating hook file");
-		QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
 		QTextStream stream(&out);
 		stream << "#include <QtCore/QCoreApplication>\n\n"
 			   << "namespace __qpmx_startup_hooks {\n";
@@ -68,7 +77,7 @@ void HookCommand::initialize(QCliParser &parser)
 		stream << "using namespace __qpmx_startup_hooks;\n"
 			   << "static void __qpmx_root_hook() {\n";
 		foreach(auto resource, resources)
-			stream << "\tQ_INIT_RESOURCE(" << resource.replace(replaceRegex, QStringLiteral("_")) << ");\n";
+			stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
 		foreach(auto hook, hooks)
 			stream << "\thook_" << hook << "();\n";
 		stream << "}\n"

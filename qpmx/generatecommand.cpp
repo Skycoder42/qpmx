@@ -135,8 +135,10 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//add possible includes
 	stream << "\n#local qpmx pri includes\n";
 	if(current.source) {//only add include paths
-		foreach(auto inc, current.priIncludes)
-			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)";
+		foreach(auto inc, current.priIncludes) {
+			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
+				   << "QPMX_RESOURCE_FILES += $$fromfile(" << inc << "/qpmx_generated.pri, RESOURCES)\n";
+		}
 	} else {
 		stream << "gcc:!mac:!qpmx_sub_pri {\n"
 			   << "\tCONFIG += qpmx_sub_pri\n";
