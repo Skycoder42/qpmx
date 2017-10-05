@@ -287,7 +287,6 @@ void CompileCommand::qmake()
 		   << "QPMX_VERSION = " << _current.version().toString() << "\n"
 		   << "QPMX_PRI_INCLUDE = \"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
 		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
-		   << "QPMX_PKG_HASH = " << pkgHash() << "\n"
 		   << "TS_TMP = $$TRANSLATIONS\n\n";
 	foreach(auto dep, _format.dependencies) {
 		auto depDir = buildDir(_kit.id, dep);
@@ -358,21 +357,16 @@ void CompileCommand::priGen()
 			   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
 			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
 		//add startup hook (if needed)
-		if(QFile::exists(_compileDir->filePath(QStringLiteral(".qpmx_startup_defined"))))
-			stream << "\tQPMX_STARTUP_HASHES += " << pkgHash() << "\n";
-		QFile resourcesFile(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
-		if(resourcesFile.exists()) {
-			if(!resourcesFile.open(QIODevice::ReadOnly | QIODevice::Text))
-				throw tr("Failed to read resources with error: %1").arg(resourcesFile.errorString());
-			QTextStream resStream(&resourcesFile);
-			QStringList resList;
-			while(!resStream.atEnd()) {
-				QFileInfo info(resStream.readLine().trimmed());
-				resList.append(info.completeBaseName());
-			}
+		auto hooks = readVar(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
+		if(!hooks.isEmpty())
+			stream << "\tQPMX_STARTUP_HOOKS += \"" << hooks.join(QStringLiteral("\" \"")) << "\"\n";
 
-			stream << "\tQPMX_RESOURCE_FILES += \"" << resList.join(QStringLiteral("\" \"")) << "\"\n";
-			resourcesFile.close();
+		auto resources = readVar(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
+		if(!resources.isEmpty()) {
+			stream << "\tQPMX_RESOURCE_FILES +=";
+			foreach(auto res, resources)
+				stream << " \"" << QFileInfo(res).completeBaseName() << "\"";
+			stream << "\n";
 		}
 	}
 	if(!_format.prcFile.isEmpty()) {
@@ -401,13 +395,6 @@ QString CompileCommand::stage()
 		Q_UNREACHABLE();
 		return {};
 	}
-}
-
-QByteArray CompileCommand::pkgHash()
-{
-	return QCryptographicHash::hash(_current.toString(false).toUtf8(),
-									QCryptographicHash::Sha3_224)
-			.toBase64(QByteArray::OmitTrailingEquals);
 }
 
 void CompileCommand::depCollect()
@@ -453,6 +440,23 @@ QString CompileCommand::findMake()
 	if(make.isEmpty())
 		throw tr("Unable to find make executable. Make shure make can be found in your path");
 	return make;
+}
+
+QStringList CompileCommand::readVar(const QString &fileName)
+{
+	QFile file(fileName);
+	if(!file.exists())
+		return {};
+
+	if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+		throw tr("Failed to qmake result with error: %1").arg(file.errorString());
+	QTextStream resStream(&file);
+	QStringList resList;
+	while(!resStream.atEnd())
+		resList.append(resStream.readLine().trimmed());
+	file.close();
+
+	return resList;
 }
 
 void CompileCommand::initProcess()

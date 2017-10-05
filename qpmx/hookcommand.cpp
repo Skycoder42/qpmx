@@ -69,17 +69,14 @@ void HookCommand::initialize(QCliParser &parser)
 
 		xDebug() << tr("Creating hook file");
 		QTextStream stream(&out);
-		stream << "#include <QtCore/QCoreApplication>\n\n"
-			   << "namespace __qpmx_startup_hooks {\n";
+		stream << "#include <QtCore/QCoreApplication>\n\n";
 		foreach(auto hook, hooks)
-			stream << "\tvoid hook_" << hook << "();\n";
-		stream << "}\n\n";
-		stream << "using namespace __qpmx_startup_hooks;\n"
-			   << "static void __qpmx_root_hook() {\n";
+			stream << "void " << hook << "();\n";
+		stream << "\nstatic void __qpmx_root_hook() {\n";
 		foreach(auto resource, resources)
 			stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
 		foreach(auto hook, hooks)
-			stream << "\thook_" << hook << "();\n";
+			stream << "\t" << hook << "();\n";
 		stream << "}\n"
 			   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";
 		stream.flush();

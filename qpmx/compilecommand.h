@@ -82,9 +82,9 @@ private:
 	void priGen();
 
 	QString stage();
-	QByteArray pkgHash();
 	void depCollect();
 	QString findMake();
+	QStringList readVar(const QString &fileName);
 	void initProcess();
 
 	void initKits(const QStringList &qmakes);

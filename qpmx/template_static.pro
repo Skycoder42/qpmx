@@ -13,10 +13,8 @@ CONFIG += qpmx_static
 include($$QPMX_PRI_INCLUDE)
 
 # startup hook
-qpmx_startup_hook {
-	DEFINES += "\'QPMX_STARTUP_HOOK(x)=namespace __qpmx_startup_hooks{void hook_$${QPMX_PKG_HASH}(){x();}}\'"
-	write_file($$OUT_PWD/.qpmx_startup_defined)
-} else: DEFINES += "\'QPMX_STARTUP_HOOK(x)=static_assert(false, \"add CONFIG += qpmx_startup_hook to your pri-file to enable qpmx startup hooks\");\'"
+DEFINES += "Q_CONSTRUCTOR_FUNCTION=" #undefine to disable core startup macro
+!isEmpty(QPMX_STARTUP_HOOKS): write_file($$OUT_PWD/.qpmx_startup_hooks, QPMX_STARTUP_HOOKS)
 
 # resources
 !isEmpty(RESOURCES): write_file($$OUT_PWD/.qpmx_resources, RESOURCES)
