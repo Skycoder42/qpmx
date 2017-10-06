@@ -19,9 +19,9 @@ qpmx_src_build {
 		GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
 	}
 } else {
-	!isEmpty(QPMX_STARTUP_HASHES)|!isEmpty(QPMX_RESOURCE_FILES) {
+	!isEmpty(QPMX_STARTUP_HOOKS)|!isEmpty(QPMX_RESOURCE_FILES) {
 		qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
-		qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
+		qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HOOKS $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
 		qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
 		QMAKE_EXTRA_TARGETS += qpmx_hook_target
 		GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
