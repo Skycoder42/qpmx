@@ -287,6 +287,7 @@ void CompileCommand::qmake()
 		   << "QPMX_VERSION = " << _current.version().toString() << "\n"
 		   << "QPMX_PRI_INCLUDE = \"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
 		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
+		   << "QPMX_BIN = \"" << QCoreApplication::applicationFilePath() << "\"\n"
 		   << "TS_TMP = $$TRANSLATIONS\n\n";
 	foreach(auto dep, _format.dependencies) {
 		auto depDir = buildDir(_kit.id, dep);

@@ -11,7 +11,7 @@ else: QPMX_SRC_SEPERATOR = %%
 
 #qpmx startup hook
 qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
-qpmx_hook_target.commands = qpmx hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HOOKS $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
+qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HOOKS $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
 qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
 qpmx_hook_target_clean.target = qpmx-create-hooks-clean
 qpmx_hook_target_clean.commands = $$QMAKE_DEL_FILE $$shell_quote($$shell_path($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp))
@@ -27,10 +27,10 @@ isEmpty(QPMX_LRELEASE) {
 }
 !qpmx_src_build: qtPrepareTool(QPMX_LCONVERT, lconvert)
 
-qpmx_translate.name = qpmx translate ${QMAKE_FILE_IN}
+qpmx_translate.name = $$QPMX_BIN translate ${QMAKE_FILE_IN}
 qpmx_translate.input = TRANSLATIONS
 qpmx_translate.variable_out = DISTFILES #TRANSLATIONS_QM
-qpmx_translate.commands = qpmx translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --qpmx $$shell_quote($$PWD/.qpmx.cache) --ts-file ${QMAKE_FILE_IN}
+qpmx_translate.commands = $$QPMX_BIN translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --qpmx $$shell_quote($$PWD/.qpmx.cache) --ts-file ${QMAKE_FILE_IN}
 qpmx_src_build:win32: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
 else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE
 qpmx_translate.output = $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm

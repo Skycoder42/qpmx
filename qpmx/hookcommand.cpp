@@ -1,4 +1,6 @@
 #include "hookcommand.h"
+
+#include <QCryptographicHash>
 using namespace qpmx;
 
 HookCommand::HookCommand(QObject *parent) :
@@ -19,6 +21,11 @@ QSharedPointer<QCliNode> HookCommand::createCliNode()
 {
 	auto hookNode = QSharedPointer<QCliLeaf>::create();
 	hookNode->setHidden(true);
+	hookNode->addOption({
+							QStringLiteral("prepare"),
+							tr("Generate the special sources for given <source> as outfile."),
+							tr("source")
+						});
 	hookNode->addOption({
 							{QStringLiteral("o"), QStringLiteral("out")},
 							tr("The <path> of the file to be generated (required!)."),
@@ -49,41 +56,90 @@ void HookCommand::initialize(QCliParser &parser)
 					.arg(out.errorString());
 		}
 
-		bool sep = false;
-		QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
-		QStringList hooks;
-		QStringList resources;
-		foreach(auto arg, parser.positionalArguments()) {
-			if(sep) {
-				QString res;
-				if(parser.isSet(QStringLiteral("path")))
-					res = QFileInfo(arg).completeBaseName();
-				else
-					res = arg;
-				resources.append(res.replace(replaceRegex, QStringLiteral("_")));
-			} else if(arg == QStringLiteral("%%"))
-				sep = true;
-			else
-				hooks.append(arg);
-		}
+		if(parser.isSet(QStringLiteral("prepare")))
+			createHookCompile(parser.value(QStringLiteral("prepare")), &out);
+		else
+			createHookSrc(parser.positionalArguments(), parser.isSet(QStringLiteral("path")), &out);
 
-		xDebug() << tr("Creating hook file");
-		QTextStream stream(&out);
-		stream << "#include <QtCore/QCoreApplication>\n\n";
-		foreach(auto hook, hooks)
-			stream << "void " << hook << "();\n";
-		stream << "\nstatic void __qpmx_root_hook() {\n";
-		foreach(auto resource, resources)
-			stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
-		foreach(auto hook, hooks)
-			stream << "\t" << hook << "();\n";
-		stream << "}\n"
-			   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";
-		stream.flush();
 		out.close();
-
 		qApp->quit();
 	} catch (QString &s) {
 		xCritical() << s;
 	}
+}
+
+void HookCommand::createHookSrc(const QStringList &args, bool isPath, QIODevice *out)
+{
+	bool sep = false;
+	QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
+	QStringList hooks;
+	QStringList resources;
+	foreach(auto arg, args) {
+		if(sep) {
+			QString res;
+			if(isPath)
+				res = QFileInfo(arg).completeBaseName();
+			else
+				res = arg;
+			resources.append(res.replace(replaceRegex, QStringLiteral("_")));
+		} else if(arg == QStringLiteral("%%"))
+			sep = true;
+		else
+			hooks.append(arg);
+	}
+
+	xDebug() << tr("Creating hook file");
+	QTextStream stream(out);
+	stream << "#include <QtCore/QCoreApplication>\n\n";
+	foreach(auto hook, hooks)
+		stream << "void " << hook << "();\n";
+	stream << "\nstatic void __qpmx_root_hook() {\n";
+	foreach(auto resource, resources)
+		stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
+	foreach(auto hook, hooks)
+		stream << "\t" << hook << "();\n";
+	stream << "}\n"
+		   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";
+	stream.flush();
+}
+
+void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
+{
+	xDebug() << tr("Scanning %1 for startup hooks").arg(inFile);
+
+	QStringList functions;
+	QFile file(inFile);
+	if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		throw tr("Failed to read source file %1 with error: %2")
+				.arg(file.fileName())
+				.arg(file.errorString());
+	}
+	auto inData = QTextStream(&file).readAll();
+	QRegularExpression fileRegex(QStringLiteral(R"__(^Q_COREAPP_STARTUP_FUNCTION\(([^\)]+)\)$)__"),
+								 QRegularExpression::MultilineOption);
+	auto iter = fileRegex.globalMatch(inData);
+	while(iter.hasNext()) {
+		auto match = iter.next();
+		functions.append(match.captured(1));
+	}
+	xDebug() << tr("found startup hooks: %1").arg(functions.join(QStringLiteral(", ")));
+
+	xDebug() << tr("Creating hook include");
+	QTextStream stream(out);
+	stream << "#define Q_CONSTRUCTOR_FUNCTION(x)\n" //define to nothing to prevent code generation
+		   << "#include \"" << inFile << "\"\n";
+
+	if(!functions.isEmpty()) {
+		stream << "\nnamespace __qpmx_startup_hooks {";
+		foreach(auto fn, functions) {
+			auto fnId = QCryptographicHash::hash(fn.toUtf8() + QByteArray::number(qrand()), QCryptographicHash::Sha3_256)
+						.toBase64(QByteArray::OmitTrailingEquals);//TODO invalid symbols
+			stream << "\n\tvoid hook_" << fnId << "() {\n"
+				   << "\t\t" << fn << "_ctor_function();\n"
+				   << "\t}\n";
+		}
+		stream << "}\n";
+	}
+
+	stream.flush();
 }

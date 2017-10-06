@@ -12,9 +12,15 @@ VERSION = $$QPMX_VERSION
 CONFIG += qpmx_static
 include($$QPMX_PRI_INCLUDE)
 
-# startup hook
-DEFINES += "Q_CONSTRUCTOR_FUNCTION=" #undefine to disable core startup macro
-!isEmpty(QPMX_STARTUP_HOOKS): write_file($$OUT_PWD/.qpmx_startup_hooks, QPMX_STARTUP_HOOKS)
+# startup hook (i know, it's ugly...)
+REAL_SOURCES = $$SOURCES
+SOURCES =
+hook_compiler.name = hook ${QMAKE_FILE_IN}
+hook_compiler.input = REAL_SOURCES
+hook_compiler.variable_out = SOURCES
+hook_compiler.commands = $$QPMX_BIN hook --prepare ${QMAKE_FILE_IN} --out ${QMAKE_FILE_OUT}
+hook_compiler.output = $$OUT_PWD/.srccache/${QMAKE_FILE_BASE}${QMAKE_FILE_EXT}
+QMAKE_EXTRA_COMPILERS += hook_compiler
 
 # resources
 !isEmpty(RESOURCES): write_file($$OUT_PWD/.qpmx_resources, RESOURCES)
@@ -27,7 +33,7 @@ headers.files = $$PUBLIC_HEADERS
 headers.path = $$QPMX_INSTALL/include
 
 INSTALLS += headers
-isEmpty(SOURCES):isEmpty(GENERATED_SOURCES):write_file($$OUT_PWD/.no_sources_detected)
+isEmpty(REAL_SOURCES):isEmpty(GENERATED_SOURCES):write_file($$OUT_PWD/.no_sources_detected)
 else: INSTALLS += target
 
 installall.target = all-install

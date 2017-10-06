@@ -128,7 +128,8 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//create & prepare
 	QTextStream stream(_genFile);
 	stream << "gcc:!mac:!qpmx_sub_pri: LIBS += -Wl,--start-group\n"
-		   << "!qpmx_sub_pri: QPMX_TMP_TS = $$TRANSLATIONS\n";
+		   << "!qpmx_sub_pri: QPMX_TMP_TS = $$TRANSLATIONS\n"
+		   << "QPMX_BIN = \"" << QCoreApplication::applicationFilePath() << "\"\n";
 	if(current.source)
 		stream << "CONFIG += qpmx_src_build\n";
 
