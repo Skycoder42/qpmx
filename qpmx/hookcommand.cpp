@@ -90,16 +90,19 @@ void HookCommand::createHookSrc(const QStringList &args, bool isPath, QIODevice 
 
 	xDebug() << tr("Creating hook file");
 	QTextStream stream(out);
-	stream << "#include <QtCore/QCoreApplication>\n\n";
+	stream << "#include <QtCore/QCoreApplication>\n\n"
+		   << "namespace __qpmx_startup_hooks {\n";
 	foreach(auto hook, hooks)
-		stream << "void " << hook << "();\n";
-	stream << "\nstatic void __qpmx_root_hook() {\n";
+		stream << "\tvoid hook_" << hook << "();\n";
+	stream << "}\n\n";
+	stream << "using namespace __qpmx_startup_hooks;\n"
+		   << "static void __qpmx_root_hook() {\n";
 	foreach(auto resource, resources)
 		stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
 	foreach(auto hook, hooks)
-		stream << "\t" << hook << "();\n";
+		stream << "\thook_" << hook << "();\n";
 	stream << "}\n"
-		   << "Q_COREAPP_STARTUP_FUNCTION(__qpmx_root_hook)\n";
+		   << "Q_CONSTRUCTOR_FUNCTION(__qpmx_root_hook)\n";
 	stream.flush();
 }
 
@@ -130,15 +133,24 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 		   << "#include \"" << inFile << "\"\n";
 
 	if(!functions.isEmpty()) {
+		QFile hookFile(QStringLiteral(".qpmx_startup_hooks"));
+		if(!hookFile.open(QIODevice::WriteOnly | QIODevice::Text))
+			throw tr("Failed to create qpmx hook cache with error: %1").arg(hookFile.errorString());
+		QTextStream hookStream(&hookFile);
+
 		stream << "\nnamespace __qpmx_startup_hooks {";
 		foreach(auto fn, functions) {
 			auto fnId = QCryptographicHash::hash(fn.toUtf8() + QByteArray::number(qrand()), QCryptographicHash::Sha3_256)
-						.toBase64(QByteArray::OmitTrailingEquals);//TODO invalid symbols
+						.toHex();//TODO invalid symbols
 			stream << "\n\tvoid hook_" << fnId << "() {\n"
 				   << "\t\t" << fn << "_ctor_function();\n"
 				   << "\t}\n";
+			hookStream << fnId << "\n";
 		}
 		stream << "}\n";
+
+		hookStream.flush();
+		hookFile.close();
 	}
 
 	stream.flush();
