@@ -10,14 +10,27 @@ win32: QPMX_SRC_SEPERATOR = %%%%
 else: QPMX_SRC_SEPERATOR = %%
 
 #qpmx startup hook
-qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
-qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HOOKS $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
-qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
+qpmx_src_build {
+	!isEmpty(QPMX_RESOURCE_FILES) {
+		qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+		qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) --path $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
+		qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
+		QMAKE_EXTRA_TARGETS += qpmx_hook_target
+		GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+	}
+} else {
+	!isEmpty(QPMX_STARTUP_HASHES)|!isEmpty(QPMX_RESOURCE_FILES) {
+		qpmx_hook_target.target = "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+		qpmx_hook_target.commands = $$QPMX_BIN hook $$QPMX_HOOK_EXTRA_OPTIONS --out $$shell_quote($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp) $$QPMX_STARTUP_HASHES $$QPMX_SRC_SEPERATOR $$QPMX_RESOURCE_FILES
+		qpmx_hook_target.depends += $$PWD/qpmx_generated.pri
+		QMAKE_EXTRA_TARGETS += qpmx_hook_target
+		GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+	}
+}
 qpmx_hook_target_clean.target = qpmx-create-hooks-clean
 qpmx_hook_target_clean.commands = $$QMAKE_DEL_FILE $$shell_quote($$shell_path($$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp))
 clean.depends += qpmx_hook_target_clean
-QMAKE_EXTRA_TARGETS += qpmx_hook_target qpmx_hook_target_clean clean
-GENERATED_SOURCES += "$$QPMX_WORKINGDIR/qpmx_startup_hooks.cpp"
+QMAKE_EXTRA_TARGETS += qpmx_hook_target_clean clean
 
 #translations
 TRANSLATIONS = $$QPMX_TMP_TS
