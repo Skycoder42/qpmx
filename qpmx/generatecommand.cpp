@@ -74,6 +74,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
+		setDevMode(!mainFormat.devmode.isEmpty());
 		createPriFile(mainFormat);
 		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
 			xWarning() << tr("Failed to cache qpmx.json file. This means generate will always recreate the qpmx_generated.pri");
@@ -159,16 +160,10 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	else
 		kit = findKit(_qmake);
 	stream << "\n#dependencies\n";
-	foreach(auto dep, current.dependencies) {
+	foreach(auto dep, current.allDeps()) {
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
-
-	//add dev dependencies
-	stream << "\n#dev dependencies\n";
-	auto crDir = QDir::current();
-	foreach(auto dep, current.devmode)
-		stream << "include(" << QDir::cleanPath(crDir.absoluteFilePath(dep.path)) << ")\n";
 
 	//top-level pri only
 	stream << "\n!qpmx_sub_pri {\n";
