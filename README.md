@@ -13,11 +13,14 @@ qpmx is designed as a package manager tool without any backend. It is an advance
 - fully cross-platform
 	- can be run on any "host" platform supported by Qt
 	- can compile packages for any Qt platform
-- easy and simple qmake integration, with just one additional line a the pro file
+- easy and simple qmake integration, with just two additional lines a the pro file
+	- automatically added by qpmx on package installation
 - Supports translations and local includes for (static) library projects
+- Resources and `Q_COREAPP_STARTUP_FUNCTION` work as expected, even when used as compiled library
 - can search packages
 - Methods for developers:
 	- Use a local copy instead of an actual package for debug purpose
+		- still supports source and compile builds
 	- provide methods to publish packages directly via qpmx
 
 ### Backends
@@ -43,7 +46,7 @@ Simply install packages using `qpmx install` (If not done automatically, prepare
 packages, and include everything required to your pro file automatically.
 
 #### Translations
-To have translations properly working, you must set the `TRANSLATIONS` variable **before** the qpmx line. Simply run `make lrelease` and translations will be compiled automatically. To install them, use the prepared target:
+To have translations properly working, you can use the `TRANSLATIONS` variable in both, qpmx packages and in your final project. Simply run `make lrelease` and translations will be compiled automatically. To install them, use the prepared target:
 
 ```pro
 qpmx_ts_target.path = $$[QT_INSTALL_TRANSLATIONS] # or wherever you want to install them to
@@ -52,18 +55,43 @@ INSTALLS += qpmx_ts_target
 
 ### Common use cases
 #### Package Users
-- Installing a package: `qpmx install [<provider>::]<package>[@<version>]`  
+- Installing a package: `qpmx install [<provider>::]<package>[@<version>]`
 Example: `qpmx install com.github.skycoder42.qpmx-sample-package` would search all providers for the package and then install the latest version.
-- Preparing a pro-file to include qpmx packages: `qpmx init --prepare <pro-file>`  
+- Preparing a pro-file to include qpmx packages: `qpmx init --prepare <pro-file>`
 This is done automatically on the first install, but if you are missing the line, you can add it this way.
-- Search for a package `qpmx search de.skycoder42.qtmvvm`  
+- Search for a package `qpmx search de.skycoder42.qtmvvm`
 Will search all providers that support searching (qpm) for packages that match the given name.
 
 #### Package Developers
-- Create a qpmx-file for a package: `qpmx create --prepare qpm`  
+- Create a qpmx-file for a package: `qpmx create --prepare qpm`
 This will create/update a qpmx-file based of your inputs, and in this example, prepare it for publishing with the given provider.
-- Publish a qpmx package: `qpmx publish 4.2.0`  
+- Publish a qpmx package: `qpmx publish 4.2.0`
 Publishes the package for all providers it was prepared for, with the given version of 4.2.0
+- Switch a package dependency to a local path (dev mode): `qpmx dev add <provider>::<package>@<version> <path>`
+This will use the local `<path>` as package source instead of downloading it from git/qpm/... (of course only for this qpmx.json project)
+
+## Special (qmake) stuff
+### qmake variables
+ Variable						| Description
+--------------------------------|-------------
+QPMX_EXTRA_OPTIONS				| Additional option parameters for the `qpmx init` invocation
+QPMX_TRANSLATE_EXTRA_OPTIONS	| Additional option parameters for the `qpmx translate` invocation
+QPMX_HOOK_EXTRA_OPTIONS			| Additional option parameters for the `qpmx hook` invocation
+PUBLIC_HEADERS					| *qpmx package only:* The headers to be used by users. If left empty, `HEADERS` is used
+QPMX_WORKINGDIR					| The (sub)directory to use for generation of qpmx files. If left empty, the build directory is used
+
+### Extra targets
+ Target			| Description
+----------------|-------------
+qpmx_ts_target	| A target to install compiled translations (`.qm`) files. Use like the `target` target (See https://doc.qt.io/qt-5/qmake-advanced-usage.html#installing-files)
+
+### Special CONFIG values
+ Value			| Description
+----------------|-------------
+qpmx_static		| *qpmx package only:* Is defined when a qpmx package is build as static library
+qpmx_src_build	| *qpmx package only:* Is defined when a qpmx package is included as source package into a project
+
+**Note:** If neither is defined, the package is used as static library in a project (typically, in your prc files)
 
 ## Documentation
 Planned for the future. You can run `qpmx --help` and `qpmx <command> --help` to see what the tool can do. it's mostly non-interactive, but a few commands do require user interaction.
