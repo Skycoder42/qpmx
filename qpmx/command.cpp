@@ -266,6 +266,14 @@ QDir Command::srcDir(const QpmxDependency &dep, bool mkDir)
 	return srcDir(dep.provider, dep.package, dep.version, mkDir);
 }
 
+QDir Command::srcDir(const QpmxDevDependency &dep, bool mkDir)
+{
+	if(dep.path.isEmpty())
+		return srcDir(dep.provider, dep.package, dep.version, mkDir);
+	else
+		return dep.path;
+}
+
 QDir Command::srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
 {
 	auto dir = srcDir();

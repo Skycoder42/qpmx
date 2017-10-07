@@ -227,7 +227,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(_current.isDev()) {
 		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
 		auto id = randId(_actionCache);
-		_actionCache.insert(id, {SrcAction::DevDep, provider, nullptr, mustWork, plugin});
+		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
 		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 								  Q_ARG(int, id));
 		return;
@@ -292,9 +292,6 @@ void InstallCommand::completeSource()
 			return;
 		case SrcAction::Exists:
 			format = QpmxFormat::readFile(srcDir(_current), true);
-			break;
-		case SrcAction::DevDep:
-			format = QpmxFormat::readFile(_current.path, true);
 			break;
 		case SrcAction::Install:
 		{
@@ -396,11 +393,7 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
 	buildLock(QStringLiteral("src"), _current);
 
-	QDir sDir;
-	if(_current.isDev())
-		sDir = _current.path;
-	else
-		sDir = srcDir(_current);
+	QDir sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current);
 
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));

@@ -38,8 +38,7 @@ private:
 		enum ResType {
 			Version,
 			Install,
-			Exists,
-			DevDep
+			Exists
 		} type;
 		QString provider;
 		QSharedPointer<QTemporaryDir> tDir;
