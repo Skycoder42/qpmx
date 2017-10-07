@@ -78,7 +78,7 @@ void CompileCommand::initialize(QCliParser &parser)
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
-			_pkgList = readCliPackages(parser.positionalArguments(), true);
+			_pkgList = devDepList(readCliPackages(parser.positionalArguments(), true));
 		} else if(global){
 			auto wDir = srcDir();
 			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
@@ -88,8 +88,10 @@ void CompileCommand::initialize(QCliParser &parser)
 				foreach(auto package, wDir.entryList(flags)) {
 					if(!wDir.cd(package))
 						continue;
-					foreach(auto version, wDir.entryList(flags))
-						_pkgList.append({provider, QUrl::fromPercentEncoding(package.toUtf8()), QVersionNumber::fromString(version)});
+					foreach(auto version, wDir.entryList(flags)) {
+						PackageInfo pkg {provider, QUrl::fromPercentEncoding(package.toUtf8()), QVersionNumber::fromString(version)};
+						_pkgList.append((QpmxDependency)pkg);
+					}
 					wDir.cdUp();
 				}
 				wDir.cdUp();
@@ -101,20 +103,22 @@ void CompileCommand::initialize(QCliParser &parser)
 			}
 			xDebug() << tr("Compiling all %n globally cached package(s)", "", _pkgList.size());
 		} else {
-			auto format = QpmxFormat::readDefault(true);
+			auto format = QpmxUserFormat::readDefault(true);
 			if(format.source) {
 				xInfo() << tr("qpmx.json has the sources flag set. No binaries will be compiled");
 				qApp->quit();
 				return;
 			}
 
-			foreach(auto dep, format.dependencies)
-				_pkgList.append(dep.pkg());
+			_pkgList = format.allDeps();
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No packages to compile found in qpmx.json. Nothing will be done");
 				qApp->quit();
 				return;
 			}
+			if(!format.devmode.isEmpty())
+				setDevMode(true);
+
 			xDebug() << tr("Compiling %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
 
@@ -191,7 +195,7 @@ void CompileCommand::compileNext()
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
 	if(bDir.exists(QStringLiteral("include.pri"))) {
-		if(_recompile) {
+		if(_recompile || _current.isDev()) { //always recompile dev deps
 			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
 					   .arg(_current.toString())
 					   .arg(_kit.path);
@@ -224,7 +228,7 @@ void CompileCommand::compileNext()
 		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
 
 	srcLock(_current);
-	_format = QpmxFormat::readFile(srcDir(_current), true);
+	_format = QpmxFormat::readFile(srcDir(_current, false), true);
 	_stage = None;
 	if(_format.source)
 		xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(_current.toString());
@@ -284,7 +288,7 @@ void CompileCommand::qmake()
 		throw tr("Failed to create qmake config with error: %1").arg(confFile.errorString());
 	QTextStream stream(&confFile);
 	stream << "QPMX_TARGET = " << priBase << "\n"
-		   << "QPMX_VERSION = " << _current.version().toString() << "\n"
+		   << "QPMX_VERSION = " << _current.version.toString() << "\n"
 		   << "QPMX_PRI_INCLUDE = \"" << srcDir(_current).absoluteFilePath(_format.priFile) << "\"\n"
 		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
 		   << "QPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n"
@@ -343,8 +347,8 @@ void CompileCommand::priGen()
 		throw tr("Failed to create meta.pri with error: %1").arg(metaFile.errorString());
 	auto libName = QFileInfo(_format.priFile).completeBaseName();
 	QTextStream stream(&metaFile);
-	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package() << "\") {\n"
-		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package() << "\"\n\n";
+	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n"
+		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n\n";
 	stream << "\t#dependencies\n";
 	foreach(auto dep, _format.dependencies) {
 		auto depDir = buildDir(_kit.id, dep);
@@ -400,9 +404,9 @@ QString CompileCommand::stage()
 
 void CompileCommand::depCollect()
 {
-	TopSort<PackageInfo> sortHelper(_pkgList);
+	TopSort<QpmxDevDependency> sortHelper(_pkgList);
 
-	QQueue<PackageInfo> queue;
+	QQueue<QpmxDevDependency> queue;
 	foreach(auto pkg, _pkgList)
 		queue.enqueue(pkg);
 
@@ -413,12 +417,11 @@ void CompileCommand::depCollect()
 		auto format = QpmxFormat::readFile(sDir, true);
 		srcUnlock(pkg);
 		foreach(auto dep, format.dependencies) {
-			auto dPkg = dep.pkg();
-			if(!sortHelper.contains(dPkg)) {
-				sortHelper.addData(dPkg);
-				queue.enqueue(dPkg);
+			if(!sortHelper.contains(dep)) {
+				sortHelper.addData(dep);
+				queue.enqueue(dep);
 			}
-			sortHelper.addDependency(pkg, dPkg);
+			sortHelper.addDependency(pkg, dep);
 		}
 	}
 

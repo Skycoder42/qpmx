@@ -62,10 +62,10 @@ private:
 	bool _recompile;
 	bool _fwdStderr;
 
-	QList<qpmx::PackageInfo> _pkgList;
+	QList<QpmxDevDependency> _pkgList;
 	QList<QtKitInfo> _qtKits;
 
-	qpmx::PackageInfo _current;
+	QpmxDevDependency _current;
 	int _kitIndex;
 	QtKitInfo _kit;
 	QScopedPointer<QTemporaryDir> _compileDir;
