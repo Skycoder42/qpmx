@@ -378,10 +378,13 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 void Command::lock(bool isSource, const QString &key)
 {
-	if(!isSource && _devMode)//dont lock build in dev mode
-		return;
-
-	auto prefix = isSource ? QStringLiteral("src") : QStringLiteral("build");
+	QString prefix;
+	if(isSource)
+		prefix = QStringLiteral("src");
+	else if(_devMode)
+		prefix = QStringLiteral("dev-build");//TODO use local lock
+	else
+		prefix = QStringLiteral("build");
 	if(_locks.contains({isSource, key})){
 		throw tr("Resource %{bld}%1/%2%{end} has already been locked")
 				.arg(prefix)
@@ -399,9 +402,6 @@ void Command::lock(bool isSource, const QString &key)
 
 void Command::unlock(bool isSource, const QString &key)
 {
-	if(!isSource && _devMode)//dont lock build in dev mode
-		return;
-
 	auto sem = _locks.take({isSource, key});
 	if(sem) {
 		sem->release();
