@@ -17,6 +17,8 @@ class Command : public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(bool devMode READ devMode WRITE setDevMode)
+
 public:
 	explicit Command(QObject *parent = nullptr);
 
@@ -52,6 +54,9 @@ protected:
 	PluginRegistry *registry();
 	QSettings *settings();
 
+	void setDevMode(bool devModeActive);
+	bool devMode() const;
+
 	void srcLock(const qpmx::PackageInfo &package);
 	void srcLock(const QpmxDependency &dep);
 	void srcUnlock(const qpmx::PackageInfo &package);
@@ -64,6 +69,7 @@ protected:
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
+	static QList<QpmxDevDependency> devDepList(const QList<qpmx::PackageInfo> &pkgList);
 	template <typename T>
 	int randId(QHash<int, T> &cache);
 
@@ -73,18 +79,18 @@ protected:
 	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
 	void subCall(const QStringList &arguments, const QString &workingDir = {});
 
-	static QDir srcDir();
-	static QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);
-	static QDir srcDir(const QpmxDependency &dep, bool mkDir = true);
-	static QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+	QDir srcDir();
+	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);
+	QDir srcDir(const QpmxDependency &dep, bool mkDir = true);
+	QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
 
-	static QDir buildDir();
-	static QDir buildDir(const BuildId &kitId);
-	static QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = true);
-	static QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = true);
-	static QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+	QDir buildDir();
+	QDir buildDir(const BuildId &kitId);
+	QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = true);
+	QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = true);
+	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
 
-	static QDir tmpDir();
+	QDir tmpDir();
 
 	static QString dashed(QString option);
 
@@ -92,6 +98,7 @@ private:
 	PluginRegistry *_registry;
 	QSettings *_settings;
 	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
+	bool _devMode;
 
 	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
 	void lock(bool isSource, const QString &key);

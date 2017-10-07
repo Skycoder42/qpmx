@@ -22,6 +22,7 @@ protected slots:
 private slots:
 	void sourceFetched(int requestId);
 	void versionResult(int requestId, QVersionNumber version);
+	void existsResult(int requestId);
 	void sourceError(int requestId, const QString &error);
 
 private:
@@ -29,15 +30,16 @@ private:
 	bool _cacheOnly;
 	bool _noPrepare;
 
-	QList<QpmxDependency> _pkgList;
+	QList<QpmxDevDependency> _pkgList;
 	int _pkgIndex;
-	QpmxDependency _current;
+	QpmxDevDependency _current;
 
 	struct SrcAction {
 		enum ResType {
 			Version,
 			Install,
-			Exists
+			Exists,
+			DevDep
 		} type;
 		QString provider;
 		QSharedPointer<QTemporaryDir> tDir;

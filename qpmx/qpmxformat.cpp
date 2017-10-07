@@ -124,6 +124,11 @@ QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, const QString &l
 	path(localPath)
 {}
 
+bool QpmxDevDependency::isDev() const
+{
+	return !path.isNull();
+}
+
 bool QpmxDevDependency::operator==(const QpmxDependency &other) const
 {
 	return QpmxDependency::operator ==(other);
@@ -139,10 +144,16 @@ QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxForma
 	QpmxFormat(format),
 	devmode(userFormat.devmode)
 {
-	if(!devmode.isEmpty())
-		source = true;
 	foreach(auto dep, devmode)
 		dependencies.removeOne(dep);
+}
+
+QList<QpmxDevDependency> QpmxUserFormat::allDeps() const
+{
+	auto res = devmode;
+	foreach(auto dep, dependencies)
+		res.append(dep);
+	return res;
 }
 
 QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)

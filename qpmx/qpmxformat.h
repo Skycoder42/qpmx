@@ -103,6 +103,8 @@ public:
 	QpmxDevDependency();
 	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath = {});
 
+	bool isDev() const;
+
 	bool operator==(const QpmxDependency &other) const;
 
 	QString path;
@@ -118,6 +120,8 @@ class QpmxUserFormat : public QpmxFormat
 public:
 	QpmxUserFormat();
 	QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format);
+
+	QList<QpmxDevDependency> allDeps() const;
 
 	static QpmxUserFormat readDefault(bool mustExist = false);
 	static QpmxUserFormat readCached(const QDir &dir, bool mustExist = false);

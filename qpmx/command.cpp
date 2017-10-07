@@ -18,7 +18,8 @@ Command::Command(QObject *parent) :
 	QObject(parent),
 	_registry(PluginRegistry::instance()),
 	_settings(new QSettings(this)),
-	_locks()
+	_locks(),
+	_devMode(false)
 {}
 
 void Command::init(QCliParser &parser)
@@ -55,6 +56,16 @@ PluginRegistry *Command::registry()
 QSettings *Command::settings()
 {
 	return _settings;
+}
+
+void Command::setDevMode(bool devModeActive)
+{
+	_devMode = devModeActive;
+}
+
+bool Command::devMode() const
+{
+	return _devMode;
 }
 
 void Command::srcLock(const PackageInfo &package)
@@ -137,6 +148,14 @@ QList<QpmxDependency> Command::depList(const QList<PackageInfo> &pkgList)
 	QList<QpmxDependency> depList;
 	foreach(auto pkg, pkgList)
 		depList.append(pkg);
+	return depList;
+}
+
+QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
+{
+	QList<QpmxDevDependency> depList;
+	foreach(auto pkg, pkgList)
+		depList.append({pkg, QString()});
 	return depList;
 }
 
@@ -255,9 +274,16 @@ QDir Command::srcDir(const QString &provider, const QString &package, const QVer
 
 QDir Command::buildDir()
 {
-	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-	auto name = QStringLiteral("build");
-	if(!dir.mkpath(name) || !dir.cd(name))
+	QDir dir;
+	QString subFolder;
+	if(_devMode) {
+		dir = QDir::current();
+		subFolder = QStringLiteral(".qmx-dev-cache");
+	} else {
+		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+		subFolder = QStringLiteral("build");
+	}
+	if(!dir.mkpath(subFolder) || !dir.cd(subFolder))
 		throw tr("Failed to create build directory");
 	return dir;
 }
@@ -344,6 +370,9 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 void Command::lock(bool isSource, const QString &key)
 {
+	if(!isSource && _devMode)//dont lock build in dev mode
+		return;
+
 	auto prefix = isSource ? QStringLiteral("src") : QStringLiteral("build");
 	if(_locks.contains({isSource, key})){
 		throw tr("Resource %{bld}%1/%2%{end} has already been locked")
@@ -362,6 +391,9 @@ void Command::lock(bool isSource, const QString &key)
 
 void Command::unlock(bool isSource, const QString &key)
 {
+	if(!isSource && _devMode)//dont lock build in dev mode
+		return;
+
 	auto sem = _locks.take({isSource, key});
 	if(sem) {
 		sem->release();

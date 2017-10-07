@@ -61,6 +61,17 @@ void DevCommand::initialize(QCliParser &parser)
 			commitDev(parser);
 		else
 			Q_UNREACHABLE();
+
+		//clean local caches
+		setDevMode(true);
+		QDir devCache = buildDir();
+		setDevMode(false);
+		if(devCache.exists() && !devCache.removeRecursively()) {
+			xWarning() << tr("Failed to remove dev caches! This can corrupt your builds. "
+							 "Please remove the folder yourself: %{bld}%1%{end}")
+						  .arg(devCache.absolutePath());
+		}
+
 		qApp->quit();
 	} catch (QString &s) {
 		xCritical() << s;

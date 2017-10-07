@@ -61,15 +61,17 @@ void InstallCommand::initialize(QCliParser &parser)
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Installing %n package(s) from the command line", "", parser.positionalArguments().size());
-			_pkgList = depList(readCliPackages(parser.positionalArguments()));
+			_pkgList = devDepList(readCliPackages(parser.positionalArguments()));
 		} else {
-			auto format = QpmxFormat::readDefault(true);
-			_pkgList = format.dependencies;
+			auto format = QpmxUserFormat::readDefault(true);
+			_pkgList = format.allDeps();
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No dependencies found in qpmx.json. Nothing will be done");
 				qApp->quit();
 				return;
 			}
+			if(!format.devmode.isEmpty())
+				setDevMode(true);
 			_cacheOnly = true; //implicitly, because all sources to download are already a dependency
 			xDebug() << tr("Installing %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
@@ -88,15 +90,12 @@ void InstallCommand::sourceFetched(int requestId)
 		if(!data)
 			return;
 
-		if(data.type != SrcAction::Exists) {
-			if(data.mustWork)
-				xDebug() << tr("Downloaded sources");
-			else {
-				xDebug() << tr("Downloaded sources from provider %{bld}%1%{end}")
-							.arg(data.provider);
-			}
+		if(data.mustWork)
+			xDebug() << tr("Downloaded sources");
+		else {
+			xDebug() << tr("Downloaded sources from provider %{bld}%1%{end}")
+						.arg(data.provider);
 		}
-
 		_resCache.append(data);
 	}
 	completeSource();
@@ -131,6 +130,18 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 		_resCache.append(data);
 		completeSource();
 	}
+}
+
+void InstallCommand::existsResult(int requestId)
+{
+	//scope to drop reference before completing
+	{
+		auto data = _actionCache.take(requestId);
+		if(!data)
+			return;
+		_resCache.append(data);
+	}
+	completeSource();
 }
 
 void InstallCommand::sourceError(int requestId, const QString &error)
@@ -168,6 +179,10 @@ void InstallCommand::getNext()
 	}
 
 	_current = _pkgList[_pkgIndex];
+	if(_current.isDev() &&
+	   (_current.provider.isEmpty() || _current.version.isNull()))
+		throw tr("dev dependencies cannot be used without a provider/version");
+
 	if(_current.provider.isEmpty()) {
 		auto allProvs = registry()->providerNames();
 		auto any = false;
@@ -197,6 +212,7 @@ void InstallCommand::getNext()
 
 void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
+	//no version -> fetch first
 	if(_current.version.isNull()) {
 		xDebug() << tr("Searching for latest version of %1").arg(_current.toString());
 		//use the latest version -> query for it
@@ -204,6 +220,16 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		_actionCache.insert(id, {SrcAction::Version, provider, nullptr, mustWork, plugin});
 		connectPlg(plugin);
 		plugin->findPackageVersion(id, _current.pkg(provider));
+		return;
+	}
+
+	//dev dep -> skip to completed
+	if(_current.isDev()) {
+		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
+		auto id = randId(_actionCache);
+		_actionCache.insert(id, {SrcAction::DevDep, provider, nullptr, mustWork, plugin});
+		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
+								  Q_ARG(int, id));
 		return;
 	}
 
@@ -216,10 +242,9 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 			cleanCaches(_current.pkg(provider));
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
-			//trick: add the request and then trigger the fetched slot to simulate a download
 			auto id = randId(_actionCache);
 			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
-			QMetaObject::invokeMethod(this, "sourceFetched", Qt::QueuedConnection,
+			QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 									  Q_ARG(int, id));
 			return;
 		}
@@ -261,12 +286,18 @@ void InstallCommand::completeSource()
 		_pkgList[_pkgIndex] = _current;
 
 		QpmxFormat format;
-		if(data.type == SrcAction::Version) {//Only version check. thus, download!
+		switch(data.type) {
+		case SrcAction::Version:
 			getSource(data.provider, data.plugin, data.mustWork);
 			return;
-		} else if(data.type == SrcAction::Exists) //Exists -> no more to do
+		case SrcAction::Exists:
 			format = QpmxFormat::readFile(srcDir(_current), true);
-		else if(data.type == SrcAction::Install) {
+			break;
+		case SrcAction::DevDep:
+			format = QpmxFormat::readFile(_current.path, true);
+			break;
+		case SrcAction::Install:
+		{
 			auto str = tr("Using provider %{bld}%1%{end}")
 					   .arg(data.provider);
 			xDebug() << str;
@@ -287,6 +318,11 @@ void InstallCommand::completeSource()
 				throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
 			xDebug() << tr("Moved sources to cache directory");
 			xInfo() << tr("Installed package %1").arg(_current.toString());
+			break;
+		}
+		default:
+			Q_UNREACHABLE();
+			break;
 		}
 
 		//create the src_include in the build dir
@@ -294,7 +330,8 @@ void InstallCommand::completeSource()
 		//add new dependencies
 		detectDeps(format);
 		//unlock & next
-		srcUnlock(_current);
+		if(!_current.isDev()) //not for dev...
+			srcUnlock(_current);
 		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
@@ -359,7 +396,11 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
 	buildLock(QStringLiteral("src"), _current);
 
-	auto sDir = srcDir(_current);
+	QDir sDir;
+	if(_current.isDev())
+		sDir = _current.path;
+	else
+		sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current);
 
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
@@ -379,8 +420,11 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 		auto depDir = buildDir(QStringLiteral("src"), dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
+	auto srcIncPri = sDir.absoluteFilePath(format.priFile);
+	if(!devMode())
+		srcIncPri =  bDir.relativeFilePath(srcIncPri);
 	stream << "\t#sources\n"
-		   << "\tinclude(" << bDir.relativeFilePath(sDir.absoluteFilePath(format.priFile)) << ")\n"
+		   << "\tinclude(" << srcIncPri << ")\n"
 		   << "}\n";
 	stream.flush();
 	srcPriFile.close();
