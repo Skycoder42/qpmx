@@ -11,15 +11,17 @@ mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 
 :: build tests (bin and src)
-
-for /L %%i IN (0, 1, 2) DO (
+:: compile, compile-dev, src-dev, src
+for /L %%i IN (0, 1, 3) DO (
 	if "%%i" == "1" (
 		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.user.cm qpmx.json.user
 	)
 	if "%%i" == "2" (
 		del submodules\qpmx-sample-package\qpmx-test\qpmx.json
-		del submodules\qpmx-sample-package\qpmx-test\qpmx.json.user
 		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.src qpmx.json
+	)
+	if "%%i" == "3" (
+		del submodules\qpmx-sample-package\qpmx-test\qpmx.json.user
 	)
 
 	mkdir build-%qtplatform%\tests-%%i

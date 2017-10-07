@@ -17,14 +17,16 @@ $SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
 $SUDO cp build-$PLATFORM/plugins/qpmx/* /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx/
 
 # build tests (bin and src)
-for i in 0 1 2; do
+for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 	if [[ "$i" == "1" ]]; then
 		mv submodules/qpmx-sample-package/qpmx-test/qpmx.json.user.cm submodules/qpmx-sample-package/qpmx-test/qpmx.json.user
 	fi
 	if [[ "$i" == "2" ]]; then
 		rm submodules/qpmx-sample-package/qpmx-test/qpmx.json
-		rm submodules/qpmx-sample-package/qpmx-test/qpmx.json.user
 		mv submodules/qpmx-sample-package/qpmx-test/qpmx.json.src submodules/qpmx-sample-package/qpmx-test/qpmx.json
+	fi
+	if [[ "$i" == "3" ]]; then
+		rm submodules/qpmx-sample-package/qpmx-test/qpmx.json.user
 	fi
 
 	mkdir build-$PLATFORM/tests-$i
