@@ -171,7 +171,7 @@ void DevCommand::runPublish(const QStringList &providers, const QpmxDevDependenc
 		args.append({QStringLiteral("--provider"), provider});
 
 	xInfo() << tr("\nPublishing package %1").arg(dep.toString());
-	subCall(args, QFileInfo(QDir::current().absoluteFilePath(dep.path)).dir().absolutePath());
+	subCall(args, QDir::current().absoluteFilePath(dep.path));
 	xDebug() << tr("Successfully published package %1").arg(dep.toString());
 }
 

@@ -55,7 +55,7 @@ protected:
 	PluginRegistry *registry();
 	QSettings *settings();
 
-	void setDevMode(bool devModeActive);
+	void setDevMode(bool devModeActive, const QString &cacheDir = {});
 	bool devMode() const;
 
 	void srcLock(const qpmx::PackageInfo &package);
@@ -101,6 +101,7 @@ private:
 	QSettings *_settings;
 	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
 	bool _devMode;
+	QString _cacheDir;
 
 	void lock(bool isSource, const QString &key);
 	void unlock(bool isSource, const QString &key);

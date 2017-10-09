@@ -19,7 +19,8 @@ Command::Command(QObject *parent) :
 	_registry(PluginRegistry::instance()),
 	_settings(new QSettings(this)),
 	_locks(),
-	_devMode(false)
+	_devMode(false),
+	_cacheDir()
 {}
 
 void Command::init(QCliParser &parser)
@@ -97,9 +98,10 @@ QSettings *Command::settings()
 	return _settings;
 }
 
-void Command::setDevMode(bool devModeActive)
+void Command::setDevMode(bool devModeActive, const QString &cacheDir)
 {
 	_devMode = devModeActive;
+	_cacheDir = cacheDir;
 }
 
 bool Command::devMode() const
@@ -264,6 +266,9 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 
 void Command::subCall(const QStringList &arguments, const QString &workingDir)
 {
+	xDebug() << tr("Running subcommand with arguments: %1")
+				.arg(arguments.join(QLatin1Char(' ')));
+
 	QProcess p;
 	p.setProgram(QCoreApplication::applicationFilePath());
 	p.setArguments(arguments);
@@ -324,7 +329,10 @@ QDir Command::buildDir()
 	QDir dir;
 	QString subFolder;
 	if(_devMode) {
-		dir = QDir::current();
+		if(_cacheDir.isEmpty())
+			dir = QDir::current();
+		else
+			dir = _cacheDir;
 		subFolder = QStringLiteral(".qpmx-dev-cache");
 	} else {
 		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);

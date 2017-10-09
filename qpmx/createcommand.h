@@ -19,7 +19,7 @@ protected slots:
 
 private:
 	void runBaseInit();
-	void runPrepare(QStringList baseArgs, const QString &provider);
+	void runPrepare(const QStringList &baseArgs, const QString &provider);
 
 	bool readBool(QTextStream &stream, bool defaultValue, bool &ok);
 };

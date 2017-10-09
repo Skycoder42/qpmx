@@ -68,6 +68,12 @@ QSharedPointer<QCliNode> CompileCommand::createCliNode()
 								  "of a dev dependency to speed up build, always start with a clean directory like for a normal build. "
 								  "Has no effects for non dev dependencies."),
 						   });
+	compileNode->addOption({
+							   QStringLiteral("dev-cache"),
+							   tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
+								  "one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
+							   tr("path")
+						   });
 	compileNode->addPositionalArgument(QStringLiteral("packages"),
 									   tr("The packages to compile binaries for. Installed packages are "
 										  "matched against those, and binaries compiled for all of them. If no "
@@ -124,8 +130,12 @@ void CompileCommand::initialize(QCliParser &parser)
 				qApp->quit();
 				return;
 			}
-			if(!format.devmode.isEmpty())
-				setDevMode(true);
+			if(!format.devmode.isEmpty()) {
+				if(parser.isSet(QStringLiteral("dev-cache")))
+					setDevMode(true, parser.value(QStringLiteral("dev-cache")));
+				else
+					setDevMode(true);
+			}
 
 			xDebug() << tr("Compiling %n package(s) from qpmx.json file", "", _pkgList.size());
 		}

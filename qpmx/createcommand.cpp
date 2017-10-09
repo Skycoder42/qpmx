@@ -172,14 +172,16 @@ void CreateCommand::runBaseInit()
 	}
 }
 
-void CreateCommand::runPrepare(QStringList baseArgs, const QString &provider)
+void CreateCommand::runPrepare(const QStringList &baseArgs, const QString &provider)
 {
-	baseArgs.append({
-						QStringLiteral("prepare"),
-						provider
-					});
+	QStringList args {
+		QStringLiteral("prepare"),
+		provider
+	};
+	args.append(baseArgs);
+
 	xInfo() << tr("\nPreparing qpmx.json for provider %{bld}%1%{end}").arg(provider);
-	subCall(baseArgs);
+	subCall(args);
 	xDebug() << tr("Successfully prepare for provider %{bld}%1%{end}").arg(provider);
 }
 

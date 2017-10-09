@@ -36,6 +36,12 @@ QSharedPointer<QCliNode> InitCommand::createCliNode()
 							   "builds instead of caching them for speeding builds up."),
 						});
 	initNode->addOption({
+							QStringLiteral("dev-cache"),
+							tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
+							   "one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
+							tr("path")
+						});
+	initNode->addOption({
 							QStringLiteral("prepare"),
 							tr("Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
 							   "option, no initialization is performed."),
@@ -103,33 +109,35 @@ void InitCommand::initialize(QCliParser &parser)
 		}
 
 		//run install
-		auto runArgs = baseArguments;
-		runArgs.append(QStringLiteral("install"));
+		QStringList runArgs {
+			QStringLiteral("install")
+		};
+		runArgs.append(baseArguments);
 		subCall(runArgs);
 		xDebug() << tr("Successfully ran install step");
 
 		//run compile
-		runArgs = baseArguments;
+		runArgs = QStringList {
+			QStringLiteral("compile"),
+			QStringLiteral("--qmake"),
+			qmake
+		};
+		runArgs.append(baseArguments);
 		if(parser.isSet(QStringLiteral("stderr")))
 			runArgs.append(QStringLiteral("--stderr"));
 		if(parser.isSet(QStringLiteral("clean")))
 			runArgs.append(QStringLiteral("--clean"));
-		runArgs.append({
-						   QStringLiteral("compile"),
-						   QStringLiteral("--qmake"),
-						   qmake
-					   });
 		subCall(runArgs);
 		xDebug() << tr("Successfully ran compile step");
 
 		//run generate
-		runArgs = baseArguments;
-		runArgs.append({
-						   QStringLiteral("generate"),
-						   QStringLiteral("--qmake"),
-						   qmake,
-						   outdir
-					   });
+		runArgs = QStringList {
+			QStringLiteral("generate"),
+			QStringLiteral("--qmake"),
+			qmake,
+			outdir
+		};
+		runArgs.append(baseArguments);
 		subCall(runArgs);
 		xDebug() << tr("Successfully ran generate step");
 
