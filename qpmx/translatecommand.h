@@ -31,6 +31,7 @@ private:
 
 	void execute(QStringList command);
 	QString localeString();
+	void findDepsRecursive(QList<QpmxDependency> &dependencies, const QpmxFormat &format);
 };
 
 #endif // TRANSLATECOMMAND_H

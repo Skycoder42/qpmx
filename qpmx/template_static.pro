@@ -63,6 +63,6 @@ ts_install.CONFIG += no_check_exist
 #ts_install.files = $$TRANSLATIONS_QM
 for(tsfile, TRANSLATIONS) {
 	tsBase = $$basename(tsfile)
-	ts_install.files += "$$OUT_PWD/$$replace(tsBase, .ts, .qm)"
+	ts_install.files += "$$OUT_PWD/$$replace(tsBase, \.ts, .qm)"
 }
 INSTALLS += ts_install

@@ -115,7 +115,7 @@ void TranslateCommand::binTranslate()
 	if(!QFile::exists(_qmake))
 		throw tr("Choosen qmake executable \"%1\" does not exist").arg(_qmake);
 
-	//first: translate all the ts file
+	//first: translate the ts file
 	QFileInfo tsInfo(_tsFile);
 	QString qmFile = _outDir + tsInfo.completeBaseName() + QStringLiteral(".qm");
 	QString qmBaseFile = _outDir + tsInfo.completeBaseName() + QStringLiteral(".qm-base");
@@ -137,7 +137,9 @@ void TranslateCommand::binTranslate()
 		QStringLiteral("-i"), qmBaseFile
 	};
 
-	foreach(auto dep, _format.dependencies) {
+	QList<QpmxDependency> allDeps;
+	findDepsRecursive(allDeps, _format);
+	foreach(auto dep, allDeps) {
 		auto bDir = buildDir(findKit(_qmake), dep);
 		if(!bDir.cd(QStringLiteral("translations")))
 			continue;
@@ -223,4 +225,33 @@ QString TranslateCommand::localeString()
 	xWarning() << tr("Unable to detect locale of file \"%1\". Translation combination is skipped")
 				  .arg(_tsFile);
 	return {};
+}
+
+void TranslateCommand::findDepsRecursive(QList<QpmxDependency> &dependencies, const QpmxFormat &format)
+{
+	foreach(auto dep, format.dependencies) {
+		auto checkDep = false;
+		auto depIndex = dependencies.indexOf(dep);
+		if(depIndex != -1) {
+			if(dependencies[depIndex].version != dep.version) {
+				if(dep.version > dependencies[depIndex].version) {
+					dependencies[depIndex] = dep;
+					checkDep = true;
+				}
+				xWarning() << tr("Detected multiple versions of a dependency. Using latest version: %1")
+							  .arg(dependencies[depIndex].version.toString());
+			}
+		} else {
+			dependencies.append(dep);
+			checkDep = true;
+		}
+
+		if(checkDep) {
+			srcLock(dep);
+			auto depDir = srcDir(dep);
+			auto format = QpmxFormat::readFile(depDir, true);
+			srcUnlock(dep);
+			findDepsRecursive(dependencies, format);
+		}
+	}
 }

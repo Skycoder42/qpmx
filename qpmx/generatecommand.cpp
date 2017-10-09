@@ -128,21 +128,24 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 
 	//create & prepare
 	QTextStream stream(_genFile);
-	stream << "gcc:!mac:!qpmx_sub_pri: LIBS += -Wl,--start-group\n"
-		   << "!qpmx_sub_pri: QPMX_TMP_TS = $$TRANSLATIONS\n"
-		   << "QPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n";
+	stream << "!qpmx_sub_pri {\n"
+		   << "\tgcc:!mac: LIBS += -Wl,--start-group\n"
+		   << "\tQPMX_TMP_TS = $$TRANSLATIONS\n"
+		   << "\tTRANSLATIONS = \n"
+		   << "\tQPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n";
 	if(current.source)
-		stream << "CONFIG += qpmx_src_build\n";
+		stream << "\tCONFIG += qpmx_src_build\n";
+	stream << "}\n\n";
 
 	//add possible includes
-	stream << "\n#local qpmx pri includes\n";
+	stream << "#local qpmx pri includes\n";
 	if(current.source) {//only add include paths
 		foreach(auto inc, current.priIncludes) {
 			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
 				   << "QPMX_RESOURCE_FILES += $$fromfile(" << inc << "/qpmx_generated.pri, RESOURCES)\n";
 		}
 	} else {
-		stream << "gcc:!mac:!qpmx_sub_pri {\n"
+		stream << "!qpmx_sub_pri {\n"
 			   << "\tCONFIG += qpmx_sub_pri\n";
 		foreach(auto inc, current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";

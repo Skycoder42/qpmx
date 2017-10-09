@@ -33,6 +33,7 @@ clean.depends += qpmx_hook_target_clean
 QMAKE_EXTRA_TARGETS += qpmx_hook_target_clean clean
 
 #translations
+QPMX_TRANSLATIONS = $$TRANSLATIONS #translations comming from the qpmx dependencies (src only)
 TRANSLATIONS = $$QPMX_TMP_TS
 isEmpty(QPMX_LRELEASE) {
 	isEmpty(LRELEASE): qtPrepareTool(LRELEASE, lrelease)
@@ -44,7 +45,7 @@ qpmx_translate.name = $$QPMX_BIN translate ${QMAKE_FILE_IN}
 qpmx_translate.input = TRANSLATIONS
 qpmx_translate.variable_out = DISTFILES #TRANSLATIONS_QM
 qpmx_translate.commands = $$QPMX_BIN translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --qpmx $$shell_quote($$PWD/.qpmx.cache) --ts-file ${QMAKE_FILE_IN}
-qpmx_src_build:win32: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
+qpmx_src_build: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
 else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE
 qpmx_translate.output = $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm
 qpmx_translate.clean += $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm-base
