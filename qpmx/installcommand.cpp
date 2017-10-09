@@ -7,9 +7,9 @@ using namespace qpmx;
 InstallCommand::InstallCommand(QObject *parent) :
 	Command(parent),
 	_renew(false),
-	_cacheOnly(false),
 	_noPrepare(false),
 	_pkgList(),
+	_addPkgCount(0),
 	_pkgIndex(-1),
 	_current(),
 	_actionCache(),
@@ -56,12 +56,14 @@ void InstallCommand::initialize(QCliParser &parser)
 {
 	try {
 		_renew = parser.isSet(QStringLiteral("renew"));
-		_cacheOnly = parser.isSet(QStringLiteral("cache"));
 		_noPrepare = parser.isSet(QStringLiteral("no-prepare"));
+		auto cacheOnly = parser.isSet(QStringLiteral("cache"));
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Installing %n package(s) from the command line", "", parser.positionalArguments().size());
 			_pkgList = devDepList(readCliPackages(parser.positionalArguments()));
+			if(!cacheOnly)
+				_addPkgCount = _pkgList.size();
 		} else {
 			auto format = QpmxUserFormat::readDefault(true);
 			_pkgList = format.allDeps();
@@ -72,7 +74,6 @@ void InstallCommand::initialize(QCliParser &parser)
 			}
 			if(!format.devmode.isEmpty())
 				setDevMode(true);
-			_cacheOnly = true; //implicitly, because all sources to download are already a dependency
 			xDebug() << tr("Installing %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
 
@@ -169,7 +170,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 void InstallCommand::getNext()
 {
 	if(++_pkgIndex >= _pkgList.size()) {
-		if(!_cacheOnly)
+		if(_addPkgCount > 0)
 			completeInstall();
 		else
 			xDebug() << tr("Skipping add to qpmx.json, only cache installs");
@@ -349,13 +350,14 @@ void InstallCommand::completeInstall()
 	}
 
 	auto format = QpmxFormat::readDefault();
-	foreach(auto pkg, _pkgList) {
+	foreach(auto pkg, _pkgList.mid(0, _addPkgCount)) {
 		auto depIndex = format.dependencies.indexOf(pkg);
 		if(depIndex == -1) {
 			xDebug() << tr("Added package %1 to qpmx.json").arg(pkg.toString());
 			format.dependencies.append(pkg);
 		} else {
-			xWarning() << tr("Package %1 is already a dependency. Replacing with this version").arg(pkg.toString());
+			xWarning() << tr("Package %1 is already a dependency. Replacing with that version")
+						  .arg(pkg.toString());
 			format.dependencies[depIndex] = pkg;
 		}
 	}
@@ -432,7 +434,7 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 		auto dIndex = -1;
 		do {
 			dIndex = _pkgList.indexOf(dep, dIndex + 1);
-			if(dIndex != -1 && _pkgList[dIndex].version == dep.version) {
+			if(dIndex != -1 && _pkgList[dIndex].version == dep.version) { //fine here, as dependencies do not trigger "duplicate" warnings
 				xDebug() << tr("Skipping dependency %1 as it is already in the install list").arg(dep.toString());
 				break;
 			}
