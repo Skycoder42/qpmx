@@ -30,12 +30,14 @@ for /L %%i IN (0, 1, 3) DO (
 	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || (
 		for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 			type %%G\qmake.stdout.log
-			type %%G\qmake.stderr.log
 			type %%G\make.stdout.log
-			type %%G\make.stderr.log
 			type %%G\install.stdout.log
-			type %%G\install.stderr.log
 		)
+
+		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
+		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
+		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
+
 		exit /B 1
 	)
 
