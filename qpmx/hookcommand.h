@@ -18,7 +18,7 @@ protected slots:
 	void initialize(QCliParser &parser) override;
 
 private:
-	void createHookSrc(const QStringList &args, bool isPath, QIODevice *out);
+	void createHookSrc(const QStringList &args, QIODevice *out);
 	void createHookCompile(const QString &inFile, QIODevice *out);
 };
 

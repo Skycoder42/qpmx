@@ -31,10 +31,6 @@ QSharedPointer<QCliNode> HookCommand::createCliNode()
 							tr("The <path> of the file to be generated (required!)."),
 							tr("path")
 						});
-	hookNode->addOption({
-							QStringLiteral("path"),
-							tr("Expect the resources to be paths instead of basenames.")
-						});
 	hookNode->addPositionalArgument(QStringLiteral("hook_ids"),
 									tr("The ids of the hooks to be added to the hookup. Typically defined by the "
 									   "QPMX_STARTUP_HASHES qmake variable."),
@@ -59,7 +55,7 @@ void HookCommand::initialize(QCliParser &parser)
 		if(parser.isSet(QStringLiteral("prepare")))
 			createHookCompile(parser.value(QStringLiteral("prepare")), &out);
 		else
-			createHookSrc(parser.positionalArguments(), parser.isSet(QStringLiteral("path")), &out);
+			createHookSrc(parser.positionalArguments(), &out);
 
 		out.close();
 		qApp->quit();
@@ -68,21 +64,16 @@ void HookCommand::initialize(QCliParser &parser)
 	}
 }
 
-void HookCommand::createHookSrc(const QStringList &args, bool isPath, QIODevice *out)
+void HookCommand::createHookSrc(const QStringList &args, QIODevice *out)
 {
 	bool sep = false;
 	QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
 	QStringList hooks;
 	QStringList resources;
 	foreach(auto arg, args) {
-		if(sep) {
-			QString res;
-			if(isPath)
-				res = QFileInfo(arg).completeBaseName();
-			else
-				res = arg;
-			resources.append(res.replace(replaceRegex, QStringLiteral("_")));
-		} else if(arg == QStringLiteral("%%"))
+		if(sep)
+			resources.append(arg.replace(replaceRegex, QStringLiteral("_")));
+		else if(arg == QStringLiteral("%%"))
 			sep = true;
 		else
 			hooks.append(arg);

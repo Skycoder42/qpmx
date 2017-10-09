@@ -129,20 +129,25 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//create & prepare
 	QTextStream stream(_genFile);
 	stream << "!qpmx_sub_pri {\n"
-		   << "\tgcc:!mac: LIBS += -Wl,--start-group\n"
 		   << "\tQPMX_TMP_TS = $$TRANSLATIONS\n"
 		   << "\tTRANSLATIONS = \n"
 		   << "\tQPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n";
 	if(current.source)
 		stream << "\tCONFIG += qpmx_src_build\n";
+	else
+		stream << "\tgcc:!mac: LIBS += -Wl,--start-group\n";
 	stream << "}\n\n";
 
 	//add possible includes
 	stream << "#local qpmx pri includes\n";
-	if(current.source) {//only add include paths
+	if(current.source) {//not supported
+		stream << "warning(pri includes for sources builds will NOT load startup hooks or resources. "
+			   << "Make shure to link the referenced library with ALL defined symbols!)\n"
+			   << "win32: warning(See https://docs.microsoft.com/de-de/cpp/build/reference/wholearchive-include-all-library-object-files)\n"
+			   << "else: warning(See https://stackoverflow.com/a/14116513)\n";
 		foreach(auto inc, current.priIncludes) {
 			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
-				   << "QPMX_RESOURCE_FILES += $$fromfile(" << inc << "/qpmx_generated.pri, RESOURCES)\n";
+				   << "QPMX_INCLUDE_GUARDS += $$fromfile(" << inc << "/qpmx_generated.pri, QPMX_INCLUDE_GUARDS)\n";
 		}
 	} else {
 		stream << "!qpmx_sub_pri {\n"
@@ -198,8 +203,9 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	tCmp.close();
 
 	//final
-	stream << "\n\tgcc:!mac: LIBS += -Wl,--end-group\n"
-		   << "}\n";
+	if(!current.source)
+		stream << "\n\tgcc:!mac: LIBS += -Wl,--end-group\n";
+	stream << "}\n";
 	stream.flush();
 	_genFile->close();
 }
