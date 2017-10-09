@@ -2,13 +2,13 @@ language: cpp
 
 sudo: required
 dist: trusty
-osx_image: xcode8.3
+osx_image: xcode9.1
 services:
   - docker
 
 env:
   global:
-    - QT_VER=5.9.1
+    - QT_VER=5.9.2
     - NO_TESTS=true
     - EXTRA_MODULES=".skycoder42.jsonserializer"
 matrix:
