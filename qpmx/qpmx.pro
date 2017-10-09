@@ -42,7 +42,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	publishcommand.h \
 	createcommand.h \
     hookcommand.h \
-    clearcachescommand.h
+    clearcachescommand.h \
+    updatecommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -61,7 +62,8 @@ SOURCES += main.cpp \
 	publishcommand.cpp \
 	createcommand.cpp \
     hookcommand.cpp \
-    clearcachescommand.cpp
+    clearcachescommand.cpp \
+    updatecommand.cpp
 
 RESOURCES += \
 	qpmx.qrc

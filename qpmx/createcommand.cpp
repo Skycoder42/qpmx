@@ -20,7 +20,7 @@ QString CreateCommand::commandName()
 QString CreateCommand::commandDescription()
 {
 	return tr("Create a new qpmx package by creating the initial qpmx.json "
-			  "(or setting up an exiting one)");
+			  "(or setting up an exiting one).");
 }
 
 QSharedPointer<QCliNode> CreateCommand::createCliNode()
@@ -84,12 +84,7 @@ void CreateCommand::runBaseInit()
 	if(!read.isEmpty())
 		format.priFile = read;
 
-	auto ok = false;
-	do {
-		print(tr("Source builds only? (%1): ")
-			  .arg(format.source ? tr("Y/n") : tr("y/N")));
-		format.source = readBool(stream, format.source, ok);
-	} while(!ok);
+	format.source = readBool(tr("Source builds only? (%1) "), stream, format.source);
 
 	if(!format.source) {
 		if(format.prcFile.isEmpty())
@@ -126,11 +121,7 @@ void CreateCommand::runBaseInit()
 	if(!read.isEmpty())
 		format.license.file = read;
 
-	bool generate;
-	do {
-		print(tr("Generate templates for non existant files? (Y/n)"));
-		generate = readBool(stream, true, ok);
-	} while(!ok);
+	auto generate = readBool(tr("Generate templates for non existant files? (%1) "), stream, true);
 
 	QpmxFormat::writeDefault(format);
 	xDebug() << tr("Created qpmx.json file");
@@ -183,24 +174,4 @@ void CreateCommand::runPrepare(const QStringList &baseArgs, const QString &provi
 	xInfo() << tr("\nPreparing qpmx.json for provider %{bld}%1%{end}").arg(provider);
 	subCall(args);
 	xDebug() << tr("Successfully prepare for provider %{bld}%1%{end}").arg(provider);
-}
-
-bool CreateCommand::readBool(QTextStream &stream, bool defaultValue, bool &ok)
-{
-	auto read = stream.read(1);
-	auto cleanBytes = stream.device()->bytesAvailable();
-	if(cleanBytes > 0)
-		stream.device()->read(cleanBytes);//discard
-
-	ok = true;
-	if(read.toLower() == QLatin1Char('y') || read.toLower() == tr("y"))
-		return true;
-	if(read.toLower() == QLatin1Char('n') || read.toLower() == tr("n"))
-		return false;
-	else if(read != QLatin1Char('\n') && read != QLatin1Char('\r')) {
-		xWarning() << "Invalid input! Please type y or n";
-		ok = false;
-	}
-
-	return defaultValue;
 }

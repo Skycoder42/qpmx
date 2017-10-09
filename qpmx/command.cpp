@@ -233,6 +233,29 @@ void Command::cleanCaches(const PackageInfo &package)
 	xInfo() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
 
+bool Command::readBool(const QString &message, QTextStream &stream, bool defaultValue)
+{
+	forever {
+		std::cout << message.arg(defaultValue ? tr("Y/n") : tr("y/N")).toStdString();
+
+		auto read = stream.read(1);
+		auto cleanBytes = stream.device()->bytesAvailable();
+		if(cleanBytes > 0)
+			stream.device()->read(cleanBytes);//discard
+
+		if(read.toLower() == QLatin1Char('y') || read.toLower() == tr("y"))
+			return true;
+		if(read.toLower() == QLatin1Char('n') || read.toLower() == tr("n"))
+			return false;
+		else if(read == QLatin1Char('\n') || read == QLatin1Char('\r'))
+			return defaultValue;
+		else
+			xWarning() << "Invalid input! Please type y or n";
+	}
+
+	return defaultValue;
+}
+
 #define print(x) std::cout << QString(x).toStdString() << std::endl
 
 void Command::printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows)
@@ -266,6 +289,7 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 
 void Command::subCall(const QStringList &arguments, const QString &workingDir)
 {
+	//TODO automatically forward basic arguments!!!
 	xDebug() << tr("Running subcommand with arguments: %1")
 				.arg(arguments.join(QLatin1Char(' ')));
 

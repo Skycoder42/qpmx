@@ -80,6 +80,9 @@ private:
 
 	QList<QpmxDevDependency> _pkgList;
 	QList<QtKitInfo> _qtKits;
+#ifndef QPMX_NO_MAKEBUG
+	QProcessEnvironment _procEnv;
+#endif
 
 	QpmxDevDependency _current;
 	int _kitIndex;
@@ -102,6 +105,9 @@ private:
 	QString findMake();
 	QStringList readVar(const QString &fileName);
 	void initProcess();
+#ifndef QPMX_NO_MAKEBUG
+	void setupEnv();
+#endif
 
 	void initKits(const QStringList &qmakes);
 	QtKitInfo createKit(const QString &qmakePath);

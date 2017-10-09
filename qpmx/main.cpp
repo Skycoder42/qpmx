@@ -5,6 +5,7 @@
 #include "searchcommand.h"
 #include "installcommand.h"
 #include "uninstallcommand.h"
+#include "updatecommand.h"
 #include "compilecommand.h"
 #include "generatecommand.h"
 #include "createcommand.h"
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
 	addCommand<SearchCommand>(commands);
 	addCommand<InstallCommand>(commands);
 	addCommand<UninstallCommand>(commands);
+	addCommand<UpdateCommand>(commands);
 	addCommand<CompileCommand>(commands);
 	addCommand<GenerateCommand>(commands);
 	addCommand<CreateCommand>(commands);

@@ -77,6 +77,7 @@ protected:
 	QUuid findKit(const QString &qmake) const;
 	void cleanCaches(const qpmx::PackageInfo &package);
 
+	bool readBool(const QString &message, QTextStream &stream, bool defaultValue);
 	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
 	void subCall(const QStringList &arguments, const QString &workingDir = {});
 

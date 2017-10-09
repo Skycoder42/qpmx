@@ -17,7 +17,7 @@ QString SearchCommand::commandName()
 
 QString SearchCommand::commandDescription()
 {
-	return tr("Search for a package by it's name");
+	return tr("Search for a package by it's name.");
 }
 
 QSharedPointer<QCliNode> SearchCommand::createCliNode()

@@ -12,7 +12,7 @@ QString ClearCachesCommand::commandName()
 
 QString ClearCachesCommand::commandDescription()
 {
-	return tr("Removes cached sources, binaries and temporary files");
+	return tr("Removes cached sources, binaries and temporary files.");
 }
 
 QSharedPointer<QCliNode> ClearCachesCommand::createCliNode()

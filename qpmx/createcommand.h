@@ -20,8 +20,6 @@ protected slots:
 private:
 	void runBaseInit();
 	void runPrepare(const QStringList &baseArgs, const QString &provider);
-
-	bool readBool(QTextStream &stream, bool defaultValue, bool &ok);
 };
 
 #endif // CREATECOMMAND_H

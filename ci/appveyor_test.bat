@@ -34,9 +34,9 @@ for /L %%i IN (0, 1, 3) DO (
 			type %%G\install.stdout.log
 		)
 
-		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
-		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
-		type "C:\projects\qpmx\submodules\qpmx-sample-package\qpmx-test\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
+		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
+		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
+		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
 
 		exit /B 1
 	)

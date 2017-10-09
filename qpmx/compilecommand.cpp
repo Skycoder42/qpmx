@@ -16,6 +16,9 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_clean(false),
 	_pkgList(),
 	_qtKits(),
+#ifndef QPMX_NO_MAKEBUG
+	_procEnv(),
+#endif
 	_current(),
 	_kitIndex(-1),
 	_kit(),
@@ -142,8 +145,12 @@ void CompileCommand::initialize(QCliParser &parser)
 
 		//collect all dependencies
 		depCollect();
-
+		//setup environment and qt kits
+#ifndef QPMX_NO_MAKEBUG
+		setupEnv();
+#endif
 		initKits(parser.values(QStringLiteral("qmake")));
+
 		_kitIndex = _qtKits.size();//to trigger the loop
 		compileNext();
 	} catch(QString &s) {
@@ -519,6 +526,10 @@ void CompileCommand::initProcess()
 	else
 		_process->setStandardErrorFile(_compileDir->filePath(QStringLiteral("%1.stderr.log").arg(logBase)));
 
+#ifndef QPMX_NO_MAKEBUG
+	_process->setProcessEnvironment(_procEnv);
+#endif
+
 	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
 			this, &CompileCommand::finished,
 			Qt::QueuedConnection);
@@ -526,6 +537,29 @@ void CompileCommand::initProcess()
 			this, &CompileCommand::errorOccurred,
 			Qt::QueuedConnection);
 }
+
+#ifndef QPMX_NO_MAKEBUG
+void CompileCommand::setupEnv()
+{
+	QRegularExpression regex(QStringLiteral(R"__(--jobserver-auth=\d+,\d+)__"), QRegularExpression::OptimizeOnFirstUsageOption);
+	_procEnv = QProcessEnvironment::systemEnvironment();
+
+	if(_procEnv.contains(QStringLiteral("MAKEFLAGS"))) {
+		auto flags = _procEnv.value(QStringLiteral("MAKEFLAGS")).split(QLatin1Char(' '));
+		auto removed = false;
+		foreach(auto flag, flags) {
+			if(regex.match(flag).hasMatch()) {
+				flags.removeOne(flag);
+				removed = true;
+				break;
+			}
+		}
+
+		if(removed)
+			_procEnv.insert(QStringLiteral("MAKEFLAGS"), flags.join(QLatin1Char(' ')));
+	}
+}
+#endif
 
 void CompileCommand::initKits(const QStringList &qmakes)
 {
