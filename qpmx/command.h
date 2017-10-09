@@ -30,6 +30,7 @@ public:
 	void fin();
 
 	static int exitCode();
+	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
 
 protected slots:
 	virtual void initialize(QCliParser &parser) = 0;
@@ -101,7 +102,6 @@ private:
 	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
 	bool _devMode;
 
-	static QDir subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir);
 	void lock(bool isSource, const QString &key);
 	void unlock(bool isSource, const QString &key);
 };

@@ -29,6 +29,21 @@ public:
 	QString installPrefix;
 	QString sysRoot;
 };
+class BuildDir
+{
+public:
+	BuildDir();
+	BuildDir(const QDir &buildDir);
+
+	bool isValid() const;
+	void setAutoRemove(bool b);
+	QString path() const;
+	QString filePath(const QString &fileName) const;
+
+private:
+	QTemporaryDir _tDir;
+	QDir _pDir;
+};
 
 class CompileCommand : public Command
 {
@@ -61,6 +76,7 @@ private slots:
 private:
 	bool _recompile;
 	bool _fwdStderr;
+	bool _clean;
 
 	QList<QpmxDevDependency> _pkgList;
 	QList<QtKitInfo> _qtKits;
@@ -68,7 +84,7 @@ private:
 	QpmxDevDependency _current;
 	int _kitIndex;
 	QtKitInfo _kit;
-	QScopedPointer<QTemporaryDir> _compileDir;
+	QScopedPointer<BuildDir> _compileDir;
 	QpmxFormat _format;
 	Stage _stage;
 	QProcess *_process;

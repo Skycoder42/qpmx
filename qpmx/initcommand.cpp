@@ -31,6 +31,11 @@ QSharedPointer<QCliNode> InitCommand::createCliNode()
 							   "subprocesses instead of logging to a file."),
 						});
 	initNode->addOption({
+							{QStringLiteral("c"), QStringLiteral("clean")},
+							tr("Pass the --clean cli flag to the compile step. This will generate clean dev "
+							   "builds instead of caching them for speeding builds up."),
+						});
+	initNode->addOption({
 							QStringLiteral("prepare"),
 							tr("Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
 							   "option, no initialization is performed."),
@@ -85,7 +90,8 @@ void InitCommand::initialize(QCliParser &parser)
 		//collect base arguments by copying all options
 		QStringList baseArguments;
 		foreach(auto opt, QSet<QString>::fromList(parser.optionNames())) {
-			if(opt == QStringLiteral("e") || opt == QStringLiteral("stderr"))
+			if(opt == QStringLiteral("e") || opt == QStringLiteral("stderr") ||
+			   opt == QStringLiteral("c") || opt == QStringLiteral("clean"))
 				continue;
 			auto values = parser.values(opt);
 			if(values.isEmpty())
@@ -106,6 +112,8 @@ void InitCommand::initialize(QCliParser &parser)
 		runArgs = baseArguments;
 		if(parser.isSet(QStringLiteral("stderr")))
 			runArgs.append(QStringLiteral("--stderr"));
+		if(parser.isSet(QStringLiteral("clean")))
+			runArgs.append(QStringLiteral("--clean"));
 		runArgs.append({
 						   QStringLiteral("compile"),
 						   QStringLiteral("--qmake"),

@@ -13,6 +13,7 @@ CompileCommand::CompileCommand(QObject *parent) :
 	Command(parent),
 	_recompile(false),
 	_fwdStderr(false),
+	_clean(false),
 	_pkgList(),
 	_qtKits(),
 	_current(),
@@ -61,6 +62,12 @@ QSharedPointer<QCliNode> CompileCommand::createCliNode()
 							   tr("Forward stderr of sub-processes like qmake to this processes stderr instead of "
 								  "logging it to a file in the compile directory."),
 						   });
+	compileNode->addOption({
+							   {QStringLiteral("c"), QStringLiteral("clean")},
+							   tr("Generate clean builds for dev dependencies. This means instead of caching the build directory "
+								  "of a dev dependency to speed up build, always start with a clean directory like for a normal build. "
+								  "Has no effects for non dev dependencies."),
+						   });
 	compileNode->addPositionalArgument(QStringLiteral("packages"),
 									   tr("The packages to compile binaries for. Installed packages are "
 										  "matched against those, and binaries compiled for all of them. If no "
@@ -75,6 +82,7 @@ void CompileCommand::initialize(QCliParser &parser)
 		auto global = parser.isSet(QStringLiteral("global"));
 		_recompile = parser.isSet(QStringLiteral("recompile"));
 		_fwdStderr = parser.isSet(QStringLiteral("stderr"));
+		_clean = parser.isSet(QStringLiteral("clean"));
 
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
@@ -223,9 +231,10 @@ void CompileCommand::compileNext()
 	}
 
 	//create temp dir and load qpmx.json
-	_compileDir.reset(new QTemporaryDir());
-	if(!_compileDir->isValid())
-		throw tr("Failed to create temporary directory for compilation with error: %1").arg(_compileDir->errorString());
+	if(_current.isDev() && !_clean)
+		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current)));
+	else
+		_compileDir.reset(new BuildDir());
 
 	srcLock(_current);
 	_format = QpmxFormat::readFile(srcDir(_current, false), true);
@@ -278,6 +287,12 @@ void CompileCommand::qmake()
 	// create pro file
 	auto priBase = QFileInfo(_format.priFile).completeBaseName();
 	auto proFile = _compileDir->filePath(QStringLiteral("static.pro"));
+
+	//cleanup (in case of dev build) - no error check on purpose
+	QFile::remove(proFile);
+	QFile::remove(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
+	QFile::remove(_compileDir->filePath(QStringLiteral(".no_sources_detected")));
+
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
 	auto bDir = buildDir(_kit.id, _current);
@@ -720,4 +735,42 @@ bool QtKitInfo::operator ==(const QtKitInfo &other) const
 			hostPrefix == other.hostPrefix &&
 			installPrefix == other.installPrefix &&
 			sysRoot == other.sysRoot;
+}
+
+
+
+BuildDir::BuildDir() :
+	_tDir(),
+	_pDir(_tDir.path())
+{
+	if(!_tDir.isValid())
+		throw CompileCommand::tr("Failed to create temporary directory for compilation with error: %1").arg(_tDir.errorString());
+}
+
+BuildDir::BuildDir(const QDir &buildDir) :
+	_tDir(),
+	_pDir(buildDir)
+{
+	_tDir.setAutoRemove(false);
+	_tDir.remove();
+}
+
+bool BuildDir::isValid() const
+{
+	return _pDir.exists();
+}
+
+void BuildDir::setAutoRemove(bool b)
+{
+	_tDir.setAutoRemove(b);
+}
+
+QString BuildDir::path() const
+{
+	return _pDir.absolutePath();
+}
+
+QString BuildDir::filePath(const QString &fileName) const
+{
+	return _pDir.absoluteFilePath(fileName);
 }

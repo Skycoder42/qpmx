@@ -46,6 +46,45 @@ int Command::exitCode()
 	return _ExitCode;
 }
 
+QDir Command::subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
+{
+	if(mkDir) {
+		if(provider.isNull())
+			return dir;
+		if(!dir.mkpath(provider) || !dir.cd(provider))
+			throw tr("Failed to create sub directory");
+
+		if(package.isNull())
+			return dir;
+		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
+		if(!dir.mkpath(pName) || !dir.cd(pName))
+			throw tr("Failed to create sub directory");
+
+		if(version.isNull())
+			return dir;
+		auto VName = version.toString();
+		if(!dir.mkpath(VName) || !dir.cd(VName))
+			throw tr("Failed to create sub directory");
+
+		return dir;
+	} else {
+		if(provider.isNull())
+			return dir;
+
+		auto path = provider;
+		if(!package.isNull()) {
+			auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
+			path += QStringLiteral("/") + pName;
+			if(!version.isNull()) {
+				auto VName = version.toString();
+				path += QStringLiteral("/") + VName;
+			}
+		}
+
+		return QDir(dir.absoluteFilePath(path));
+	}
+}
+
 void Command::finalize() {}
 
 PluginRegistry *Command::registry()
@@ -335,45 +374,6 @@ QString Command::dashed(QString option)
 		return QLatin1Char('-') + option;
 	else
 		return QStringLiteral("--") + option;
-}
-
-QDir Command::subDir(QDir dir, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
-{
-	if(mkDir) {
-		if(provider.isNull())
-			return dir;
-		if(!dir.mkpath(provider) || !dir.cd(provider))
-			throw tr("Failed to create sub directory");
-
-		if(package.isNull())
-			return dir;
-		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
-		if(!dir.mkpath(pName) || !dir.cd(pName))
-			throw tr("Failed to create sub directory");
-
-		if(version.isNull())
-			return dir;
-		auto VName = version.toString();
-		if(!dir.mkpath(VName) || !dir.cd(VName))
-			throw tr("Failed to create sub directory");
-
-		return dir;
-	} else {
-		if(provider.isNull())
-			return dir;
-
-		auto path = provider;
-		if(!package.isNull()) {
-			auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
-			path += QStringLiteral("/") + pName;
-			if(!version.isNull()) {
-				auto VName = version.toString();
-				path += QStringLiteral("/") + VName;
-			}
-		}
-
-		return QDir(dir.absoluteFilePath(path));
-	}
 }
 
 void Command::lock(bool isSource, const QString &key)
