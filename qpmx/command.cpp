@@ -286,7 +286,7 @@ QDir Command::buildDir()
 	QString subFolder;
 	if(_devMode) {
 		dir = QDir::current();
-		subFolder = QStringLiteral(".qmx-dev-cache");
+		subFolder = QStringLiteral(".qpmx-dev-cache");
 	} else {
 		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
 		subFolder = QStringLiteral("build");

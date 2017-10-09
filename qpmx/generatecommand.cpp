@@ -171,6 +171,24 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//top-level pri only
 	stream << "\n!qpmx_sub_pri {\n";
 
+	if(!current.devmode.isEmpty()) {
+		//add "dummy" dev deps, for easier access
+		stream << "\tCONFIG -= qpmx_never_ever_ever_true\n"
+			   << "\tqpmx_never_ever_ever_true { #trick to make QtCreator show dev dependencies in the build tree\n";
+		foreach(auto dep, current.devmode) {
+			auto depDir = QDir::current();
+			if(!depDir.cd(dep.path)) {
+				xWarning() << tr("Unabled to find directory of dev dependency %1").arg(dep.toString());
+				continue;
+			}
+
+			auto format = QpmxFormat::readFile(depDir);
+			if(!format.priFile.isEmpty())
+				stream << "\t\tinclude(" << depDir.absoluteFilePath(format.priFile) << ")\n";
+		}
+		stream << "\t}\n\n";
+	}
+
 	//add fixed part
 	QFile tCmp(QStringLiteral(":/build/qpmx_generated_base.pri"));
 	if(!tCmp.open(QIODevice::ReadOnly | QIODevice::Text))
