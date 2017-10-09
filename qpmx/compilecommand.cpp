@@ -58,7 +58,7 @@ QSharedPointer<QCliNode> CompileCommand::createCliNode()
 	compileNode->addOption({
 							   {QStringLiteral("r"), QStringLiteral("recompile")},
 							   tr("By default, compilation is skipped for unchanged packages. By specifying "
-								  "this flags, all packages are recompiled."),
+								  "this flags, all (explicitly specified) packages are recompiled."),
 						   });
 	compileNode->addOption({
 							   {QStringLiteral("e"), QStringLiteral("stderr")},
@@ -96,6 +96,7 @@ void CompileCommand::initialize(QCliParser &parser)
 		if(!parser.positionalArguments().isEmpty()) {
 			xDebug() << tr("Compiling %n package(s) from the command line", "", parser.positionalArguments().size());
 			_pkgList = devDepList(readCliPackages(parser.positionalArguments(), true));
+			_explicitPkg = _pkgList;
 		} else if(global){
 			auto wDir = srcDir();
 			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
@@ -220,7 +221,8 @@ void CompileCommand::compileNext()
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
 	if(bDir.exists(QStringLiteral("include.pri"))) {
-		if(_recompile || _current.isDev()) { //always recompile dev deps
+		if(_current.isDev() || //always recompile dev deps
+		   (_recompile && _explicitPkg.contains(_current))) { //only recompile explicitly specified (which is all except if passing as arguments)
 			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
 					   .arg(_current.toString())
 					   .arg(_kit.path);
@@ -460,6 +462,8 @@ void CompileCommand::depCollect()
 	_pkgList = sortHelper.sort();
 	if(_pkgList.isEmpty())
 		throw tr("Cyclic dependencies detected! Unable to compile packages");
+	if(_explicitPkg.isEmpty())
+		_explicitPkg = _pkgList;
 }
 
 QString CompileCommand::findMake()

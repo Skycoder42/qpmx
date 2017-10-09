@@ -79,6 +79,7 @@ private:
 	bool _clean;
 
 	QList<QpmxDevDependency> _pkgList;
+	QList<QpmxDevDependency> _explicitPkg;
 	QList<QtKitInfo> _qtKits;
 #ifndef QPMX_NO_MAKEBUG
 	QProcessEnvironment _procEnv;
