@@ -82,16 +82,16 @@ protected:
 	void subCall(const QStringList &arguments, const QString &workingDir = {});
 
 	QDir srcDir();
-	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = true);
-	QDir srcDir(const QpmxDependency &dep, bool mkDir = true);
-	QDir srcDir(const QpmxDevDependency &dep, bool mkDir = true);
-	QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = false);
+	QDir srcDir(const QpmxDependency &dep, bool mkDir = false);
+	QDir srcDir(const QpmxDevDependency &dep, bool mkDir = false);
+	QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false);
 
 	QDir buildDir();
 	QDir buildDir(const BuildId &kitId);
-	QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = true);
-	QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = true);
-	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version = {}, bool mkDir = true);
+	QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = false);
+	QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = false);
+	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false);
 
 	QDir tmpDir();
 

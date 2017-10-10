@@ -220,8 +220,9 @@ void CompileCommand::compileNext()
 
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
-	if(bDir.exists(QStringLiteral("include.pri"))) {
+	if(bDir.exists()) {
 		if(_current.isDev() || //always recompile dev deps
+		   !bDir.exists(QStringLiteral("include.pri")) || //no include.pri -> invalid -> delete and recompile
 		   (_recompile && _explicitPkg.contains(_current))) { //only recompile explicitly specified (which is all except if passing as arguments)
 			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
 					   .arg(_current.toString())
@@ -251,12 +252,12 @@ void CompileCommand::compileNext()
 
 	//create temp dir and load qpmx.json
 	if(_current.isDev() && !_clean)
-		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current)));
+		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current, true)));
 	else
 		_compileDir.reset(new BuildDir());
 
 	srcLock(_current);
-	_format = QpmxFormat::readFile(srcDir(_current, false), true);
+	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = None;
 	if(_format.source)
 		xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(_current.toString());
@@ -314,7 +315,7 @@ void CompileCommand::qmake()
 
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
-	auto bDir = buildDir(_kit.id, _current);
+	auto bDir = buildDir(_kit.id, _current, true);
 
 	//create qmake.conf file
 	QFile confFile(_compileDir->filePath(QStringLiteral(".qmake.conf")));
@@ -373,7 +374,7 @@ void CompileCommand::install()
 
 void CompileCommand::priGen()
 {
-	auto bDir = buildDir(_kit.id, _current);
+	auto bDir = buildDir(_kit.id, _current, true);
 
 	//create include.pri file
 	QFile metaFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
@@ -448,8 +449,7 @@ void CompileCommand::depCollect()
 	while(!queue.isEmpty()) {
 		auto pkg = queue.dequeue();
 		srcLock(pkg);
-		auto sDir = srcDir(pkg);
-		auto format = QpmxFormat::readFile(sDir, true);
+		auto format = QpmxFormat::readFile(srcDir(pkg), true);
 		srcUnlock(pkg);
 		foreach(auto dep, format.dependencies) {
 			if(!sortHelper.contains(dep)) {

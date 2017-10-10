@@ -248,9 +248,9 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	//aquire the lock for the package
 	srcLock(_current.pkg(provider));
 
-	auto sDir = srcDir(_current.pkg(provider), false);
+	auto sDir = srcDir(_current.pkg(provider));
 	if(sDir.exists()) {
-		if(_renew)
+		if(_renew || !sDir.exists(QStringLiteral("qpmx.json"))) //no qpmx.json -> remove and download again
 			cleanCaches(_current.pkg(provider));
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
@@ -321,7 +321,7 @@ void InstallCommand::completeSource()
 			data.tDir.reset();
 			Q_ASSERT(wp.isNull());
 
-			auto tDir = srcDir(_current.provider, _current.package);
+			auto tDir = srcDir(_current.provider, _current.package, {}, true);
 			auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
 			if(!path.dir().rename(path.fileName(), vSubDir))
 				throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
@@ -406,8 +406,8 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
 	buildLock(QStringLiteral("src"), _current);
 
-	QDir sDir = srcDir(_current);
-	auto bDir = buildDir(QStringLiteral("src"), _current);
+	auto sDir = srcDir(_current);
+	auto bDir = buildDir(QStringLiteral("src"), _current, true);
 
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(srcPriFile.exists()) {

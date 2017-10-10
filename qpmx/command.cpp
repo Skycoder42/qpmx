@@ -219,13 +219,13 @@ QUuid Command::findKit(const QString &qmake) const
 
 void Command::cleanCaches(const PackageInfo &package)
 {
-	auto sDir = srcDir(package, false);
+	auto sDir = srcDir(package);
 	if(!sDir.removeRecursively())
 		throw tr("Failed to remove source cache for %1").arg(package.toString());
 	auto bDir = buildDir();
 	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
 		buildLock(cmpDir, package);
-		auto rDir = buildDir(cmpDir, package, false);
+		auto rDir = buildDir(cmpDir, package);
 		if(!rDir.removeRecursively())
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
 		buildUnlock(cmpDir, package);
@@ -344,8 +344,7 @@ QDir Command::srcDir(const QpmxDevDependency &dep, bool mkDir)
 
 QDir Command::srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
 {
-	auto dir = srcDir();
-	return subDir(dir, provider, package, version, mkDir);
+	return subDir(srcDir(), provider, package, version, mkDir);
 }
 
 QDir Command::buildDir()
@@ -387,8 +386,7 @@ QDir Command::buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkD
 
 QDir Command::buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
 {
-	auto dir = buildDir(kitId);
-	return subDir(dir, provider, package, version, mkDir);
+	return subDir(buildDir(kitId), provider, package, version, mkDir);
 }
 
 QDir Command::tmpDir()
