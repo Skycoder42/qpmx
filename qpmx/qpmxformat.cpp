@@ -113,9 +113,18 @@ template<typename T>
 void QpmxFormat::checkDuplicatesImpl(const QList<T> &data)
 {
 	static_assert(std::is_base_of<QpmxDependency, T>::value, "checkDuplicates is only available for QpmxDependency classes");
-	for(auto i = 0; i < data.size() - 1; i++) {//TODO check provider and version are set
-		if(data.indexOf(data[i], i + 1) != -1)
-			throw tr("Duplicated dependency found: %1").arg(data[i].toString());
+	for(auto i = 0; i < data.size(); i++) {
+		if(data[i].provider.isEmpty())
+			throw tr("Dependency does not have a provider: %1").arg(data[i].toString());
+		if(data[i].package.isEmpty())
+			throw tr("Dependency does not have a package: %1").arg(data[i].toString());
+		if(data[i].version.isNull())
+			throw tr("Dependency does not have a version: %1").arg(data[i].toString());
+
+		if(i < data.size() - 1) {
+			if(data.indexOf(data[i], i + 1) != -1)
+				throw tr("Duplicated dependency found: %1").arg(data[i].toString());
+		}
 	}
 }
 

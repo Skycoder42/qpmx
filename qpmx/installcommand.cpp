@@ -43,12 +43,6 @@ QSharedPointer<QCliNode> InstallCommand::createCliNode()
 							   QStringLiteral("no-prepare"),
 							   tr("Do not prepare pro-files if the qpmx.json file is newly created."),
 						   });
-	installNode->addOption({
-							   QStringLiteral("dev-cache"),
-							   tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
-								  "one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
-							   tr("path")
-						   });
 	installNode->addPositionalArgument(QStringLiteral("packages"),
 									   tr("The packages to be installed. The provider determines which backend to use for the download. "
 										  "If left empty, all providers are searched for the package. If the version is left out, "
@@ -78,12 +72,8 @@ void InstallCommand::initialize(QCliParser &parser)
 				qApp->quit();
 				return;
 			}
-			if(!format.devmode.isEmpty()) {
-				if(parser.isSet(QStringLiteral("dev-cache")))
-					setDevMode(true, parser.value(QStringLiteral("dev-cache")));
-				else
-					setDevMode(true);
-			}
+			if(!format.devmode.isEmpty())
+				setDevMode(true);
 
 			xDebug() << tr("Installing %n package(s) from qpmx.json file", "", _pkgList.size());
 		}

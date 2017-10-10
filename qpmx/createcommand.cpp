@@ -45,20 +45,8 @@ void CreateCommand::initialize(QCliParser &parser)
 
 		auto providers = parser.values(QStringLiteral("prepare"));
 		if(!providers.isEmpty()) {
-			QStringList args;
-			foreach(auto opt, QSet<QString>::fromList(parser.optionNames())) {
-				if(opt == QStringLiteral("p") || opt == QStringLiteral("prepare"))
-					continue;
-				auto values = parser.values(opt);
-				if(values.isEmpty())
-					args.append(dashed(opt));
-				else {
-					foreach(auto value, values)
-						args.append({dashed(opt), value});
-				}
-			}
 			foreach(auto provider, providers)
-				runPrepare(args, provider);
+				runPrepare(provider);
 		}
 
 		xDebug() << tr("Finish qpmx.json creation");
@@ -163,13 +151,12 @@ void CreateCommand::runBaseInit()
 	}
 }
 
-void CreateCommand::runPrepare(const QStringList &baseArgs, const QString &provider)
+void CreateCommand::runPrepare(const QString &provider)
 {
 	QStringList args {
 		QStringLiteral("prepare"),
 		provider
 	};
-	args.append(baseArgs);
 
 	xInfo() << tr("\nPreparing qpmx.json for provider %{bld}%1%{end}").arg(provider);
 	subCall(args);

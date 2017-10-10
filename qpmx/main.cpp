@@ -32,7 +32,6 @@ static QSet<QtMsgType> logLevel{QtCriticalMsg, QtFatalMsg};
 
 template <typename T>
 static void addCommand(QHash<QString, Command*> &commands);
-static void setupParser(QCliParser &parser, const QHash<QString, Command *> &commands);
 static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 
 int main(int argc, char *argv[])
@@ -68,7 +67,7 @@ int main(int argc, char *argv[])
 	addCommand<HookCommand>(commands);
 
 	QCliParser parser;
-	setupParser(parser, commands);
+	Command::setupParser(parser, commands);
 	parser.process(a, true);
 
 	//setup logging
@@ -142,44 +141,6 @@ static void addCommand(QHash<QString, Command*> &commands)
 {
 	auto cmd = new T(qApp);
 	commands.insert(cmd->commandName(), cmd);
-}
-
-static void setupParser(QCliParser &parser, const QHash<QString, Command*> &commands)
-{
-	parser.setApplicationDescription(QCoreApplication::translate("parser", "A frontend for qpm, to provide source and build caching."));
-	parser.addHelpOption();
-	parser.addVersionOption();
-
-	//global
-	parser.addOption({
-						 QStringLiteral("verbose"),
-						 QCoreApplication::translate("parser", "Enable verbose output.")
-					 });
-	parser.addOption({
-						 {QStringLiteral("q"), QStringLiteral("quiet")},
-						 QCoreApplication::translate("parser", "Limit output to error messages only.")
-					 });
-#ifndef Q_OS_WIN
-	parser.addOption({
-						 QStringLiteral("no-color"),
-						 QCoreApplication::translate("parser", "Do not use colors to highlight output.")
-					 });
-#endif
-	parser.addOption({
-						 {QStringLiteral("d"), QStringLiteral("dir")},
-						 QCoreApplication::translate("parser", "Set the working <directory>, i.e. the directory to check for the qpmx.json file."),
-						 QCoreApplication::translate("parser", "directory"),
-						 QDir::currentPath()
-					 });
-	QCommandLineOption qOpt(QStringLiteral("qmake-run"));
-	qOpt.setFlags(QCommandLineOption::HiddenFromHelp);
-	parser.addOption(qOpt);
-
-	foreach(auto cmd, commands) {
-		parser.addCliNode(cmd->commandName(),
-						  cmd->commandDescription(),
-						  cmd->createCliNode());
-	}
 }
 
 static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)

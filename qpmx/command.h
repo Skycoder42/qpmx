@@ -26,6 +26,8 @@ public:
 	virtual QString commandDescription() = 0;
 	virtual QSharedPointer<QCliNode> createCliNode() = 0;
 
+	static void setupParser(QCliParser &parser, const QHash<QString, Command*> &commands);
+
 	void init(QCliParser &parser);
 	void fin();
 
@@ -55,7 +57,7 @@ protected:
 	PluginRegistry *registry();
 	QSettings *settings();
 
-	void setDevMode(bool devModeActive, const QString &cacheDir = {});
+	void setDevMode(bool devModeActive);
 	bool devMode() const;
 
 	void srcLock(const qpmx::PackageInfo &package);
@@ -68,6 +70,9 @@ protected:
 	void buildUnlock(const BuildId &kitId, const qpmx::PackageInfo &package);
 	void buildUnlock(const BuildId &kitId, const QpmxDependency &dep);
 
+	void kitLock();
+	void kitUnlock();
+
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
 	static QList<QpmxDevDependency> devDepList(const QList<qpmx::PackageInfo> &pkgList);
@@ -79,7 +84,7 @@ protected:
 
 	bool readBool(const QString &message, QTextStream &stream, bool defaultValue);
 	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
-	void subCall(const QStringList &arguments, const QString &workingDir = {});
+	void subCall(QStringList arguments, const QString &workingDir = {});
 
 	QDir srcDir();
 	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = false);
@@ -102,6 +107,13 @@ private:
 	QSettings *_settings;
 	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
 	bool _devMode;
+
+	bool _verbose;
+	bool _quiet;
+#ifndef Q_OS_WIN
+	bool _noColor;
+#endif
+	bool _qmakeRun;
 	QString _cacheDir;
 
 	void lock(bool isSource, const QString &key);

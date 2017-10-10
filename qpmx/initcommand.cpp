@@ -36,12 +36,6 @@ QSharedPointer<QCliNode> InitCommand::createCliNode()
 							   "builds instead of caching them for speeding builds up."),
 						});
 	initNode->addOption({
-							QStringLiteral("dev-cache"),
-							tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
-							   "one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
-							tr("path")
-						});
-	initNode->addOption({
 							QStringLiteral("prepare"),
 							tr("Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
 							   "option, no initialization is performed."),
@@ -86,6 +80,8 @@ void InitCommand::initialize(QCliParser &parser)
 			return;
 		}
 
+		auto reRun = parser.isSet(QStringLiteral("r"));
+
 		if(parser.positionalArguments().size() != 2) {
 			throw tr("Invalid arguments! You must specify the qmake path to use for compilation "
 					 "and the target directory to place the generated files in");
@@ -93,26 +89,12 @@ void InitCommand::initialize(QCliParser &parser)
 		auto qmake = parser.positionalArguments()[0];
 		auto outdir = parser.positionalArguments()[1];
 
-		//collect base arguments by copying all options
-		QStringList baseArguments;
-		foreach(auto opt, QSet<QString>::fromList(parser.optionNames())) {
-			if(opt == QStringLiteral("e") || opt == QStringLiteral("stderr") ||
-			   opt == QStringLiteral("c") || opt == QStringLiteral("clean"))
-				continue;
-			auto values = parser.values(opt);
-			if(values.isEmpty())
-				baseArguments.append(dashed(opt));
-			else {
-				foreach(auto value, values)
-					baseArguments.append({dashed(opt), value});
-			}
-		}
-
 		//run install
 		QStringList runArgs {
 			QStringLiteral("install")
 		};
-		runArgs.append(baseArguments);
+		if(reRun)
+			runArgs.append(QStringLiteral("--renew"));
 		subCall(runArgs);
 		xDebug() << tr("Successfully ran install step");
 
@@ -122,7 +104,8 @@ void InitCommand::initialize(QCliParser &parser)
 			QStringLiteral("--qmake"),
 			qmake
 		};
-		runArgs.append(baseArguments);
+		if(reRun)
+			runArgs.append(QStringLiteral("--recompile"));
 		if(parser.isSet(QStringLiteral("stderr")))
 			runArgs.append(QStringLiteral("--stderr"));
 		if(parser.isSet(QStringLiteral("clean")))
@@ -137,7 +120,8 @@ void InitCommand::initialize(QCliParser &parser)
 			qmake,
 			outdir
 		};
-		runArgs.append(baseArguments);
+		if(reRun)
+			runArgs.append(QStringLiteral("--recreate"));
 		subCall(runArgs);
 		xDebug() << tr("Successfully ran generate step");
 

@@ -19,7 +19,7 @@ protected slots:
 
 private:
 	void runBaseInit();
-	void runPrepare(const QStringList &baseArgs, const QString &provider);
+	void runPrepare(const QString &provider);
 };
 
 #endif // CREATECOMMAND_H

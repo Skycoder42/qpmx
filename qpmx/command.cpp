@@ -20,11 +20,69 @@ Command::Command(QObject *parent) :
 	_settings(new QSettings(this)),
 	_locks(),
 	_devMode(false),
+	_verbose(false),
+	_quiet(false),
+#ifndef Q_OS_WIN
+	_noColor(false),
+#endif
+	_qmakeRun(false),
 	_cacheDir()
 {}
 
+void Command::setupParser(QCliParser &parser, const QHash<QString, Command *> &commands)
+{
+	parser.setApplicationDescription(QCoreApplication::translate("parser", "A frontend for qpm, to provide source and build caching."));
+	parser.addHelpOption();
+	parser.addVersionOption();
+
+	//global
+	parser.addOption({
+						 QStringLiteral("verbose"),
+						 QCoreApplication::translate("parser", "Enable verbose output.")
+					 });
+	parser.addOption({
+						 {QStringLiteral("q"), QStringLiteral("quiet")},
+						 QCoreApplication::translate("parser", "Limit output to error messages only.")
+					 });
+#ifndef Q_OS_WIN
+	parser.addOption({
+						 QStringLiteral("no-color"),
+						 QCoreApplication::translate("parser", "Do not use colors to highlight output.")
+					 });
+#endif
+	parser.addOption({
+						 {QStringLiteral("d"), QStringLiteral("dir")},
+						 QCoreApplication::translate("parser", "Set the working <directory>, i.e. the directory to check for the qpmx.json file."),
+						 QCoreApplication::translate("parser", "directory"),
+						 QDir::currentPath()
+					 });
+	parser.addOption({
+						 QStringLiteral("dev-cache"),
+						 tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
+							"one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
+						 tr("path")
+					 });
+	QCommandLineOption qOpt(QStringLiteral("qmake-run"));
+	qOpt.setFlags(QCommandLineOption::HiddenFromHelp);
+	parser.addOption(qOpt);
+
+	foreach(auto cmd, commands) {
+		parser.addCliNode(cmd->commandName(),
+						  cmd->commandDescription(),
+						  cmd->createCliNode());
+	}
+}
+
 void Command::init(QCliParser &parser)
 {
+	_verbose = parser.isSet(QStringLiteral("verbose"));
+	_quiet = parser.isSet(QStringLiteral("quiet"));
+#ifndef Q_OS_WIN
+	_noColor = parser.isSet(QStringLiteral("no-color"));
+#endif
+	_qmakeRun = parser.isSet(QStringLiteral("qmake-run"));
+	_cacheDir = parser.value(QStringLiteral("dev-cache"));
+
 	qsrand(QDateTime::currentMSecsSinceEpoch());
 	initialize(parser);
 }
@@ -98,10 +156,9 @@ QSettings *Command::settings()
 	return _settings;
 }
 
-void Command::setDevMode(bool devModeActive, const QString &cacheDir)
+void Command::setDevMode(bool devModeActive)
 {
 	_devMode = devModeActive;
-	_cacheDir = cacheDir;
 }
 
 bool Command::devMode() const
@@ -153,6 +210,16 @@ void Command::buildUnlock(const Command::BuildId &kitId, const PackageInfo &pack
 void Command::buildUnlock(const Command::BuildId &kitId, const QpmxDependency &dep)
 {
 	buildUnlock(kitId, dep.pkg());
+}
+
+void Command::kitLock()
+{
+	lock(true, QStringLiteral("qt/kits"));//as source, to always lock globally
+}
+
+void Command::kitUnlock()
+{
+	unlock(true, QStringLiteral("qt/kits"));//as source, to always lock globally
 }
 
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
@@ -287,9 +354,23 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 	}
 }
 
-void Command::subCall(const QStringList &arguments, const QString &workingDir)
+void Command::subCall(QStringList arguments, const QString &workingDir)
 {
-	//TODO automatically forward basic arguments!!!
+	if(!_cacheDir.isEmpty()) {
+		arguments.prepend(_cacheDir);
+		arguments.prepend(QStringLiteral("--dev-cache"));
+	}
+	if(_verbose)
+		arguments.prepend(QStringLiteral("--verbose"));
+	if(_quiet)
+		arguments.prepend(QStringLiteral("--quiet"));
+#ifndef Q_OS_WIN
+	if(_noColor)
+		arguments.prepend(QStringLiteral("--no-color"));
+#endif
+	if(_qmakeRun)
+		arguments.prepend(QStringLiteral("--qmake-run"));
+
 	xDebug() << tr("Running subcommand with arguments: %1")
 				.arg(arguments.join(QLatin1Char(' ')));
 

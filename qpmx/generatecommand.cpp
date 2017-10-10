@@ -35,12 +35,6 @@ QSharedPointer<QCliNode> GenerateCommand::createCliNode()
 								{QStringLiteral("r"), QStringLiteral("recreate")},
 								tr("Always delete and recreate the file if it exists, not only when the configuration changed."),
 						   });
-	generateNode->addOption({
-								QStringLiteral("dev-cache"),
-								tr("Explicitly set the <path> to the directory to generate the dev build files in. This can be used to share "
-								   "one dev build cache between multiple projects. The default path is the directory of the qpmx.json file."),
-								tr("path")
-							});
 	return generateNode;
 }
 
@@ -80,12 +74,8 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
-		if(!mainFormat.devmode.isEmpty()) {
-			if(parser.isSet(QStringLiteral("dev-cache")))
-				setDevMode(true, parser.value(QStringLiteral("dev-cache")));
-			else
-				setDevMode(true);
-		}
+		if(!mainFormat.devmode.isEmpty())
+			setDevMode(true);
 		createPriFile(mainFormat);
 		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
 			xWarning() << tr("Failed to cache qpmx.json file. This means generate will always recreate the qpmx_generated.pri");
