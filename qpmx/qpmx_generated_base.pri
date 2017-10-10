@@ -36,10 +36,10 @@ isEmpty(QPMX_LRELEASE) {
 
 qpmx_translate.name = $$QPMX_BIN translate ${QMAKE_FILE_IN}
 qpmx_translate.input = TRANSLATIONS
-qpmx_translate.variable_out = DISTFILES #TRANSLATIONS_QM
-qpmx_translate.commands = $$QPMX_BIN translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --qpmx $$shell_quote($$PWD/.qpmx.cache) --ts-file ${QMAKE_FILE_IN}
-qpmx_src_build: qpmx_translate.commands += $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
-else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE
+qpmx_translate.variable_out = TRANSLATIONS_QM
+qpmx_translate.commands = $$QPMX_BIN translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --ts-file ${QMAKE_FILE_IN}
+qpmx_src_build: qpmx_translate.commands += --src $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
+else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TS_DIRS
 qpmx_translate.output = $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm
 qpmx_translate.clean += $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm-base
 qpmx_translate.CONFIG += no_link #target_predeps

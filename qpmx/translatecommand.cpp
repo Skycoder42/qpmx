@@ -10,7 +10,6 @@ TranslateCommand::TranslateCommand(QObject *parent) :
 	_outDir(),
 	_qmake(),
 	_lconvert(),
-	_format(),
 	_tsFile(),
 	_lrelease(),
 	_qpmxTsFiles()
@@ -32,6 +31,10 @@ QSharedPointer<QCliNode> TranslateCommand::createCliNode()
 	auto translateNode = QSharedPointer<QCliLeaf>::create();
 	translateNode->setHidden(true);
 	translateNode->addOption({
+								 QStringLiteral("src"),
+								 tr("Assume a source build, and create translations for a source build instead of binary.")
+							 });
+	translateNode->addOption({
 								 QStringLiteral("lconvert"),
 								 tr("The <path> to the lconvert binary to be used (binary builds only)."),
 								 tr("path")
@@ -49,11 +52,6 @@ QSharedPointer<QCliNode> TranslateCommand::createCliNode()
 								 tr("directory")
 							 });
 	translateNode->addOption({
-								 QStringLiteral("qpmx"),
-								 tr("The qpmx <file> with the dependencies to use to collect the translations (required)."),
-								 tr("file")
-							 });
-	translateNode->addOption({
 								 QStringLiteral("ts-file"),
 								 tr("The ts <file> to translate and combine with the qpmx translations (required)."),
 								 tr("file")
@@ -67,6 +65,10 @@ QSharedPointer<QCliNode> TranslateCommand::createCliNode()
 										 tr("The ts-files to combine with the specified translations. "
 											"Typically, the QPMX_TRANSLATIONS qmake variable is passed (source builds only)."),
 										 QStringLiteral("[%% <ts-files> ...]"));
+	translateNode->addPositionalArgument(QStringLiteral("qpmx-translations-dirs"),
+										 tr("The directories containing qm-files to combine with the specified translations. "
+											"Typically, the QPMX_TS_DIRS qmake variable is passed (binary builds only)."),
+										 QStringLiteral("| [%% <ts-dirs> ...]"));
 	return translateNode;
 }
 
@@ -79,8 +81,6 @@ void TranslateCommand::initialize(QCliParser &parser)
 			_outDir = QStringLiteral("./");
 		_qmake = parser.value(QStringLiteral("qmake"));
 		_lconvert = parser.value(QStringLiteral("lconvert"));
-		QFileInfo qpmxFile = parser.value(QStringLiteral("qpmx"));
-		_format = QpmxFormat::readFile(qpmxFile.dir(), qpmxFile.fileName(), true);
 		_tsFile = parser.value(QStringLiteral("ts-file"));
 		if(!QFile::exists(_tsFile))
 			throw tr("You must specify the --ts-file option with a valid file!");
@@ -92,14 +92,14 @@ void TranslateCommand::initialize(QCliParser &parser)
 			QString arg = pArgs.takeFirst();
 			if(arg == QStringLiteral("%%")) {
 				_qpmxTsFiles = pArgs;
-				xDebug() << tr("Extracted qpmx translation files as: %1").arg(_qpmxTsFiles.join(tr(", ")));
+				xDebug() << tr("Extracted qpmx translation files/dirs as: %1").arg(_qpmxTsFiles.join(tr(", ")));
 				break;
 			}
 			_lrelease.append(arg.replace(QRegularExpression(QStringLiteral("^\\+")), QStringLiteral("-")));
 		} while(!pArgs.isEmpty());
 		xDebug() << tr("Extracted lrelease as: %1").arg(_lrelease.join(QStringLiteral(" ")));
 
-		if(_format.source)
+		if(parser.isSet(QStringLiteral("src")))
 			srcTranslate();
 		else
 			binTranslate();
@@ -138,11 +138,12 @@ void TranslateCommand::binTranslate()
 	};
 
 	QList<QpmxDependency> allDeps;
-	findDepsRecursive(allDeps, _format);
-	foreach(auto dep, allDeps) {
-		auto bDir = buildDir(findKit(_qmake), dep);
-		if(!bDir.cd(QStringLiteral("translations")))
+	foreach(auto tsDir, _qpmxTsFiles) {
+		QDir bDir(tsDir);
+		if(!bDir.exists()) {
+			xWarning() << tr("Translation directory does not exist: %1").arg(tsDir);
 			continue;
+		}
 
 		bDir.setFilter(QDir::Files | QDir::Readable);
 		bDir.setNameFilters({QStringLiteral("*.qm")});
@@ -225,33 +226,4 @@ QString TranslateCommand::localeString()
 	xWarning() << tr("Unable to detect locale of file \"%1\". Translation combination is skipped")
 				  .arg(_tsFile);
 	return {};
-}
-
-void TranslateCommand::findDepsRecursive(QList<QpmxDependency> &dependencies, const QpmxFormat &format)
-{
-	foreach(auto dep, format.dependencies) {
-		auto checkDep = false;
-		auto depIndex = dependencies.indexOf(dep);
-		if(depIndex != -1) {
-			if(dependencies[depIndex].version != dep.version) {
-				if(dep.version > dependencies[depIndex].version) {
-					dependencies[depIndex] = dep;
-					checkDep = true;
-				}
-				xWarning() << tr("Detected multiple versions of a dependency. Using latest version: %1")
-							  .arg(dependencies[depIndex].version.toString());
-			}
-		} else {
-			dependencies.append(dep);
-			checkDep = true;
-		}
-
-		if(checkDep) {
-			srcLock(dep);
-			auto depDir = srcDir(dep);
-			auto format = QpmxFormat::readFile(depDir, true);
-			srcUnlock(dep);
-			findDepsRecursive(dependencies, format);
-		}
-	}
 }

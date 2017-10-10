@@ -21,7 +21,6 @@ private:
 	QString _outDir;
 	QString _qmake;
 	QString _lconvert;
-	QpmxFormat _format;
 	QString _tsFile;
 	QStringList _lrelease;
 	QStringList _qpmxTsFiles;
@@ -31,7 +30,6 @@ private:
 
 	void execute(QStringList command);
 	QString localeString();
-	void findDepsRecursive(QList<QpmxDependency> &dependencies, const QpmxFormat &format);
 };
 
 #endif // TRANSLATECOMMAND_H

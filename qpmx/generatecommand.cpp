@@ -178,7 +178,8 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		kit = QStringLiteral("src");
 	else
 		kit = findKit(_qmake);
-	stream << "\n#dependencies\n";
+	stream << "\n#dependencies\n"
+		   << "QPMX_TS_DIRS = \n"; //clean for only use local deps
 	foreach(auto dep, current.allDeps()) {
 		auto dir = buildDir(kit, dep.pkg(), false);
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";

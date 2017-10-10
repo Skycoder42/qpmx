@@ -389,7 +389,8 @@ void CompileCommand::priGen()
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
 	stream << "\t#includes\n"
-		   << "\tINCLUDEPATH += \"$$PWD/include\"\n";
+		   << "\tINCLUDEPATH += \"$$PWD/include\"\n"
+		   << "\texists($$PWD/translations): QPMX_TS_DIRS += \"$$PWD/translations\"\n";
 	if(_hasBinary) {
 		stream << "\t#lib\n"
 			   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
