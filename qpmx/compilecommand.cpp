@@ -305,9 +305,11 @@ void CompileCommand::qmake()
 	QFile::remove(proFile);
 	QFile::remove(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
 	QFile::remove(_compileDir->filePath(QStringLiteral(".no_sources_detected")));
+	QFile::remove(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
 
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
+	QFile::setPermissions(proFile, QFile::permissions(proFile) | QFile::WriteUser);
 	auto bDir = buildDir(_kit.id, _current, true);
 
 	//create qmake.conf file

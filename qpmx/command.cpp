@@ -115,7 +115,8 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 		if(package.isNull())
 			return dir;
-		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
+		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package))
+				.replace(QLatin1Char('%'), QLatin1Char('~'));
 		if(!dir.mkpath(pName) || !dir.cd(pName))
 			throw tr("Failed to create sub directory");
 
@@ -132,7 +133,8 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 		auto path = provider;
 		if(!package.isNull()) {
-			auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package));
+			auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package))
+					.replace(QLatin1Char('%'), QLatin1Char('~'));
 			path += QStringLiteral("/") + pName;
 			if(!version.isNull()) {
 				auto VName = version.toString();
