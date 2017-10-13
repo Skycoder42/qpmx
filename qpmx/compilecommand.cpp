@@ -384,14 +384,20 @@ void CompileCommand::priGen()
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
-	stream << "\t#includes\n"
+	stream << "\n\t#includes\n"
 		   << "\tINCLUDEPATH += \"$$PWD/include\"\n"
 		   << "\texists($$PWD/translations): QPMX_TS_DIRS += \"$$PWD/translations\"\n";
 	if(_hasBinary) {
-		stream << "\t#lib\n"
+		stream << "\n\t#lib\n"
 			   << "\twin32:CONFIG(release, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "\n"
 			   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
-			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n";
+			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n"
+
+			   << "\twin32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/lib" << libName << ".a\n"
+			   << "\telse:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/lib" << libName << "d.a\n"
+			   << "\telse:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/" << libName << ".lib\n"
+			   << "\telse:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/" << libName << "d.lib\n"
+			   << "\telse:unix: PRE_TARGETDEPS += $$PWD/lib/lib" << libName << ".a\n\n";
 		//add startup hook (if needed)
 		auto hooks = readVar(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
 		if(!hooks.isEmpty())
