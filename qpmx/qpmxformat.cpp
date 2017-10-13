@@ -17,6 +17,8 @@ QpmxDependency::QpmxDependency(const PackageInfo &package) :
 	version(package.version())
 {}
 
+QpmxDependency::~QpmxDependency() = default;
+
 bool QpmxDependency::operator==(const QpmxDependency &other) const
 {
 	//only provider and package "identify" the dependency
@@ -40,6 +42,8 @@ QpmxFormat::QpmxFormat() :
 	source(false),
 	dependencies()
 {}
+
+QpmxFormat::~QpmxFormat() = default;
 
 QpmxFormat QpmxFormat::readFile(const QDir &dir, bool mustExist)
 {

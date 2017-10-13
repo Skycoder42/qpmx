@@ -31,6 +31,7 @@ class QpmxDependency
 public:
 	QpmxDependency();
 	QpmxDependency(const qpmx::PackageInfo &package);
+	virtual ~QpmxDependency();
 
 	bool operator==(const QpmxDependency &other) const;
 	QString toString(bool scoped = true) const;
@@ -73,6 +74,7 @@ class QpmxFormat
 
 public:
 	QpmxFormat();
+	virtual ~QpmxFormat();
 
 	static QpmxFormat readFile(const QDir &dir, bool mustExist = false);
 	static QpmxFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
