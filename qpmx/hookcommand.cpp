@@ -1,6 +1,7 @@
 #include "hookcommand.h"
 
 #include <QCryptographicHash>
+#include <QLockFile>
 using namespace qpmx;
 
 HookCommand::HookCommand(QObject *parent) :
@@ -124,10 +125,7 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 		   << "#include \"" << inFile << "\"\n";
 
 	if(!functions.isEmpty()) {
-		QFile hookFile(QStringLiteral(".qpmx_startup_hooks"));
-		if(!hookFile.open(QIODevice::WriteOnly | QIODevice::Text))
-			throw tr("Failed to create qpmx hook cache with error: %1").arg(hookFile.errorString());
-		QTextStream hookStream(&hookFile);
+		QByteArrayList hooks;
 
 		stream << "\nnamespace __qpmx_startup_hooks {";
 		foreach(auto fn, functions) {
@@ -136,12 +134,25 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 			stream << "\n\tvoid hook_" << fnId << "() {\n"
 				   << "\t\t" << fn << "_ctor_function();\n"
 				   << "\t}\n";
-			hookStream << fnId << "\n";
+			hooks.append(fnId);
 		}
 		stream << "}\n";
 
+		//lock and update the hooks file
+		QLockFile hookLock(QStringLiteral(".qpmx_startup_hooks.lock"));
+		if(!hookLock.lock())
+			throw tr("Failed to aquire lock for hook-file");
+
+		QFile hookFile(QStringLiteral(".qpmx_startup_hooks"));
+		if(!hookFile.open(QIODevice::Append | QIODevice::Text))
+			throw tr("Failed to create qpmx hook cache with error: %1").arg(hookFile.errorString());
+		QTextStream hookStream(&hookFile);
+		foreach(auto hook, hooks)
+			hookStream << hook << "\n";
 		hookStream.flush();
 		hookFile.close();
+
+		hookLock.unlock();
 	}
 
 	stream.flush();

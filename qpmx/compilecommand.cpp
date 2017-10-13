@@ -305,7 +305,7 @@ void CompileCommand::qmake()
 	QFile::remove(proFile);
 	QFile::remove(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
 	QFile::remove(_compileDir->filePath(QStringLiteral(".no_sources_detected")));
-	QFile::remove(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
+	//keep hooks file, will be regenerated on changes
 
 	if(!QFile::copy(QStringLiteral(":/build/template_static.pro"), proFile))
 		throw tr("Failed to create compilation pro file");
