@@ -104,6 +104,7 @@ private:
 	QString stage();
 	void depCollect();
 	QString findMake();
+	QStringList readMultiVar(const QString &dirName, bool recursive = false);
 	QStringList readVar(const QString &fileName);
 	void initProcess();
 #ifndef QPMX_NO_MAKEBUG

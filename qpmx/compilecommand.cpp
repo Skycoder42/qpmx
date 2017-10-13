@@ -3,6 +3,7 @@
 #include "topsort.h"
 
 #include <QCryptographicHash>
+#include <QDirIterator>
 #include <QProcess>
 #include <QQueue>
 #include <QStandardPaths>
@@ -399,7 +400,7 @@ void CompileCommand::priGen()
 			   << "\telse:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/" << libName << "d.lib\n"
 			   << "\telse:unix: PRE_TARGETDEPS += $$PWD/lib/lib" << libName << ".a\n\n";
 		//add startup hook (if needed)
-		auto hooks = readVar(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
+		auto hooks = readMultiVar(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
 		if(!hooks.isEmpty())
 			stream << "\tQPMX_STARTUP_HOOKS += \"" << hooks.join(QStringLiteral("\" \"")) << "\"\n";
 
@@ -482,6 +483,23 @@ QString CompileCommand::findMake()
 	if(make.isEmpty())
 		throw tr("Unable to find make executable. Make shure make can be found in your path");
 	return make;
+}
+
+QStringList CompileCommand::readMultiVar(const QString &dirName, bool recursive)
+{
+	QDir dir(dirName);
+	dir.setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::Readable);
+	QDirIterator iter(dir,
+					  recursive ?
+						  (QDirIterator::Subdirectories | QDirIterator::FollowSymlinks) :
+						  QDirIterator::NoIteratorFlags);
+
+	QStringList resList;
+	while(iter.hasNext()) {
+		iter.next();
+		resList.append(readVar(iter.filePath()));
+	}
+	return resList;
 }
 
 QStringList CompileCommand::readVar(const QString &fileName)
