@@ -2,8 +2,8 @@
 <Package>
 	<DisplayName>qpmx files</DisplayName>
 	<Description>A frontend for qpm, to provide source and build caching.</Description>
-	<Version>1.2.2</Version>
-	<ReleaseDate>2017-10-13</ReleaseDate>
+	<Version>1.2.3</Version>
+	<ReleaseDate>2017-10-27</ReleaseDate>
 	<ForcedInstallation>true</ForcedInstallation>
 	<Default>true</Default>
 </Package>
