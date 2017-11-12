@@ -75,7 +75,7 @@ void ListCommand::listProviders(const QCliParser &parser)
 
 void ListCommand::listKits(const QCliParser &parser)
 {
-	auto kits = QtKitInfo::readFromSettings(settings());
+	auto kits = QtKitInfo::readFromSettings(buildDir());
 
 	if(parser.isSet(QStringLiteral("short"))) {
 		QStringList paths;
