@@ -98,12 +98,12 @@ void DevCommand::addDev(const QCliParser &parser)
 			throw tr("The given local path \"%1\" is not valid").arg(path);
 
 		QpmxDevDependency devDep(pkg, path);
-		auto dIdx = userFormat.devmode.indexOf(devDep);
+		auto dIdx = userFormat.devDependencies.indexOf(devDep);
 		if(dIdx != -1) {
 			xWarning() << tr("Package %1 is already a dev dependency. Replacing with the given version and path").arg(devDep.toString());
-			userFormat.devmode[dIdx] = devDep;
+			userFormat.devDependencies[dIdx] = devDep;
 		} else
-			userFormat.devmode.append(devDep);
+			userFormat.devDependencies.append(devDep);
 
 		xDebug() << tr("Added package %1 as dev dependency with path \"%2\"")
 					.arg(devDep.toString())
@@ -119,7 +119,7 @@ void DevCommand::removeDev(const QCliParser &parser)
 
 	auto userFormat = QpmxUserFormat::readDefault();
 	foreach(auto package, packages){
-		userFormat.devmode.removeOne(QpmxDevDependency(package));
+		userFormat.devDependencies.removeOne(QpmxDevDependency(package));
 		xDebug() << tr("Removed package %1 from the dev dependencies")
 					.arg(package.toString());
 	}
@@ -142,10 +142,10 @@ void DevCommand::commitDev(const QCliParser &parser)
 		auto pkg = pkgList.takeFirst();
 
 		QpmxDevDependency dep(pkg);
-		auto depIndex = userFormat.devmode.indexOf(dep);
+		auto depIndex = userFormat.devDependencies.indexOf(dep);
 		if(depIndex == -1)
 			throw tr("Package %1 is not a dev dependency and cannot be commited").arg(pkg.toString());
-		dep = userFormat.devmode.value(depIndex);
+		dep = userFormat.devDependencies.value(depIndex);
 
 		auto version = QVersionNumber::fromString(parser.positionalArguments()[i + 1]);
 		if(version.isNull())
@@ -155,7 +155,7 @@ void DevCommand::commitDev(const QCliParser &parser)
 		runPublish(parser.values(QStringLiteral("provider")), dep, version);
 
 		//remove the dev dep
-		userFormat.devmode.removeOne(dep);
+		userFormat.devDependencies.removeOne(dep);
 		xDebug() << tr("Removed package %1 from the dev dependencies")
 					.arg(pkg.toString());
 	}

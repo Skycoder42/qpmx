@@ -110,7 +110,9 @@ class QpmxUserFormat : public QpmxFormat
 	Q_GADGET
 	Q_DECLARE_TR_FUNCTIONS(QpmxFormat)
 
-	Q_PROPERTY(QList<QpmxDevDependency> devmode MEMBER devmode)
+	Q_PROPERTY(QList<QpmxDevDependency> devDependencies MEMBER devDependencies)
+	//MAJOR keep for compability. Will not be written, but can be read
+	Q_PROPERTY(QList<QpmxDevDependency> devmode MEMBER devDependencies READ readDummy)
 
 public:
 	QpmxUserFormat();
@@ -125,10 +127,13 @@ public:
 	static void writeUser(const QpmxUserFormat &data);
 	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
 
-	QList<QpmxDevDependency> devmode;
+	QList<QpmxDevDependency> devDependencies;
 
 protected:
 	void checkDuplicates() override;
+
+private:
+	QList<QpmxDevDependency> readDummy() const;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)

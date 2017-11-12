@@ -161,20 +161,20 @@ bool QpmxDevDependency::operator==(const QpmxDependency &other) const
 
 QpmxUserFormat::QpmxUserFormat() :
 	QpmxFormat(),
-	devmode()
+	devDependencies()
 {}
 
 QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format) :
 	QpmxFormat(format),
-	devmode(userFormat.devmode)
+	devDependencies(userFormat.devDependencies)
 {
-	foreach(auto dep, devmode)
+	foreach(auto dep, devDependencies)
 		dependencies.removeOne(dep);
 }
 
 QList<QpmxDevDependency> QpmxUserFormat::allDeps() const
 {
-	auto res = devmode;
+	auto res = devDependencies;
 	foreach(auto dep, dependencies)
 		res.append(dep);
 	return res;
@@ -277,7 +277,12 @@ bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
 void QpmxUserFormat::checkDuplicates()
 {
 	QpmxFormat::checkDuplicates();
-	checkDuplicatesImpl(devmode);
+	checkDuplicatesImpl(devDependencies);
+}
+
+QList<QpmxDevDependency> QpmxUserFormat::readDummy() const
+{
+	return {};
 }
 
 

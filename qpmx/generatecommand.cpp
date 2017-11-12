@@ -75,7 +75,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
-		if(!mainFormat.devmode.isEmpty())
+		if(!mainFormat.devDependencies.isEmpty())
 			setDevMode(true);
 		createPriFile(mainFormat);
 		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
@@ -107,8 +107,8 @@ bool GenerateCommand::hasChanged(const QpmxUserFormat &current, const QpmxUserFo
 	if(!cCache.isEmpty())
 		return true;
 
-	auto dCache = cache.devmode;
-	foreach(auto dep, current.devmode) {
+	auto dCache = cache.devDependencies;
+	foreach(auto dep, current.devDependencies) {
 		auto cIdx = dCache.indexOf(dep);
 		if(cIdx == -1)
 			return true;
@@ -179,11 +179,11 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//top-level pri only
 	stream << "\n!qpmx_sub_pri {\n";
 
-	if(!current.devmode.isEmpty()) {
+	if(!current.devDependencies.isEmpty()) {
 		//add "dummy" dev deps, for easier access
 		stream << "\tCONFIG -= qpmx_never_ever_ever_true\n"
 			   << "\tqpmx_never_ever_ever_true { #trick to make QtCreator show dev dependencies in the build tree\n";
-		foreach(auto dep, current.devmode) {
+		foreach(auto dep, current.devDependencies) {
 			auto depDir = QDir::current();
 			if(!depDir.cd(dep.path)) {
 				xWarning() << tr("Unabled to find directory of dev dependency %1").arg(dep.toString());
