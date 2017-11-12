@@ -203,9 +203,7 @@ QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool f
 		PackageInfo info(match.captured(1),
 						 match.captured(2),
 						 QVersionNumber::fromString(match.captured(3)));
-		if(fullPkgOnly &&
-		   (info.provider().isEmpty() ||
-			info.version().isNull()))
+		if(fullPkgOnly && !info.isComplete())
 			throw tr("You must explicitly specify provider, package name and version for this command");
 		pkgList.append(info);
 		xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")

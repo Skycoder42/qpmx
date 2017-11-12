@@ -25,7 +25,9 @@ public:
 	virtual ~QpmxDependency();
 
 	bool operator==(const QpmxDependency &other) const;
+
 	QString toString(bool scoped = true) const;
+	bool isComplete() const;
 	qpmx::PackageInfo pkg(const QString &provider = {}) const;
 
 	QString provider;

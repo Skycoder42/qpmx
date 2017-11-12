@@ -184,8 +184,7 @@ void InstallCommand::getNext()
 	}
 
 	_current = _pkgList[_pkgIndex];
-	if(_current.isDev() &&
-	   (_current.provider.isEmpty() || _current.version.isNull()))
+	if(_current.isDev() && !_current.isComplete())
 		throw tr("dev dependencies cannot be used without a provider/version");
 
 	if(_current.provider.isEmpty()) {

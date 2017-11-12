@@ -31,6 +31,13 @@ QString QpmxDependency::toString(bool scoped) const
 	return pkg().toString(scoped);
 }
 
+bool QpmxDependency::isComplete() const
+{
+	return !provider.isEmpty() &&
+			!package.isEmpty() &&
+			!version.isNull();
+}
+
 PackageInfo QpmxDependency::pkg(const QString &provider) const
 {
 	return {provider.isEmpty() ? this->provider : provider, package, version};
