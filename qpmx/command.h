@@ -79,7 +79,6 @@ protected:
 	template <typename T>
 	int randId(QHash<int, T> &cache);
 
-	QUuid findKit(const QString &qmake) const;
 	void cleanCaches(const qpmx::PackageInfo &package);
 
 	bool readBool(const QString &message, QTextStream &stream, bool defaultValue);

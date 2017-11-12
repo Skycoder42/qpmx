@@ -1,3 +1,4 @@
+#include "compilecommand.h"
 #include "generatecommand.h"
 
 #include <QStandardPaths>
@@ -167,7 +168,7 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	if(current.source)
 		kit = QStringLiteral("src");
 	else
-		kit = findKit(_qmake);
+		kit = QtKitInfo::findKitId(buildDir(), _qmake);
 	stream << "\n#dependencies\n"
 		   << "QPMX_TS_DIRS = \n"; //clean for only use local deps
 	foreach(auto dep, current.allDeps()) {

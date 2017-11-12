@@ -745,6 +745,25 @@ QtKitInfo::QtKitInfo(const QString &path) :
 	sysRoot()
 {}
 
+QUuid QtKitInfo::findKitId(const QDir &buildDir, const QString &qmake)
+{
+	QUuid id;
+	QSettings settings(buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat);
+
+	auto kitCnt = settings.beginReadArray(QStringLiteral("qt-kits"));
+	for(auto i = 0; i < kitCnt; i++) {
+		settings.setArrayIndex(i);
+		auto path = settings.value(QStringLiteral("path")).toString();
+		if(path == qmake) {
+			id = settings.value(QStringLiteral("id")).toUuid();
+			break;
+		}
+	}
+	settings.endArray();
+
+	return id;
+}
+
 QList<QtKitInfo> QtKitInfo::readFromSettings(const QDir &buildDir)
 {
 	QSettings settings(buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat);

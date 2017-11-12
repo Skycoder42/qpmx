@@ -12,6 +12,7 @@ class QtKitInfo
 public:
 	QtKitInfo(const QString &path = {});
 
+	static QUuid findKitId(const QDir &buildDir, const QString &qmake);
 	static QList<QtKitInfo> readFromSettings(const QDir &buildDir);
 	static void writeToSettings(const QDir &buildDir, const QList<QtKitInfo> &kitInfos);
 

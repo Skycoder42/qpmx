@@ -269,23 +269,6 @@ QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
 	return depList;
 }
 
-QUuid Command::findKit(const QString &qmake) const
-{
-	QUuid id;
-	auto kitCnt = _settings->beginReadArray(QStringLiteral("qt-kits"));
-	for(auto i = 0; i < kitCnt; i++) {
-		_settings->setArrayIndex(i);
-		auto path = _settings->value(QStringLiteral("path")).toString();
-		if(path == qmake) {
-			id = _settings->value(QStringLiteral("id")).toUuid();
-			break;
-		}
-	}
-
-	_settings->endArray();
-	return id;
-}
-
 void Command::cleanCaches(const PackageInfo &package)
 {
 	auto sDir = srcDir(package);
