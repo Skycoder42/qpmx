@@ -90,8 +90,7 @@ private:
 	int _kitIndex;
 	QtKitInfo _kit;
 	CacheLock _buildLock;
-	CacheLock _devLock;
-	CacheLock _srcLock;
+	CacheLock _srcLock;//also serves as lock for build-folder of dev-deps
 	QScopedPointer<BuildDir> _compileDir;
 	QpmxFormat _format;
 	Stage _stage;

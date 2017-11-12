@@ -231,11 +231,11 @@ void CompileCommand::compileNext()
 						.arg(_current.toString())
 						.arg(_kit.path);
 		} else {
-			//done -> unlock
-			_buildLock.free();
 			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
+			//done -> unlock
+			_buildLock.free();
 			compileNext();
 			return;
 		}
@@ -247,12 +247,15 @@ void CompileCommand::compileNext()
 
 	//create temp dir and load qpmx.json
 	if(_current.isDev() && !_clean) {
-		_devLock = buildLock(QStringLiteral("build"), _current);
+		//for dev deps, don't lock the src folder, but instead the build folder
+		_srcLock = buildLock(QStringLiteral("build"), _current);
 		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current, true)));
-	} else
+	} else {
+		if(!_current.isDev()) //nothing to lock here
+			_srcLock = srcLock(_current);
 		_compileDir.reset(new BuildDir());
+	}
 
-	_srcLock = srcLock(_current);
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = None;
 	if(_format.source)
@@ -286,7 +289,6 @@ void CompileCommand::makeStep()
 			xDebug() << tr("Completed installation. Compliation succeeded");
 			//done -> unlock everything
 			_srcLock.free();
-			_devLock.free();
 			_buildLock.free();
 			compileNext();
 			break;
