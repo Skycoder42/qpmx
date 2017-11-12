@@ -62,7 +62,6 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 
 		try {
 			QJsonSerializer ser;
-			ser.addJsonTypeConverter(new VersionConverter());
 			auto format = ser.deserializeFrom<QpmxFormat>(&qpmxFile);
 			format.checkDuplicates();
 			return format;
@@ -92,7 +91,6 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 
 	try {
 		QJsonSerializer ser;
-		ser.addJsonTypeConverter(new VersionConverter());
 		//ser.serializeTo(&qpmxFile, data);
 		auto json = ser.serialize(data);
 		qpmxFile.write(QJsonDocument(json).toJson(QJsonDocument::Indented));
@@ -199,7 +197,6 @@ QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName
 
 		try {
 			QJsonSerializer ser;
-			ser.addJsonTypeConverter(new VersionConverter());
 			auto format = ser.deserializeFrom<QpmxUserFormat>(&qpmxUserFile);
 			format.checkDuplicates();
 			return format;
@@ -224,7 +221,6 @@ void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
 
 	try {
 		QJsonSerializer ser;
-		ser.addJsonTypeConverter(new VersionConverter());
 		auto json = ser.serialize(data);
 
 		QJsonObject userReduced;
@@ -255,7 +251,6 @@ bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
 
 	try {
 		QJsonSerializer ser;
-		ser.addJsonTypeConverter(new VersionConverter());
 		ser.serializeTo(&qpmxUserFile, data);
 	} catch(QJsonSerializerException &e) {
 		qDebug() << e.what();
@@ -279,32 +274,6 @@ void QpmxUserFormat::checkDuplicates()
 }
 
 
-
-
-bool VersionConverter::canConvert(int metaTypeId) const
-{
-	return metaTypeId == qMetaTypeId<QVersionNumber>();
-}
-
-QList<QJsonValue::Type> VersionConverter::jsonTypes() const
-{
-	return {QJsonValue::String};
-}
-
-QJsonValue VersionConverter::serialize(int propertyType, const QVariant &value, const SerializationHelper *helper) const
-{
-	Q_ASSERT(propertyType == qMetaTypeId<QVersionNumber>());
-	Q_UNUSED(helper)
-	return value.value<QVersionNumber>().toString();
-}
-
-QVariant VersionConverter::deserialize(int propertyType, const QJsonValue &value, QObject *parent, const SerializationHelper *helper) const
-{
-	Q_ASSERT(propertyType == qMetaTypeId<QVersionNumber>());
-	Q_UNUSED(helper)
-	Q_UNUSED(parent)
-	return QVariant::fromValue(QVersionNumber::fromString(value.toString()));
-}
 
 bool QpmxFormatLicense::operator!=(const QpmxFormatLicense &other) const
 {

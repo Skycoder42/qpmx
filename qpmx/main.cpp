@@ -42,11 +42,8 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName(QStringLiteral(COMPANY));
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
-	QJsonSerializer::registerAllConverters<QJsonObject>();
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
 	QJsonSerializer::registerAllConverters<QpmxDevDependency>();
-	qRegisterMetaType<QVersionNumber>();
-	qRegisterMetaType<QList<QVersionNumber>>();
 	qRegisterMetaTypeStreamOperators<QVersionNumber>();
 
 	QHash<QString, Command*> commands;
