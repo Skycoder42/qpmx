@@ -207,7 +207,7 @@ void CompileCommand::compileNext()
 	_kit = _qtKits[_kitIndex];
 
 	//lock the package and kit
-	buildLock(_kit.id, _current);
+	_buildLock = buildLock(_kit.id, _current);
 
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
@@ -228,7 +228,7 @@ void CompileCommand::compileNext()
 						.arg(_kit.path);
 		} else {
 			//done -> unlock
-			buildUnlock(_kit.id, _current);
+			_buildLock.free();
 			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
 						.arg(_current.toString())
 						.arg(_kit.path);
@@ -243,12 +243,12 @@ void CompileCommand::compileNext()
 
 	//create temp dir and load qpmx.json
 	if(_current.isDev() && !_clean) {
-		buildLock(QStringLiteral("build"), _current);
+		_devLock = buildLock(QStringLiteral("build"), _current);
 		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current, true)));
 	} else
 		_compileDir.reset(new BuildDir());
 
-	srcLock(_current);
+	_srcLock = srcLock(_current);
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = None;
 	if(_format.source)
@@ -280,11 +280,10 @@ void CompileCommand::makeStep()
 			_stage = PriGen;
 			priGen();
 			xDebug() << tr("Completed installation. Compliation succeeded");
-			//done -> unlock (both)
-			if(_current.isDev() && !_clean)
-				buildUnlock(QStringLiteral("build"), _current);
-			srcUnlock(_current);
-			buildUnlock(_kit.id, _current);
+			//done -> unlock everything
+			_srcLock.free();
+			_devLock.free();
+			_buildLock.free();
 			compileNext();
 			break;
 		default:
@@ -450,9 +449,8 @@ void CompileCommand::depCollect()
 
 	while(!queue.isEmpty()) {
 		auto pkg = queue.dequeue();
-		srcLock(pkg);
+		auto _sl = srcLock(pkg);
 		auto format = QpmxFormat::readFile(srcDir(pkg), true);
-		srcUnlock(pkg);
 		foreach(auto dep, format.dependencies) {
 			if(!sortHelper.contains(dep)) {
 				sortHelper.addData(dep);
@@ -588,7 +586,7 @@ void CompileCommand::setupEnv()
 void CompileCommand::initKits(const QStringList &qmakes)
 {
 	//read exising qmakes
-	kitLock();
+	auto _kl = kitLock();
 	auto allKits = QtKitInfo::readFromSettings(buildDir());
 
 	//collect the kits to use, and ALWAYS update them!
@@ -640,7 +638,6 @@ void CompileCommand::initKits(const QStringList &qmakes)
 
 	//save back all kits
 	QtKitInfo::writeToSettings(buildDir(), allKits);
-	kitUnlock();
 }
 
 QtKitInfo CompileCommand::createKit(const QString &qmakePath)

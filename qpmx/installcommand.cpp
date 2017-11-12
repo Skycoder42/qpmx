@@ -110,6 +110,7 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 		return;
 
 	if(version.isNull()) {
+		data.lock->free();
 		auto str = tr("Package%2does not exist for provider %{bld}%1%{end}")
 				   .arg(data.provider);
 		if(data.mustWork)
@@ -152,11 +153,13 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 	if(!data)
 		return;
 
+	//remove any active locks, after error nothing more will happen
+	data.lock->free();
+
 	QString str;
-	if(data.type == SrcAction::Install) {
-		srcUnlock(_current.pkg(data.provider));//unlock source, as it is not used anymore
+	if(data.type == SrcAction::Install)
 		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error:\n%2");
-	} else
+	else
 		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error:\n%2");
 	str = str.arg(data.provider).arg(error);
 
@@ -229,23 +232,23 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(_current.isDev()) {
 		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
 		auto id = randId(_actionCache);
-		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
+		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin}); //TODO lock anyways?
 		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 								  Q_ARG(int, id));
 		return;
 	}
 
 	//aquire the lock for the package
-	srcLock(_current.pkg(provider));
+	SharedCacheLock lock = srcLock(_current.pkg(provider));
 
 	auto sDir = srcDir(_current.pkg(provider));
 	if(sDir.exists()) {
 		if(_renew || !sDir.exists(QStringLiteral("qpmx.json"))) //no qpmx.json -> remove and download again
-			cleanCaches(_current.pkg(provider));
+			cleanCaches(_current.pkg(provider), lock);
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
 			auto id = randId(_actionCache);
-			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
+			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin, lock});
 			QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 									  Q_ARG(int, id));
 			return;
@@ -258,7 +261,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 
 	xDebug() << tr("Gettings sources for package %1").arg(_current.toString());
 	auto id = randId(_actionCache);
-	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin});
+	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin, lock});
 	connectPlg(plugin);
 	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
 	return;
@@ -276,6 +279,7 @@ void InstallCommand::completeSource()
 			QStringList provList;
 			foreach(auto data, _resCache)
 				provList.append(data.provider);
+			_resCache.clear();//to unlock
 			throw tr("Found more then one provider for package %1. Providers are: %2")
 					.arg(_current.toString())
 					.arg(provList.join(tr(", ")));
@@ -329,8 +333,7 @@ void InstallCommand::completeSource()
 		//add new dependencies
 		detectDeps(format);
 		//unlock & next
-		if(!_current.isDev()) //not for dev...
-			srcUnlock(_current);
+		data.lock->free();
 		getNext();
 	} catch(QString &s) {
 		_resCache.clear();
@@ -394,7 +397,7 @@ void InstallCommand::connectPlg(SourcePlugin *plugin)
 
 void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
-	buildLock(QStringLiteral("src"), _current);
+	auto _bl = buildLock(QStringLiteral("src"), _current);
 
 	auto sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current, true);
@@ -402,7 +405,6 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
 	if(srcPriFile.exists()) {
 		qDebug() << "source include.pri already exists. Skipping generation";
-		buildUnlock(QStringLiteral("src"), _current);
 		return;
 	}
 
@@ -425,8 +427,6 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	stream.flush();
 	srcPriFile.close();
 	xInfo() << tr("Generated source include.pri");
-
-	buildUnlock(QStringLiteral("src"), _current);
 }
 
 void InstallCommand::detectDeps(const QpmxFormat &format)
@@ -449,12 +449,13 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 
 
 
-InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin) :
+InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin, SharedCacheLock lock) :
 	type(type),
 	provider(provider),
 	tDir(tDir),
 	mustWork(mustWork),
-	plugin(plugin)
+	plugin(plugin),
+	lock(lock)
 {}
 
 InstallCommand::SrcAction::operator bool() const

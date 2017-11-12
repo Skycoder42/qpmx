@@ -8,6 +8,7 @@
 #include <QUuid>
 #include <QSettings>
 #include <QSystemSemaphore>
+#include <QLockFile>
 
 #include "packageinfo.h"
 #include "pluginregistry.h"
@@ -54,24 +55,50 @@ protected:
 		{}
 	};
 
+	class CacheLock
+	{
+		friend class Command;
+		friend class SharedCacheLock;
+		Q_DISABLE_COPY(CacheLock)
+
+	public:
+		CacheLock();
+		CacheLock(CacheLock &&mv);
+		CacheLock &operator=(CacheLock &&mv);
+		~CacheLock();
+
+		bool isLocked() const;
+		void free();
+
+	private:
+		CacheLock(const QString &path, int timeout);
+		QString _path;
+		QScopedPointer<QLockFile> _lock;
+	};
+
+	class SharedCacheLock : public QSharedPointer<CacheLock>
+	{
+	public:
+		SharedCacheLock();
+		SharedCacheLock(const SharedCacheLock &other) = default;
+		SharedCacheLock &operator=(const CacheLock &other);
+		SharedCacheLock(CacheLock &&mv);
+		SharedCacheLock &operator=(CacheLock &&mv);
+
+		const CacheLock &lockRef() const;
+	};
+
 	PluginRegistry *registry();
 	QSettings *settings();
 
 	void setDevMode(bool devModeActive);
 	bool devMode() const;
 
-	void srcLock(const qpmx::PackageInfo &package);
-	void srcLock(const QpmxDependency &dep);
-	void srcUnlock(const qpmx::PackageInfo &package);
-	void srcUnlock(const QpmxDependency &dep);
-
-	void buildLock(const BuildId &kitId, const qpmx::PackageInfo &package);
-	void buildLock(const BuildId &kitId, const QpmxDependency &dep);
-	void buildUnlock(const BuildId &kitId, const qpmx::PackageInfo &package);
-	void buildUnlock(const BuildId &kitId, const QpmxDependency &dep);
-
-	void kitLock();
-	void kitUnlock();
+	Q_REQUIRED_RESULT CacheLock srcLock(const qpmx::PackageInfo &package);
+	Q_REQUIRED_RESULT CacheLock srcLock(const QpmxDependency &dep);
+	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const qpmx::PackageInfo &package);
+	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const QpmxDependency &dep);
+	Q_REQUIRED_RESULT CacheLock kitLock();
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
@@ -79,7 +106,8 @@ protected:
 	template <typename T>
 	int randId(QHash<int, T> &cache);
 
-	void cleanCaches(const qpmx::PackageInfo &package);
+	void cleanCaches(const qpmx::PackageInfo &package, const SharedCacheLock &sharedSrcLockRef);
+	void cleanCaches(const qpmx::PackageInfo &package, const CacheLock &srcLockRef);
 
 	bool readBool(const QString &message, QTextStream &stream, bool defaultValue);
 	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
@@ -104,7 +132,6 @@ protected:
 private:
 	PluginRegistry *_registry;
 	QSettings *_settings;
-	QHash<QPair<bool, QString>, QSystemSemaphore*> _locks;
 	bool _devMode;
 
 	bool _verbose;
@@ -115,8 +142,7 @@ private:
 	bool _qmakeRun;
 	QString _cacheDir;
 
-	void lock(bool isSource, const QString &key);
-	void unlock(bool isSource, const QString &key);
+	Q_REQUIRED_RESULT CacheLock lock(bool isSource, const QString &path);
 };
 
 template <typename T>

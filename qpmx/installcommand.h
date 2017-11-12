@@ -44,8 +44,14 @@ private:
 		QSharedPointer<QTemporaryDir> tDir;
 		bool mustWork;
 		qpmx::SourcePlugin *plugin;
+		SharedCacheLock lock;
 
-		SrcAction(ResType type = Install, QString provider = {}, QTemporaryDir *tDir = nullptr, bool mustWork = false, qpmx::SourcePlugin *plugin = nullptr);
+		SrcAction(ResType type = Install,
+				  QString provider = {},
+				  QTemporaryDir *tDir = nullptr,
+				  bool mustWork = false,
+				  qpmx::SourcePlugin *plugin = nullptr,
+				  SharedCacheLock lock = {});
 		operator bool() const;
 	};
 

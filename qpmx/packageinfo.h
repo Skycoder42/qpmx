@@ -38,6 +38,12 @@ public:
 	inline QVersionNumber version() const {
 		return d->version;
 	}
+
+	inline bool isComplete() const {
+		return !d->provider.isEmpty() &&
+				!d->package.isEmpty() &&
+				!d->version.isNull();
+	}
 	inline QString toString(bool scoped = true) const {
 		auto res = d->package;
 		if(!d->provider.isNull())

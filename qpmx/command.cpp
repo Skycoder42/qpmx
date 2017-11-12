@@ -6,6 +6,7 @@
 
 #include <QProcess>
 #include <iostream>
+#include <chrono>
 #ifdef Q_OS_UNIX
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -18,7 +19,6 @@ Command::Command(QObject *parent) :
 	QObject(parent),
 	_registry(PluginRegistry::instance()),
 	_settings(new QSettings(this)),
-	_locks(),
 	_devMode(false),
 	_verbose(false),
 	_quiet(false),
@@ -91,13 +91,6 @@ void Command::fin()
 {
 	finalize();
 	_registry->cancelAll();
-	for(auto it = _locks.begin(); it != _locks.end(); it++) {
-		xDebug() << QStringLiteral("Freeing remaining lock for %{bld}%1/%2%{end}")
-					.arg(it.key().first ? QStringLiteral("src") : QStringLiteral("build"))
-					.arg(it.key().second);
-		it.value()->release();
-		delete it.value();
-	}
 }
 
 int Command::exitCode()
@@ -168,60 +161,33 @@ bool Command::devMode() const
 	return _devMode;
 }
 
-void Command::srcLock(const PackageInfo &package)
+Command::CacheLock Command::srcLock(const PackageInfo &package)
 {
-	if(package.provider().isEmpty() ||
-		package.version().isNull())
-		throw tr("Semaphores require full packages");
-	lock(true, package.toString(false));
+	if(!package.isComplete())
+		throw tr("Locks require full packages");
+	return lock(true, srcDir(package).absolutePath());
 }
 
-void Command::srcLock(const QpmxDependency &dep)
+Command::CacheLock Command::srcLock(const QpmxDependency &dep)
 {
-	srcLock(dep.pkg());
+	return srcLock(dep.pkg());
 }
 
-void Command::srcUnlock(const PackageInfo &package)
+Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package)
 {
-	unlock(true, package.toString(false));
+	if(!package.isComplete())
+		throw tr("Locks require full packages");
+	return lock(true, buildDir(kitId, package).absolutePath());
 }
 
-void Command::srcUnlock(const QpmxDependency &dep)
+Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep)
 {
-	srcUnlock(dep.pkg());
+	return buildLock(kitId, dep.pkg());
 }
 
-void Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package)
+Command::CacheLock Command::kitLock()
 {
-	if(package.provider().isEmpty() ||
-		package.version().isNull())
-		throw tr("Semaphores require full packages");
-	lock(false, QStringLiteral("%1/%2").arg(kitId).arg(package.toString(false)));
-}
-
-void Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep)
-{
-	buildLock(kitId, dep.pkg());
-}
-
-void Command::buildUnlock(const Command::BuildId &kitId, const PackageInfo &package)
-{
-	unlock(false, QStringLiteral("%1/%2").arg(kitId).arg(package.toString(false)));
-}
-
-void Command::buildUnlock(const Command::BuildId &kitId, const QpmxDependency &dep)
-{
-	buildUnlock(kitId, dep.pkg());
-}
-
-void Command::kitLock()
-{
-	lock(true, QStringLiteral("qt/kits"));//as source, to always lock globally
-}
-
-void Command::kitUnlock()
-{
-	unlock(true, QStringLiteral("qt/kits"));//as source, to always lock globally
+	return lock(true, buildDir().absoluteFilePath(QStringLiteral("qt-kits.ini")));
 }
 
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
@@ -269,18 +235,24 @@ QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
 	return depList;
 }
 
-void Command::cleanCaches(const PackageInfo &package)
+void Command::cleanCaches(const PackageInfo &package, const Command::SharedCacheLock &sharedSrcLockRef)
 {
+	cleanCaches(package, sharedSrcLockRef.lockRef());
+}
+
+void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRef)
+{
+	Q_UNUSED(srcLockRef)
+
 	auto sDir = srcDir(package);
 	if(!sDir.removeRecursively())
 		throw tr("Failed to remove source cache for %1").arg(package.toString());
 	auto bDir = buildDir();
 	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
-		buildLock(cmpDir, package);
+		auto _bl = buildLock(cmpDir, package);
 		auto rDir = buildDir(cmpDir, package);
 		if(!rDir.removeRecursively())
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
-		buildUnlock(cmpDir, package);
 	}
 	xInfo() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
@@ -472,35 +444,149 @@ QString Command::dashed(QString option)
 		return QStringLiteral("--") + option;
 }
 
-void Command::lock(bool isSource, const QString &key)
+Command::CacheLock Command::lock(bool isSource, const QString &path)
 {
-	QString prefix;
-	if(isSource)
-		prefix = QStringLiteral("src");
-	else if(_devMode)
-		prefix = QStringLiteral("dev-build");//TODO use local lock
-	else
-		prefix = QStringLiteral("build");
-	if(_locks.contains({isSource, key})){
-		throw tr("Resource %{bld}%1/%2%{end} has already been locked")
-				.arg(prefix)
-				.arg(key);
+	using namespace std::chrono;
+
+	auto staleLock = -1;
+	_settings->beginGroup(QStringLiteral("stale-timeouts"));
+	if(isSource) {
+		staleLock = _settings->value(QStringLiteral("src"),
+									 (int)duration_cast<milliseconds>(minutes(1)).count())
+					.toInt();
+	} else {
+		staleLock = _settings->value(QStringLiteral("build"),
+									 (int)duration_cast<milliseconds>(seconds(30)).count())
+					.toInt();
 	}
+	_settings->endGroup();
 
-	auto name = QStringLiteral("%1/%2").arg(prefix).arg(key);
-	auto sem = new QSystemSemaphore(name, 1, QSystemSemaphore::Open);
-	if(sem->error() != QSystemSemaphore::NoError)
-		throw tr("Failed to create semaphore with error: %1").arg(sem->errorString());
-
-	sem->acquire();
-	_locks.insert({isSource, key}, sem);
+	QFileInfo fInfo(path);
+	if(!fInfo.dir().mkpath(QStringLiteral(".")))
+		throw tr("Failed to create parent directory for lockfile %{bld}%1%{end}").arg(path);
+	auto fName = fInfo.dir()
+				 .absoluteFilePath(QStringLiteral(".%1.lock").arg(fInfo.fileName()));
+	return CacheLock(fName, staleLock);
 }
 
-void Command::unlock(bool isSource, const QString &key)
+
+
+Command::CacheLock::CacheLock() :
+	_path(),
+	_lock(nullptr)
+{}
+
+Command::CacheLock::CacheLock(CacheLock &&mv) :
+	_path(mv._path),
+	_lock(nullptr)
 {
-	auto sem = _locks.take({isSource, key});
-	if(sem) {
-		sem->release();
-		delete sem;
+	_lock.swap(mv._lock);
+}
+
+Command::CacheLock &Command::CacheLock::operator=(Command::CacheLock &&mv)
+{
+	//free before swapping, to make shure the old lock gets removed before we take over the new one
+	free();
+	_path = mv._path;
+	_lock.swap(mv._lock);
+	return (*this);
+}
+
+Command::CacheLock::CacheLock(const QString &path, int timeout) :
+	_path(path),
+	_lock(new QLockFile(path))
+{
+	if(timeout >= 0)
+		_lock->setStaleLockTime(timeout);
+
+	if(!_lock->lock()) {
+		QString errorStr;
+		switch (_lock->error()) {
+		case QLockFile::NoError:
+		case QLockFile::UnknownError:
+			errorStr = tr("Unknown lock error occured!");
+			break;
+		case QLockFile::LockFailedError:
+			errorStr = tr("Failed to aquire lock -  already locked by another process.");
+			break;
+		case QLockFile::PermissionError:
+			errorStr = tr("No permission to create lockfile!");
+			break;
+		default:
+			Q_UNREACHABLE();
+			break;
+		}
+
+		qint64 pid;
+		QString hostname;
+		QString appname;
+		if(_lock->getLockInfo(&pid, &hostname, &appname)) {
+			errorStr += tr("\nLocked by:\n"
+						   "\tP-ID:     %1\n"
+						   "\tHostname: %2\n"
+						   "\tAppname:  %3")
+						.arg(pid)
+						.arg(hostname)
+						.arg(appname);
+		}
+
+		_lock.reset();
+		throw tr("Lockfile-error on file %{bld}%1%{end}: %2")
+				.arg(path)
+				.arg(errorStr);
 	}
+
+	xDebug() << tr("Created lock %{bld}%1%{end}").arg(path);
+}
+
+Command::CacheLock::~CacheLock()
+{
+	free();
+}
+
+bool Command::CacheLock::isLocked() const
+{
+	return _lock && _lock->isLocked();
+}
+
+void Command::CacheLock::free()
+{
+	if(_lock) {
+		if(_lock->isLocked()) {
+			_lock->unlock();
+			xDebug() << tr("Freed lock %{bld}%1%{end}").arg(_path);
+		}
+		_lock.reset();
+	}
+}
+
+
+
+Command::SharedCacheLock::SharedCacheLock() :
+	QSharedPointer(new CacheLock())
+{}
+
+Command::SharedCacheLock &Command::SharedCacheLock::operator=(const Command::CacheLock &other)
+{
+	(*this) = other;
+	return (*this);
+}
+
+const Command::CacheLock &Command::SharedCacheLock::lockRef() const
+{
+	return (*data());
+}
+
+Command::SharedCacheLock::SharedCacheLock(Command::CacheLock &&mv) :
+	QSharedPointer(new CacheLock())
+{
+	data()->_path = mv._path;
+	data()->_lock.swap(mv._lock);
+}
+
+Command::SharedCacheLock &Command::SharedCacheLock::operator=(Command::CacheLock &&mv)
+{
+	data()->_path = mv._path;
+	data()->_lock.swap(mv._lock);
+	return (*this);
 }

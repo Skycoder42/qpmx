@@ -89,6 +89,9 @@ private:
 	QpmxDevDependency _current;
 	int _kitIndex;
 	QtKitInfo _kit;
+	CacheLock _buildLock;
+	CacheLock _devLock;
+	CacheLock _srcLock;
 	QScopedPointer<BuildDir> _compileDir;
 	QpmxFormat _format;
 	Stage _stage;
