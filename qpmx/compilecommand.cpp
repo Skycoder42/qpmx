@@ -102,7 +102,11 @@ void CompileCommand::initialize(QCliParser &parser)
 					if(!wDir.cd(package))
 						continue;
 					foreach(auto version, wDir.entryList(flags)) {
-						PackageInfo pkg {provider, QUrl::fromPercentEncoding(package.toUtf8()), QVersionNumber::fromString(version)};
+						PackageInfo pkg {
+							provider,
+							pkgDecode(package),
+							QVersionNumber::fromString(version)
+						};
 						_pkgList.append((QpmxDependency)pkg);
 					}
 					wDir.cdUp();

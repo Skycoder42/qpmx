@@ -126,6 +126,8 @@ protected:
 
 	QDir tmpDir();
 
+	static QString pkgEncode(const QString &name);
+	static QString pkgDecode(QString name);
 	static QString dashed(QString option);
 
 private:

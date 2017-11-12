@@ -108,8 +108,7 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 		if(package.isNull())
 			return dir;
-		auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package))
-				.replace(QLatin1Char('%'), QLatin1Char('~'));
+		auto pName = pkgEncode(package);
 		if(!dir.mkpath(pName) || !dir.cd(pName))
 			throw tr("Failed to create sub directory");
 
@@ -126,8 +125,7 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 		auto path = provider;
 		if(!package.isNull()) {
-			auto pName = QString::fromUtf8(QUrl::toPercentEncoding(package))
-					.replace(QLatin1Char('%'), QLatin1Char('~'));
+			auto pName = pkgEncode(package);
 			path += QStringLiteral("/") + pName;
 			if(!version.isNull()) {
 				auto VName = version.toString();
@@ -432,6 +430,19 @@ QDir Command::tmpDir()
 	if(!dir.mkpath(name) || !dir.cd(name))
 		throw tr("Failed to create temporary directory");
 	return dir;
+}
+
+QString Command::pkgEncode(const QString &name)
+{
+	return QString::fromUtf8(QUrl::toPercentEncoding(name))
+			.replace(QLatin1Char('%'), QLatin1Char('~'));
+}
+
+QString Command::pkgDecode(QString name)
+{
+	return QUrl::fromPercentEncoding(name
+									 .replace(QLatin1Char('~'), QLatin1Char('%'))
+									 .toUtf8());
 }
 
 QString Command::dashed(QString option)
