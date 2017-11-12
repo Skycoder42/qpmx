@@ -7,7 +7,6 @@
 #include <qcliparser.h>
 #include <QUuid>
 #include <QSettings>
-#include <QSystemSemaphore>
 #include <QLockFile>
 
 #include "packageinfo.h"

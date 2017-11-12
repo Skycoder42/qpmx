@@ -447,12 +447,17 @@ void CompileCommand::depCollect()
 	foreach(auto pkg, _pkgList)
 		queue.enqueue(pkg);
 
+	//check for exact, version match
+	static const auto cmp = [](const QpmxDevDependency &d1, const QpmxDevDependency &d2) -> bool {
+		return d1 == d2 && d1.version == d2.version;
+	};
+
 	while(!queue.isEmpty()) {
 		auto pkg = queue.dequeue();
 		auto _sl = srcLock(pkg);
 		auto format = QpmxFormat::readFile(srcDir(pkg), true);
 		foreach(auto dep, format.dependencies) {
-			if(!sortHelper.contains(dep)) {
+			if(!sortHelper.contains(dep, cmp)) {
 				sortHelper.addData(dep);
 				queue.enqueue(dep);
 			}

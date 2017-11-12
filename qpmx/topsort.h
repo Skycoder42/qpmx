@@ -5,6 +5,7 @@
 #include <QList>
 #include <QQueue>
 #include <QVector>
+#include <functional>
 
 template <typename T>
 class TopSort
@@ -15,6 +16,7 @@ public:
 
 	void addData(const T &data);
 	bool contains(const T &data) const;
+	bool contains(const T &data, const std::function<bool(const T&,const T&)> &comparator) const;
 
 	void addDependency(int from, int to);
 	void addDependency(const T &from, const T &to);
@@ -50,6 +52,16 @@ template<typename T>
 bool TopSort<T>::contains(const T &data) const
 {
 	return _data.contains(data);
+}
+
+template<typename T>
+bool TopSort<T>::contains(const T &data, const std::function<bool (const T &, const T &)> &comparator) const
+{
+	foreach(auto e, _data) {
+		if(comparator(data, e))
+			return true;
+	}
+	return false;
 }
 
 template<typename T>
