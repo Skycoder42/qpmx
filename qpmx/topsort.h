@@ -12,11 +12,10 @@ class TopSort
 {
 public:
 	TopSort();
-	TopSort(const QList<T> &list);
+	TopSort(const QList<T> &list, const std::function<bool(const T&,const T&)> &comparator = {});
 
 	void addData(const T &data);
 	bool contains(const T &data) const;
-	bool contains(const T &data, const std::function<bool(const T&,const T&)> &comparator) const;
 
 	void addDependency(int from, int to);
 	void addDependency(const T &from, const T &to);
@@ -24,8 +23,11 @@ public:
 	QList<T> sort() const;
 
 private:
+	const std::function<bool(const T&,const T&)> _comparator;
 	QList<T> _data;
 	QMultiHash<int, int> _dependencies;
+
+	int indexOf(const T &data) const;
 };
 
 // ------------- Implementation -------------
@@ -37,7 +39,8 @@ TopSort<T>::TopSort() :
 {}
 
 template<typename T>
-TopSort<T>::TopSort(const QList<T> &list) :
+TopSort<T>::TopSort(const QList<T> &list, const std::function<bool(const T & ,const T &)> &comparator) :
+	_comparator(comparator ? comparator : [](const T &a, const T &b){ return a == b; }),
 	_data(list),
 	_dependencies()
 {}
@@ -51,17 +54,7 @@ void TopSort<T>::addData(const T &data)
 template<typename T>
 bool TopSort<T>::contains(const T &data) const
 {
-	return _data.contains(data);
-}
-
-template<typename T>
-bool TopSort<T>::contains(const T &data, const std::function<bool (const T &, const T &)> &comparator) const
-{
-	foreach(auto e, _data) {
-		if(comparator(data, e))
-			return true;
-	}
-	return false;
+	return indexOf(data) != -1;
 }
 
 template<typename T>
@@ -75,7 +68,7 @@ void TopSort<T>::addDependency(int from, int to)
 template<typename T>
 void TopSort<T>::addDependency(const T &from, const T &to)
 {
-	addDependency(_data.indexOf(from), _data.indexOf(to));
+	addDependency(indexOf(from), indexOf(to));
 }
 
 // http://www.geeksforgeeks.org/topological-sorting-indegree-based-solution/
@@ -119,6 +112,16 @@ QList<T> TopSort<T>::sort() const
 	foreach(auto i, topOrder)
 		result.prepend(_data[i]);
 	return result;
+}
+
+template<typename T>
+int TopSort<T>::indexOf(const T &data) const
+{
+	for(auto i = 0, m = _data.size(); i < m; i++) {
+		if(_comparator(data, _data[i]))
+			return i;
+	}
+	return -1;
 }
 
 #endif // TOPSORT_H

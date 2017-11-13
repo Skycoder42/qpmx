@@ -62,7 +62,7 @@ qpmx_ts_target.CONFIG += no_check_exist
 #qpmx_ts_target.files = $$TRANSLATIONS_QM
 for(tsfile, TRANSLATIONS) {
 	tsBase = $$basename(tsfile)
-	qpmx_ts_target.files += "$$OUT_PWD/$$QPMX_WORKINGDIR/$$replace(tsBase, .ts, .qm)"
+	qpmx_ts_target.files += "$$OUT_PWD/$$QPMX_WORKINGDIR/$$replace(tsBase, \.ts, .qm)"
 }
 
 QMAKE_DIR_REPLACE += QPMX_WORKINGDIR

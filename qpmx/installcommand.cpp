@@ -231,7 +231,7 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(_current.isDev()) {
 		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
 		auto id = randId(_actionCache);
-		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin}); //TODO lock anyways?
+		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
 		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 								  Q_ARG(int, id));
 		return;
