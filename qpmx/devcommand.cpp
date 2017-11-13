@@ -41,6 +41,11 @@ QSharedPointer<QCliNode> DevCommand::createCliNode()
 										 tr("The new version for the preceeding package to publish."),
 										 QStringLiteral("<version> ..."));
 	devCommitNode->addOption({
+								 QStringLiteral("no-add"),
+								 tr("Don't update/add the commited package in the user.json file. By default thats the case "
+									"for comitting")
+							 });
+	devCommitNode->addOption({
 								 {QStringLiteral("p"), QStringLiteral("provider")},
 								 tr("Pass the <provider> to push to. Can be specified multiple times. If not specified, "
 									"the package is published for all providers prepared for the package."),
@@ -134,11 +139,13 @@ void DevCommand::commitDev(const QCliParser &parser)
 	if((parser.positionalArguments().size() %2) != 0)
 		throw tr("You must specify pairs of package and version");
 
+	auto noAdd = parser.isSet(QStringLiteral("no-add"));
+
 	auto userFormat = QpmxUserFormat::readDefault();
 	for(auto i = 0; i < parser.positionalArguments().size(); i += 2) {
 		auto pkgList = readCliPackages(parser.positionalArguments().mid(i, 1), true);
 		if(pkgList.size() != 1)
-			throw tr("You must specify a package and a local path");
+			throw tr("You must specify a package and a version");
 		auto pkg = pkgList.takeFirst();
 
 		QpmxDevDependency dep(pkg);
@@ -158,7 +165,17 @@ void DevCommand::commitDev(const QCliParser &parser)
 		userFormat.devDependencies.removeOne(dep);
 		xDebug() << tr("Removed package %1 from the dev dependencies")
 					.arg(pkg.toString());
+
+		//add it to qpmx.json
+		if(!noAdd) {
+			dep.version = version;//update version and update in normal format
+			userFormat.putDependency(dep);
+		}
 	}
+
+	QpmxUserFormat::writeUser(userFormat);
+	if(!noAdd)
+		QpmxFormat::writeDefault(userFormat);
 }
 
 void DevCommand::runPublish(const QStringList &providers, const QpmxDevDependency &dep, const QVersionNumber &version)
