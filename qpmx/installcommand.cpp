@@ -216,7 +216,7 @@ void InstallCommand::getNext()
 void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
 	//no version -> fetch first
-	if(_current.version.isNull()) {//TODO incomplete lock!
+	if(_current.version.isNull()) {
 		xDebug() << tr("Searching for latest version of %1").arg(_current.toString());
 		//use the latest version -> query for it
 		auto id = randId(_actionCache);
