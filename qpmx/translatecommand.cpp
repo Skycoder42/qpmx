@@ -15,18 +15,18 @@ TranslateCommand::TranslateCommand(QObject *parent) :
 	_qpmxTsFiles()
 {}
 
-QString TranslateCommand::commandName()
+QString TranslateCommand::commandName() const
 {
 	return QStringLiteral("translate");
 }
 
-QString TranslateCommand::commandDescription()
+QString TranslateCommand::commandDescription() const
 {
 	return tr("Prepare translations by compiling the projects translations and combining "
 			  "it with the translations of qpmx packages");
 }
 
-QSharedPointer<QCliNode> TranslateCommand::createCliNode()
+QSharedPointer<QCliNode> TranslateCommand::createCliNode() const
 {
 	auto translateNode = QSharedPointer<QCliLeaf>::create();
 	translateNode->setHidden(true);

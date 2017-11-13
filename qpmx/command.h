@@ -22,9 +22,9 @@ class Command : public QObject
 public:
 	explicit Command(QObject *parent = nullptr);
 
-	virtual QString commandName() = 0;
-	virtual QString commandDescription() = 0;
-	virtual QSharedPointer<QCliNode> createCliNode() = 0;
+	virtual QString commandName() const = 0;
+	virtual QString commandDescription() const = 0;
+	virtual QSharedPointer<QCliNode> createCliNode() const = 0;
 
 	static void setupParser(QCliParser &parser, const QHash<QString, Command*> &commands);
 

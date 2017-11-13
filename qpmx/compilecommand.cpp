@@ -30,18 +30,18 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_hasBinary(true)
 {}
 
-QString CompileCommand::commandName()
+QString CompileCommand::commandName() const
 {
 	return QStringLiteral("compile");
 }
 
-QString CompileCommand::commandDescription()
+QString CompileCommand::commandDescription() const
 {
 	return tr("Compile or recompile source packages to generate the precompiled libraries "
 			  "for faster building explicitly.");
 }
 
-QSharedPointer<QCliNode> CompileCommand::createCliNode()
+QSharedPointer<QCliNode> CompileCommand::createCliNode() const
 {
 	auto compileNode = QSharedPointer<QCliLeaf>::create();
 	compileNode->addOption({

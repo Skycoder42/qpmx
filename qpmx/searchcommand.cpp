@@ -10,17 +10,17 @@ SearchCommand::SearchCommand(QObject *parent) :
 	_searchResults()
 {}
 
-QString SearchCommand::commandName()
+QString SearchCommand::commandName() const
 {
 	return QStringLiteral("search");
 }
 
-QString SearchCommand::commandDescription()
+QString SearchCommand::commandDescription() const
 {
 	return tr("Search for a package by it's name.");
 }
 
-QSharedPointer<QCliNode> SearchCommand::createCliNode()
+QSharedPointer<QCliNode> SearchCommand::createCliNode() const
 {
 	auto searchNode = QSharedPointer<QCliLeaf>::create();
 	searchNode->addOption({

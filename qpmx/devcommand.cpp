@@ -5,17 +5,17 @@ DevCommand::DevCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString DevCommand::commandName()
+QString DevCommand::commandName() const
 {
 	return QStringLiteral("dev");
 }
 
-QString DevCommand::commandDescription()
+QString DevCommand::commandDescription() const
 {
 	return tr("Switch packages from or to developer mode.");
 }
 
-QSharedPointer<QCliNode> DevCommand::createCliNode()
+QSharedPointer<QCliNode> DevCommand::createCliNode() const
 {
 	auto devNode = QSharedPointer<QCliContext>::create();
 	auto devAddNode = devNode->addLeafNode(QStringLiteral("add"),

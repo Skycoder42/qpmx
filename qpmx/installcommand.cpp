@@ -17,17 +17,17 @@ InstallCommand::InstallCommand(QObject *parent) :
 	_connectCache()
 {}
 
-QString InstallCommand::commandName()
+QString InstallCommand::commandName() const
 {
 	return QStringLiteral("install");
 }
 
-QString InstallCommand::commandDescription()
+QString InstallCommand::commandDescription() const
 {
 	return tr("Install a qpmx package for the current project.");
 }
 
-QSharedPointer<QCliNode> InstallCommand::createCliNode()
+QSharedPointer<QCliNode> InstallCommand::createCliNode() const
 {
 	auto installNode = QSharedPointer<QCliLeaf>::create();
 	installNode->addOption({

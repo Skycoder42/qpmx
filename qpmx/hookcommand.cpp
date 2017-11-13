@@ -7,17 +7,17 @@ HookCommand::HookCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString HookCommand::commandName()
+QString HookCommand::commandName() const
 {
 	return QStringLiteral("hook");
 }
 
-QString HookCommand::commandDescription()
+QString HookCommand::commandDescription() const
 {
 	return tr("Creates a source file for the given hook id");
 }
 
-QSharedPointer<QCliNode> HookCommand::createCliNode()
+QSharedPointer<QCliNode> HookCommand::createCliNode() const
 {
 	auto hookNode = QSharedPointer<QCliLeaf>::create();
 	hookNode->setHidden(true);

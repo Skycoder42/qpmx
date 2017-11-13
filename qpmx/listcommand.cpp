@@ -10,17 +10,17 @@ ListCommand::ListCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString ListCommand::commandName()
+QString ListCommand::commandName() const
 {
 	return QStringLiteral("list");
 }
 
-QString ListCommand::commandDescription()
+QString ListCommand::commandDescription() const
 {
 	return tr("List things like providers, qmake versions and other components of qpmx.");
 }
 
-QSharedPointer<QCliNode> ListCommand::createCliNode()
+QSharedPointer<QCliNode> ListCommand::createCliNode() const
 {
 	auto listNode = QSharedPointer<QCliContext>::create();
 	listNode->addOption({

@@ -12,18 +12,18 @@ CreateCommand::CreateCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString CreateCommand::commandName()
+QString CreateCommand::commandName() const
 {
 	return QStringLiteral("create");
 }
 
-QString CreateCommand::commandDescription()
+QString CreateCommand::commandDescription() const
 {
 	return tr("Create a new qpmx package by creating the initial qpmx.json "
 			  "(or setting up an exiting one).");
 }
 
-QSharedPointer<QCliNode> CreateCommand::createCliNode()
+QSharedPointer<QCliNode> CreateCommand::createCliNode() const
 {
 	auto createNode = QSharedPointer<QCliLeaf>::create();
 	createNode->addOption({

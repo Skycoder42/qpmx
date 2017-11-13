@@ -11,17 +11,17 @@ UpdateCommand::UpdateCommand(QObject *parent) :
 	_connectCache()
 {}
 
-QString UpdateCommand::commandName()
+QString UpdateCommand::commandName() const
 {
 	return QStringLiteral("update");
 }
 
-QString UpdateCommand::commandDescription()
+QString UpdateCommand::commandDescription() const
 {
 	return tr("Update all dependencies of a qpmx.json file to the newest available version.");
 }
 
-QSharedPointer<QCliNode> UpdateCommand::createCliNode()
+QSharedPointer<QCliNode> UpdateCommand::createCliNode() const
 {
 	auto updateNode = QSharedPointer<QCliLeaf>::create();
 	updateNode->addOption({

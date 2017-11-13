@@ -10,17 +10,17 @@ GenerateCommand::GenerateCommand(QObject *parent) :
 	_qmake()
 {}
 
-QString GenerateCommand::commandName()
+QString GenerateCommand::commandName() const
 {
 	return QStringLiteral("generate");
 }
 
-QString GenerateCommand::commandDescription()
+QString GenerateCommand::commandDescription() const
 {
 	return tr("Generate the qpmx_generated.pri, internally used to include compiled packages.");
 }
 
-QSharedPointer<QCliNode> GenerateCommand::createCliNode()
+QSharedPointer<QCliNode> GenerateCommand::createCliNode() const
 {
 	auto generateNode = QSharedPointer<QCliLeaf>::create();
 	generateNode->addPositionalArgument(QStringLiteral("outdir"),

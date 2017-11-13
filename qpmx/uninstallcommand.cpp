@@ -7,17 +7,17 @@ UninstallCommand::UninstallCommand(QObject *parent) :
 	_format()
 {}
 
-QString UninstallCommand::commandName()
+QString UninstallCommand::commandName() const
 {
 	return QStringLiteral("uninstall");
 }
 
-QString UninstallCommand::commandDescription()
+QString UninstallCommand::commandDescription() const
 {
 	return tr("Uninstall a qpmx package from the current project.");
 }
 
-QSharedPointer<QCliNode> UninstallCommand::createCliNode()
+QSharedPointer<QCliNode> UninstallCommand::createCliNode() const
 {
 	auto uninstallNode = QSharedPointer<QCliLeaf>::create();
 	uninstallNode->addOption({

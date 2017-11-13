@@ -10,9 +10,9 @@ class ClearCachesCommand : public Command
 public:
 	explicit ClearCachesCommand(QObject *parent = nullptr);
 
-	QString commandName() override;
-	QString commandDescription() override;
-	QSharedPointer<QCliNode> createCliNode() override;
+	QString commandName() const override;
+	QString commandDescription() const override;
+	QSharedPointer<QCliNode> createCliNode() const override;
 
 protected slots:
 	void initialize(QCliParser &parser) override;

@@ -12,9 +12,9 @@ class PublishCommand : public Command
 public:
 	explicit PublishCommand(QObject *parent = nullptr);
 
-	QString commandName() override;
-	QString commandDescription() override;
-	QSharedPointer<QCliNode> createCliNode() override;
+	QString commandName() const override;
+	QString commandDescription() const override;
+	QSharedPointer<QCliNode> createCliNode() const override;
 
 protected slots:
 	void initialize(QCliParser &parser) override;

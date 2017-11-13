@@ -5,12 +5,12 @@ InitCommand::InitCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString InitCommand::commandName()
+QString InitCommand::commandName() const
 {
 	return QStringLiteral("init");
 }
 
-QString InitCommand::commandDescription()
+QString InitCommand::commandDescription() const
 {
 	return tr("Initialize a qpmx based project by downloading and compiling sources, "
 			  "as well as generation the required includes. Call\n"
@@ -18,7 +18,7 @@ QString InitCommand::commandDescription()
 			  "to prepare a pro file to automatically initialize with qmake.");
 }
 
-QSharedPointer<QCliNode> InitCommand::createCliNode()
+QSharedPointer<QCliNode> InitCommand::createCliNode() const
 {
 	auto initNode = QSharedPointer<QCliLeaf>::create();
 	initNode->addOption({

@@ -5,17 +5,17 @@ PrepareCommand::PrepareCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString PrepareCommand::commandName()
+QString PrepareCommand::commandName() const
 {
 	return QStringLiteral("prepare");
 }
 
-QString PrepareCommand::commandDescription()
+QString PrepareCommand::commandDescription() const
 {
 	return tr("Prepare a qpmx package for publishing with the given provider.");
 }
 
-QSharedPointer<QCliNode> PrepareCommand::createCliNode()
+QSharedPointer<QCliNode> PrepareCommand::createCliNode() const
 {
 	auto prepareNode = QSharedPointer<QCliLeaf>::create();
 	prepareNode->addPositionalArgument(QStringLiteral("provider"),

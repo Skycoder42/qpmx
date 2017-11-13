@@ -10,17 +10,17 @@ PublishCommand::PublishCommand(QObject *parent) :
 	_providerCache()
 {}
 
-QString PublishCommand::commandName()
+QString PublishCommand::commandName() const
 {
 	return QStringLiteral("publish");
 }
 
-QString PublishCommand::commandDescription()
+QString PublishCommand::commandDescription() const
 {
 	return tr("Publish a new version of a qpmx package for one or more providers.");
 }
 
-QSharedPointer<QCliNode> PublishCommand::createCliNode()
+QSharedPointer<QCliNode> PublishCommand::createCliNode() const
 {
 	auto publishNode = QSharedPointer<QCliLeaf>::create();
 	publishNode->addOption({

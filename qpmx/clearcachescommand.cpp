@@ -5,17 +5,17 @@ ClearCachesCommand::ClearCachesCommand(QObject *parent) :
 	Command(parent)
 {}
 
-QString ClearCachesCommand::commandName()
+QString ClearCachesCommand::commandName() const
 {
 	return QStringLiteral("clean-caches");
 }
 
-QString ClearCachesCommand::commandDescription()
+QString ClearCachesCommand::commandDescription() const
 {
 	return tr("Removes cached sources, binaries and temporary files.");
 }
 
-QSharedPointer<QCliNode> ClearCachesCommand::createCliNode()
+QSharedPointer<QCliNode> ClearCachesCommand::createCliNode() const
 {
 	auto cleanNode = QSharedPointer<QCliLeaf>::create();
 	cleanNode->addOption({
