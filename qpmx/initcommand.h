@@ -15,6 +15,7 @@ public:
 	QSharedPointer<QCliNode> createCliNode() const override;
 
 	static void prepare(const QString &proFile, bool info = false);
+	static void tsPrepare(const QString &proFile, bool info = false);
 
 protected slots:
 	void initialize(QCliParser &parser) override;

@@ -46,7 +46,7 @@ Simply install packages using `qpmx install` (If not done automatically, prepare
 packages, and include everything required to your pro file automatically.
 
 #### Translations
-To have translations properly working, you can use the `TRANSLATIONS` variable in both, qpmx packages and in your final project. Simply run `make lrelease` and translations will be compiled automatically. To install them, use the prepared target:
+To have translations properly working, you can use the `TRANSLATIONS` variable in both, qpmx packages and in your final project. Simply run `make lrelease` and translations will be compiled automatically. The same happens with files in `EXTRA_TRANSLATIONS`, but without joining them with qpmx package translations. You can use that one if you have more the 1 ts file per language. To install them, use the prepared target:
 
 ```pro
 qpmx_ts_target.path = $$[QT_INSTALL_TRANSLATIONS] # or wherever you want to install them to
@@ -79,6 +79,7 @@ QPMX_TRANSLATE_EXTRA_OPTIONS	| Additional option parameters for the `qpmx transl
 QPMX_HOOK_EXTRA_OPTIONS			| Additional option parameters for the `qpmx hook` invocation
 PUBLIC_HEADERS					| *qpmx package only:* The headers to be used by users. If left empty, `HEADERS` is used
 QPMX_WORKINGDIR					| The (sub)directory to use for generation of qpmx files. If left empty, the build directory is used
+EXTRA_TRANSLATIONS				| Just like `TRANSLATIONS`, but qpmx will not join those files with the qpmx translations (but still compile)
 
 ### Extra targets
  Target			| Description

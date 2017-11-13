@@ -41,6 +41,13 @@ QSharedPointer<QCliNode> InitCommand::createCliNode() const
 							   "option, no initialization is performed."),
 							tr("pro-file")
 					   });
+	initNode->addOption({
+							QStringLiteral("ts-prepare"),
+							tr("Prepare the given subdirs <pro-file> by adding the lrelease target. This is useful for parent "
+							   "pro-files of qpmx pro-files, as it allows you to call \"make lrelease\" on the subdirs project. "
+							   "By using this option, no initialization is performed."),
+							tr("pro-file")
+					   });
 	initNode->addPositionalArgument(QStringLiteral("qmake-path"),
 									tr("The path to the qmake to use for compilation of the qpmx dependencies."));
 	initNode->addPositionalArgument(QStringLiteral("outdir"),
@@ -71,11 +78,39 @@ void InitCommand::prepare(const QString &proFile, bool info)
 		xDebug() << str;
 }
 
+void InitCommand::tsPrepare(const QString &proFile, bool info)
+{
+	QFile file(proFile);
+	if(!file.exists())
+		throw tr("Target file \"%1\" does not exist").arg(proFile);
+	if(!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile).arg(file.errorString());
+
+	QTextStream stream(&file);
+	stream << "\nqpmxlrelease.target = lrelease\n"
+		   << "qpmxlrelease.CONFIG += recursive\n"
+		   << "qpmxlrelease.recurse_target = lrelease\n"
+		   << "QMAKE_EXTRA_TARGETS += qpmxlrelease\n";
+	stream.flush();
+	file.close();
+
+	auto str = tr("Successfully added lrelease target code to pro file \"%1\"").arg(proFile);
+	if(info)
+		xInfo() << str;
+	else
+		xDebug() << str;
+}
+
 void InitCommand::initialize(QCliParser &parser)
 {
 	try {
 		if(parser.isSet(QStringLiteral("prepare"))) {
 			prepare(parser.value(QStringLiteral("prepare")));
+			qApp->quit();
+			return;
+		}
+		if(parser.isSet(QStringLiteral("ts-prepare"))) {
+			tsPrepare(parser.value(QStringLiteral("ts-prepare")));
 			qApp->quit();
 			return;
 		}
