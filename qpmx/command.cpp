@@ -139,12 +139,12 @@ QDir Command::subDir(QDir dir, const QString &provider, const QString &package, 
 
 void Command::finalize() {}
 
-PluginRegistry *Command::registry()
+PluginRegistry *Command::registry() const
 {
 	return _registry;
 }
 
-QSettings *Command::settings()
+QSettings *Command::settings() const
 {
 	return _settings;
 }
@@ -159,31 +159,31 @@ bool Command::devMode() const
 	return _devMode;
 }
 
-Command::CacheLock Command::srcLock(const PackageInfo &package)
+Command::CacheLock Command::srcLock(const PackageInfo &package) const
 {
 	if(!package.isComplete())
 		throw tr("Locks require full packages");
 	return lock(true, srcDir(package).absolutePath());
 }
 
-Command::CacheLock Command::srcLock(const QpmxDependency &dep)
+Command::CacheLock Command::srcLock(const QpmxDependency &dep) const
 {
 	return srcLock(dep.pkg());
 }
 
-Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package)
+Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package) const
 {
 	if(!package.isComplete())
 		throw tr("Locks require full packages");
 	return lock(true, buildDir(kitId, package).absolutePath());
 }
 
-Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep)
+Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep) const
 {
 	return buildLock(kitId, dep.pkg());
 }
 
-Command::CacheLock Command::kitLock()
+Command::CacheLock Command::kitLock() const
 {
 	return lock(true, buildDir().absoluteFilePath(QStringLiteral("qt-kits.ini")));
 }
@@ -231,12 +231,12 @@ QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
 	return depList;
 }
 
-void Command::cleanCaches(const PackageInfo &package, const Command::SharedCacheLock &sharedSrcLockRef)
+void Command::cleanCaches(const PackageInfo &package, const Command::SharedCacheLock &sharedSrcLockRef) const
 {
 	cleanCaches(package, sharedSrcLockRef.lockRef());
 }
 
-void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRef)
+void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRef) const
 {
 	Q_UNUSED(srcLockRef)
 
@@ -253,7 +253,7 @@ void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRe
 	xInfo() << tr("Removed cached sources and binaries for %1").arg(package.toString());
 }
 
-bool Command::readBool(const QString &message, QTextStream &stream, bool defaultValue)
+bool Command::readBool(const QString &message, QTextStream &stream, bool defaultValue) const
 {
 	forever {
 		std::cout << message.arg(defaultValue ? tr("Y/n") : tr("y/N")).toStdString();
@@ -278,7 +278,7 @@ bool Command::readBool(const QString &message, QTextStream &stream, bool default
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
 
-void Command::printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows)
+void Command::printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows) const
 {
 	QStringList maskList;
 	for(auto i = 0; i < headers.size(); i++)
@@ -307,7 +307,7 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 	}
 }
 
-void Command::subCall(QStringList arguments, const QString &workingDir)
+void Command::subCall(QStringList arguments, const QString &workingDir) const
 {
 	if(!_cacheDir.isEmpty()) {
 		arguments.prepend(_cacheDir);
@@ -349,7 +349,7 @@ void Command::subCall(QStringList arguments, const QString &workingDir)
 
 #undef print
 
-QDir Command::srcDir()
+QDir Command::srcDir() const
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 	auto name = QStringLiteral("src");
@@ -358,17 +358,17 @@ QDir Command::srcDir()
 	return dir;
 }
 
-QDir Command::srcDir(const PackageInfo &package, bool mkDir)
+QDir Command::srcDir(const PackageInfo &package, bool mkDir) const
 {
 	return srcDir(package.provider(), package.package(), package.version(), mkDir);
 }
 
-QDir Command::srcDir(const QpmxDependency &dep, bool mkDir)
+QDir Command::srcDir(const QpmxDependency &dep, bool mkDir) const
 {
 	return srcDir(dep.provider, dep.package, dep.version, mkDir);
 }
 
-QDir Command::srcDir(const QpmxDevDependency &dep, bool mkDir)
+QDir Command::srcDir(const QpmxDevDependency &dep, bool mkDir) const
 {
 	if(dep.path.isEmpty())
 		return srcDir(dep.provider, dep.package, dep.version, mkDir);
@@ -376,12 +376,12 @@ QDir Command::srcDir(const QpmxDevDependency &dep, bool mkDir)
 		return dep.path;
 }
 
-QDir Command::srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
+QDir Command::srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir) const
 {
 	return subDir(srcDir(), provider, package, version, mkDir);
 }
 
-QDir Command::buildDir()
+QDir Command::buildDir() const
 {
 	QDir dir;
 	QString subFolder;
@@ -400,7 +400,7 @@ QDir Command::buildDir()
 	return dir;
 }
 
-QDir Command::buildDir(const BuildId &kitId)
+QDir Command::buildDir(const BuildId &kitId) const
 {
 	auto dir = buildDir();
 	if(!dir.mkpath(kitId) || !dir.cd(kitId))
@@ -408,22 +408,22 @@ QDir Command::buildDir(const BuildId &kitId)
 	return dir;
 }
 
-QDir Command::buildDir(const BuildId &kitId, const PackageInfo &package, bool mkDir)
+QDir Command::buildDir(const BuildId &kitId, const PackageInfo &package, bool mkDir) const
 {
 	return buildDir(kitId, package.provider(), package.package(), package.version(), mkDir);
 }
 
-QDir Command::buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir)
+QDir Command::buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir) const
 {
 	return buildDir(kitId, dep.provider, dep.package, dep.version, mkDir);
 }
 
-QDir Command::buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir)
+QDir Command::buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir) const
 {
 	return subDir(buildDir(kitId), provider, package, version, mkDir);
 }
 
-QDir Command::tmpDir()
+QDir Command::tmpDir() const
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
 	auto name = QStringLiteral("tmp");
@@ -453,7 +453,7 @@ QString Command::dashed(QString option)
 		return QStringLiteral("--") + option;
 }
 
-Command::CacheLock Command::lock(bool isSource, const QString &path)
+Command::CacheLock Command::lock(bool isSource, const QString &path) const
 {
 	using namespace std::chrono;
 

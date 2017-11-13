@@ -87,44 +87,44 @@ protected:
 		const CacheLock &lockRef() const;
 	};
 
-	PluginRegistry *registry();
-	QSettings *settings();
+	PluginRegistry *registry() const;
+	QSettings *settings() const;
 
 	void setDevMode(bool devModeActive);
 	bool devMode() const;
 
-	Q_REQUIRED_RESULT CacheLock srcLock(const qpmx::PackageInfo &package);
-	Q_REQUIRED_RESULT CacheLock srcLock(const QpmxDependency &dep);
-	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const qpmx::PackageInfo &package);
-	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const QpmxDependency &dep);
-	Q_REQUIRED_RESULT CacheLock kitLock();
+	Q_REQUIRED_RESULT CacheLock srcLock(const qpmx::PackageInfo &package) const;
+	Q_REQUIRED_RESULT CacheLock srcLock(const QpmxDependency &dep) const;
+	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const qpmx::PackageInfo &package) const;
+	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const QpmxDependency &dep) const;
+	Q_REQUIRED_RESULT CacheLock kitLock() const;
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
 	static QList<QpmxDevDependency> devDepList(const QList<qpmx::PackageInfo> &pkgList);
 	template <typename T>
-	int randId(QHash<int, T> &cache);
+	int randId(QHash<int, T> &cache) const;
 
-	void cleanCaches(const qpmx::PackageInfo &package, const SharedCacheLock &sharedSrcLockRef);
-	void cleanCaches(const qpmx::PackageInfo &package, const CacheLock &srcLockRef);
+	void cleanCaches(const qpmx::PackageInfo &package, const SharedCacheLock &sharedSrcLockRef) const;
+	void cleanCaches(const qpmx::PackageInfo &package, const CacheLock &srcLockRef) const;
 
-	bool readBool(const QString &message, QTextStream &stream, bool defaultValue);
-	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows);
-	void subCall(QStringList arguments, const QString &workingDir = {});
+	bool readBool(const QString &message, QTextStream &stream, bool defaultValue) const;
+	void printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows) const;
+	void subCall(QStringList arguments, const QString &workingDir = {}) const;
 
-	QDir srcDir();
-	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = false);
-	QDir srcDir(const QpmxDependency &dep, bool mkDir = false);
-	QDir srcDir(const QpmxDevDependency &dep, bool mkDir = false);
-	QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false);
+	QDir srcDir() const;
+	QDir srcDir(const qpmx::PackageInfo &package, bool mkDir = false) const;
+	QDir srcDir(const QpmxDependency &dep, bool mkDir = false) const;
+	QDir srcDir(const QpmxDevDependency &dep, bool mkDir = false) const;
+	QDir srcDir(const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false) const;
 
-	QDir buildDir();
-	QDir buildDir(const BuildId &kitId);
-	QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = false);
-	QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = false);
-	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false);
+	QDir buildDir() const;
+	QDir buildDir(const BuildId &kitId) const;
+	QDir buildDir(const BuildId &kitId, const qpmx::PackageInfo &package, bool mkDir = false) const;
+	QDir buildDir(const BuildId &kitId, const QpmxDependency &dep, bool mkDir = false) const;
+	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false) const;
 
-	QDir tmpDir();
+	QDir tmpDir() const;
 
 	static QString pkgEncode(const QString &name);
 	static QString pkgDecode(QString name);
@@ -143,11 +143,11 @@ private:
 	bool _qmakeRun;
 	QString _cacheDir;
 
-	Q_REQUIRED_RESULT CacheLock lock(bool isSource, const QString &path);
+	Q_REQUIRED_RESULT CacheLock lock(bool isSource, const QString &path) const;
 };
 
 template <typename T>
-int Command::randId(QHash<int, T> &cache)
+int Command::randId(QHash<int, T> &cache) const
 {
 	int id;
 	do {
