@@ -82,6 +82,8 @@ public:
 	QpmxFormatLicense license;
 	QMap<QString, QJsonObject> publishers;
 
+	void putDependency(const QpmxDependency &dep);
+
 protected:
 	virtual void checkDuplicates();
 	template <typename T>
@@ -112,7 +114,7 @@ class QpmxUserFormat : public QpmxFormat
 
 	Q_PROPERTY(QList<QpmxDevDependency> devDependencies MEMBER devDependencies)
 	//MAJOR keep for compability. Will not be written, but can be read
-	Q_PROPERTY(QList<QpmxDevDependency> devmode MEMBER devDependencies READ readDummy)
+	Q_PROPERTY(QList<QpmxDevDependency> devmode WRITE writeSafe READ readDummy)
 
 public:
 	QpmxUserFormat();
@@ -133,6 +135,7 @@ protected:
 	void checkDuplicates() override;
 
 private:
+	void writeSafe(const QList<QpmxDevDependency> &data);
 	QList<QpmxDevDependency> readDummy() const;
 };
 

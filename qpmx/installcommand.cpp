@@ -353,17 +353,8 @@ void InstallCommand::completeInstall()
 	}
 
 	auto format = QpmxFormat::readDefault();
-	foreach(auto pkg, _pkgList.mid(0, _addPkgCount)) {
-		auto depIndex = format.dependencies.indexOf(pkg);
-		if(depIndex == -1) {
-			xDebug() << tr("Added package %1 to qpmx.json").arg(pkg.toString());
-			format.dependencies.append(pkg);
-		} else {
-			xWarning() << tr("Package %1 is already a dependency. Replacing with that version")
-						  .arg(pkg.toString());
-			format.dependencies[depIndex] = pkg;
-		}
-	}
+	foreach(auto pkg, _pkgList.mid(0, _addPkgCount))
+		format.putDependency(pkg);
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
 

@@ -113,6 +113,19 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 	}
 }
 
+void QpmxFormat::putDependency(const QpmxDependency &dep)
+{
+	auto depIndex = dependencies.indexOf(dep);
+	if(depIndex == -1) {
+		qDebug().noquote() << tr("Added package %1 to qpmx.json").arg(dep.toString());
+		dependencies.append(dep);
+	} else {
+		qWarning().noquote() << tr("Package %1 is already a dependency. Replacing with that version")
+								.arg(dep.toString());
+		dependencies[depIndex] = dep;
+	}
+}
+
 void QpmxFormat::checkDuplicates()
 {
 	checkDuplicatesImpl(dependencies);
@@ -231,7 +244,11 @@ void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
 		auto json = ser.serialize(data);
 
 		QJsonObject userReduced;
-		userReduced[QStringLiteral("devmode")] = json[QStringLiteral("devmode")];
+		for(auto i = staticMetaObject.propertyOffset(); i < staticMetaObject.propertyCount(); i++) {
+			auto prop = staticMetaObject.property(i);
+			auto name = QString::fromUtf8(prop.name());
+			userReduced[name] = json[name];
+		}
 
 		qpmxUserFile.write(QJsonDocument(userReduced).toJson(QJsonDocument::Indented));
 	} catch(QJsonSerializerException &e) {
@@ -278,6 +295,16 @@ void QpmxUserFormat::checkDuplicates()
 {
 	QpmxFormat::checkDuplicates();
 	checkDuplicatesImpl(devDependencies);
+}
+
+void QpmxUserFormat::writeSafe(const QList<QpmxDevDependency> &data)
+{
+	if(data.isEmpty())
+		return;
+	else if(!devDependencies.isEmpty())
+		qWarning().noquote() << tr("Both devDependencies and devmode are set! Ignoring devmode");
+	else
+		devDependencies = data;
 }
 
 QList<QpmxDevDependency> QpmxUserFormat::readDummy() const
