@@ -87,7 +87,7 @@ void UninstallCommand::removePkg(PackageInfo package)
 		xDebug() << tr("Removed package %1 from qpmx.json").arg(package.toString());
 
 	if(_cached) {
-		auto _sl = srcLock(package);
-		cleanCaches(package, _sl);
+		auto _pl = pkgLock(package);
+		cleanCaches(package, _pl);
 	}
 }

@@ -93,10 +93,9 @@ protected:
 	void setDevMode(bool devModeActive);
 	bool devMode() const;
 
-	Q_REQUIRED_RESULT CacheLock srcLock(const qpmx::PackageInfo &package) const;
-	Q_REQUIRED_RESULT CacheLock srcLock(const QpmxDependency &dep) const;
-	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const qpmx::PackageInfo &package) const;
-	Q_REQUIRED_RESULT CacheLock buildLock(const BuildId &kitId, const QpmxDependency &dep) const;
+	Q_REQUIRED_RESULT CacheLock pkgLock(const qpmx::PackageInfo &package) const;
+	Q_REQUIRED_RESULT CacheLock pkgLock(const QpmxDependency &dep) const;
+	Q_REQUIRED_RESULT CacheLock pkgLock(const QpmxDevDependency &dep) const;
 	Q_REQUIRED_RESULT CacheLock kitLock() const;
 
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
@@ -125,6 +124,7 @@ protected:
 	QDir buildDir(const BuildId &kitId, const QString &provider, const QString &package, const QVersionNumber &version, bool mkDir = false) const;
 
 	QDir tmpDir() const;
+	QDir lockDir(bool asDev) const;
 
 	static QString pkgEncode(const QString &name);
 	static QString pkgDecode(QString name);
@@ -143,7 +143,7 @@ private:
 	bool _qmakeRun;
 	QString _cacheDir;
 
-	Q_REQUIRED_RESULT CacheLock lock(bool isSource, const QString &path) const;
+	Q_REQUIRED_RESULT CacheLock lock(const QString &name, bool asDev = false) const;
 };
 
 template <typename T>

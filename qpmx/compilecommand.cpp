@@ -210,8 +210,8 @@ void CompileCommand::compileNext()
 	}
 	_kit = _qtKits[_kitIndex];
 
-	//lock the package and kit
-	_buildLock = buildLock(_kit.id, _current);
+	//lock the package
+	_buildLock = pkgLock(_current);
 
 	//check if include.pri exists
 	auto bDir = buildDir(_kit.id, _current);
@@ -246,15 +246,10 @@ void CompileCommand::compileNext()
 	}
 
 	//create temp dir and load qpmx.json
-	if(_current.isDev() && !_clean) {
-		//for dev deps, don't lock the src folder, but instead the build folder
-		_srcLock = buildLock(QStringLiteral("build"), _current);
+	if(_current.isDev() && !_clean)
 		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current, true)));
-	} else {
-		if(!_current.isDev()) //nothing to lock here
-			_srcLock = srcLock(_current);
+	else
 		_compileDir.reset(new BuildDir());
-	}
 
 	_format = QpmxFormat::readFile(srcDir(_current), true);
 	_stage = None;
@@ -288,7 +283,6 @@ void CompileCommand::makeStep()
 			priGen();
 			xDebug() << tr("Completed installation. Compliation succeeded");
 			//done -> unlock everything
-			_srcLock.free();
 			_buildLock.free();
 			compileNext();
 			break;
@@ -457,7 +451,7 @@ void CompileCommand::depCollect()
 
 	while(!queue.isEmpty()) {
 		auto pkg = queue.dequeue();
-		auto _sl = srcLock(pkg);
+		auto _pl = pkgLock(pkg);
 		auto format = QpmxFormat::readFile(srcDir(pkg), true);
 		foreach(auto dep, format.dependencies) {
 			if(!sortHelper.contains(dep)) {

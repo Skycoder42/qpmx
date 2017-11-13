@@ -159,33 +159,28 @@ bool Command::devMode() const
 	return _devMode;
 }
 
-Command::CacheLock Command::srcLock(const PackageInfo &package) const
+Command::CacheLock Command::pkgLock(const PackageInfo &package) const
 {
 	if(!package.isComplete())
 		throw tr("Locks require full packages");
-	return lock(true, srcDir(package).absolutePath());
+	return lock(package.toString(false));
 }
 
-Command::CacheLock Command::srcLock(const QpmxDependency &dep) const
+Command::CacheLock Command::pkgLock(const QpmxDependency &dep) const
 {
-	return srcLock(dep.pkg());
+	return pkgLock(dep.pkg());
 }
 
-Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const PackageInfo &package) const
+Command::CacheLock Command::pkgLock(const QpmxDevDependency &dep) const
 {
-	if(!package.isComplete())
+	if(!dep.pkg().isComplete())
 		throw tr("Locks require full packages");
-	return lock(true, buildDir(kitId, package).absolutePath());
-}
-
-Command::CacheLock Command::buildLock(const Command::BuildId &kitId, const QpmxDependency &dep) const
-{
-	return buildLock(kitId, dep.pkg());
+	return lock(dep.toString(false), dep.isDev());
 }
 
 Command::CacheLock Command::kitLock() const
 {
-	return lock(true, buildDir().absoluteFilePath(QStringLiteral("qt-kits.ini")));
+	return lock(QStringLiteral("qt-kits.ini"));
 }
 
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
@@ -245,7 +240,6 @@ void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRe
 		throw tr("Failed to remove source cache for %1").arg(package.toString());
 	auto bDir = buildDir();
 	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
-		auto _bl = buildLock(cmpDir, package);
 		auto rDir = buildDir(cmpDir, package);
 		if(!rDir.removeRecursively())
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
@@ -432,6 +426,25 @@ QDir Command::tmpDir() const
 	return dir;
 }
 
+QDir Command::lockDir(bool asDev) const
+{
+	QDir dir;
+	QString subFolder;
+	if(asDev) {
+		if(_cacheDir.isEmpty())
+			dir = QDir::current();
+		else
+			dir = _cacheDir;
+		subFolder = QStringLiteral(".qpmx-dev-cache/locks");
+	} else {
+		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+		subFolder = QStringLiteral("locks");
+	}
+	if(!dir.mkpath(subFolder) || !dir.cd(subFolder))
+		throw tr("Failed to create lock directory");
+	return dir;
+}
+
 QString Command::pkgEncode(const QString &name)
 {
 	return QString::fromUtf8(QUrl::toPercentEncoding(name))
@@ -453,28 +466,15 @@ QString Command::dashed(QString option)
 		return QStringLiteral("--") + option;
 }
 
-Command::CacheLock Command::lock(bool isSource, const QString &path) const
+Command::CacheLock Command::lock(const QString &name, bool asDev) const
 {
 	using namespace std::chrono;
 
-	auto staleLock = -1;
-	_settings->beginGroup(QStringLiteral("stale-timeouts"));
-	if(isSource) {
-		staleLock = _settings->value(QStringLiteral("src"),
-									 (int)duration_cast<milliseconds>(minutes(1)).count())
-					.toInt();
-	} else {
-		staleLock = _settings->value(QStringLiteral("build"),
-									 (int)duration_cast<milliseconds>(seconds(30)).count())
-					.toInt();
-	}
-	_settings->endGroup();
+	auto fName = lockDir(asDev).absoluteFilePath(pkgEncode(name) + QStringLiteral(".lock"));
+	auto staleLock = _settings->value(QStringLiteral("stale-timeout"),
+									  (int)duration_cast<milliseconds>(minutes(2)).count())
+					 .toInt();
 
-	QFileInfo fInfo(path);
-	if(!fInfo.dir().mkpath(QStringLiteral(".")))
-		throw tr("Failed to create parent directory for lockfile %{bld}%1%{end}").arg(path);
-	auto fName = fInfo.dir()
-				 .absoluteFilePath(QStringLiteral(".%1.lock").arg(fInfo.fileName()));
 	return CacheLock(fName, staleLock);
 }
 

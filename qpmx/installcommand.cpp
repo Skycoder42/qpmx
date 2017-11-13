@@ -110,7 +110,6 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 		return;
 
 	if(version.isNull()) {
-		data.lock->free();
 		auto str = tr("Package%2does not exist for provider %{bld}%1%{end}")
 				   .arg(data.provider);
 		if(data.mustWork)
@@ -217,11 +216,17 @@ void InstallCommand::getNext()
 void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
 {
 	//no version -> fetch first
-	if(_current.version.isNull()) {
+	if(_current.version.isNull()) {//TODO incomplete lock!
 		xDebug() << tr("Searching for latest version of %1").arg(_current.toString());
 		//use the latest version -> query for it
 		auto id = randId(_actionCache);
-		_actionCache.insert(id, {SrcAction::Version, provider, nullptr, mustWork, plugin});
+		_actionCache.insert(id, {
+								SrcAction::Version,
+								provider,
+								nullptr,
+								mustWork,
+								plugin
+							});
 		connectPlg(plugin);
 		plugin->findPackageVersion(id, _current.pkg(provider));
 		return;
@@ -231,14 +236,21 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 	if(_current.isDev()) {
 		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
 		auto id = randId(_actionCache);
-		_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin});
+		_actionCache.insert(id, {
+								SrcAction::Exists,
+								provider,
+								nullptr,
+								mustWork,
+								plugin,
+								pkgLock(_current)//aquire dev lock
+							});
 		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 								  Q_ARG(int, id));
 		return;
 	}
 
 	//aquire the lock for the package
-	SharedCacheLock lock = srcLock(_current.pkg(provider));
+	SharedCacheLock lock = pkgLock(_current.pkg(provider));
 
 	auto sDir = srcDir(_current.pkg(provider));
 	if(sDir.exists()) {
@@ -247,7 +259,14 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 		else {
 			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
 			auto id = randId(_actionCache);
-			_actionCache.insert(id, {SrcAction::Exists, provider, nullptr, mustWork, plugin, lock});
+			_actionCache.insert(id, {
+									SrcAction::Exists,
+									provider,
+									nullptr,
+									mustWork,
+									plugin,
+									lock
+								});
 			QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
 									  Q_ARG(int, id));
 			return;
@@ -260,7 +279,14 @@ void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool must
 
 	xDebug() << tr("Gettings sources for package %1").arg(_current.toString());
 	auto id = randId(_actionCache);
-	_actionCache.insert(id, {SrcAction::Install, provider, tDir, mustWork, plugin, lock});
+	_actionCache.insert(id, {
+							SrcAction::Install,
+							provider,
+							tDir,
+							mustWork,
+							plugin,
+							lock
+						});
 	connectPlg(plugin);
 	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
 	return;
@@ -387,8 +413,6 @@ void InstallCommand::connectPlg(SourcePlugin *plugin)
 
 void InstallCommand::createSrcInclude(const QpmxFormat &format)
 {
-	auto _bl = buildLock(QStringLiteral("src"), _current);
-
 	auto sDir = srcDir(_current);
 	auto bDir = buildDir(QStringLiteral("src"), _current, true);
 
