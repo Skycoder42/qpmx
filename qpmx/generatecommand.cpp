@@ -59,7 +59,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		auto mainFormat = QpmxUserFormat::readDefault(true);
 		if(_genFile->exists()) {
 			if(!parser.isSet(QStringLiteral("recreate"))) {
-				auto cacheFormat = QpmxUserFormat::readCached(tDir, false);
+				auto cacheFormat = QpmxCacheFormat::readCached(tDir);
 				if(!hasChanged(mainFormat, cacheFormat)) {
 					xDebug() << tr("Unchanged configuration. Skipping generation");
 					qApp->quit();
@@ -78,7 +78,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		if(!mainFormat.devDependencies.isEmpty())
 			setDevMode(true);
 		createPriFile(mainFormat);
-		if(!QpmxUserFormat::writeCached(tDir, mainFormat))
+		if(!QpmxCacheFormat::writeCached(tDir, cachedFormat(mainFormat)))
 			xWarning() << tr("Failed to cache qpmx.json file. This means generate will always recreate the qpmx_generated.pri");
 
 		xDebug() << tr("Pri-File generation completed");
@@ -88,9 +88,25 @@ void GenerateCommand::initialize(QCliParser &parser)
 	}
 }
 
-bool GenerateCommand::hasChanged(const QpmxUserFormat &current, const QpmxUserFormat &cache)
+Command::BuildId GenerateCommand::kitId(const QpmxUserFormat &format) const
 {
-	if(current.source != cache.source ||
+	if(format.source)
+		return QStringLiteral("src");
+	else
+		return QtKitInfo::findKitId(buildDir(), _qmake);
+}
+
+QpmxCacheFormat GenerateCommand::cachedFormat(const QpmxUserFormat &format) const
+{
+	return {format, kitId(format)};
+}
+
+bool GenerateCommand::hasChanged(const QpmxUserFormat &currentUser, const QpmxCacheFormat &cache)
+{
+	auto current = cachedFormat(currentUser);
+
+	if(current.buildKit != cache.buildKit ||
+	   current.source != cache.source ||
 	   current.prcFile != cache.prcFile ||
 	   current.priIncludes != cache.priIncludes ||
 	   current.dependencies.size() != cache.dependencies.size())
@@ -164,15 +180,10 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	}
 
 	//add dependencies
-	BuildId kit;
-	if(current.source)
-		kit = QStringLiteral("src");
-	else
-		kit = QtKitInfo::findKitId(buildDir(), _qmake);
 	stream << "\n#dependencies\n"
 		   << "QPMX_TS_DIRS = \n"; //clean for only use local deps
 	foreach(auto dep, current.allDeps()) {
-		auto dir = buildDir(kit, dep.pkg());
+		auto dir = buildDir(kitId(current), dep.pkg());
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
 

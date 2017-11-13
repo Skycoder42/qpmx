@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QMap>
 #include <QJsonObject>
+#include <QUuid>
 
 #include "packageinfo.h"
 
@@ -110,11 +111,11 @@ public:
 class QpmxUserFormat : public QpmxFormat
 {
 	Q_GADGET
-	Q_DECLARE_TR_FUNCTIONS(QpmxFormat)
+	Q_DECLARE_TR_FUNCTIONS(QpmxUserFormat)
 
 	Q_PROPERTY(QList<QpmxDevDependency> devDependencies MEMBER devDependencies)
 	//MAJOR keep for compability. Will not be written, but can be read
-	Q_PROPERTY(QList<QpmxDevDependency> devmode WRITE writeSafe READ readDummy)
+	Q_PROPERTY(QList<QpmxDevDependency> devmode WRITE setDevmodeSafe READ readDummy)
 
 public:
 	QpmxUserFormat();
@@ -123,11 +124,9 @@ public:
 	QList<QpmxDevDependency> allDeps() const;
 
 	static QpmxUserFormat readDefault(bool mustExist = false);
-	static QpmxUserFormat readCached(const QDir &dir, bool mustExist = false);
 	static QpmxUserFormat readFile(const QDir &dir, const QString &fileName, bool mustExist = false);
 
 	static void writeUser(const QpmxUserFormat &data);
-	static bool writeCached(const QDir &dir, const QpmxUserFormat &data);
 
 	QList<QpmxDevDependency> devDependencies;
 
@@ -135,8 +134,25 @@ protected:
 	void checkDuplicates() override;
 
 private:
-	void writeSafe(const QList<QpmxDevDependency> &data);
+	void setDevmodeSafe(const QList<QpmxDevDependency> &data);
 	QList<QpmxDevDependency> readDummy() const;
+};
+
+class QpmxCacheFormat : public QpmxUserFormat
+{
+	Q_GADGET
+	Q_DECLARE_TR_FUNCTIONS(QpmxCacheFormat)
+
+	Q_PROPERTY(QString buildKit MEMBER buildKit)
+
+public:
+	QpmxCacheFormat();
+	QpmxCacheFormat(const QpmxUserFormat &userFormat, const QString &kitId);
+
+	static QpmxCacheFormat readCached(const QDir &dir);
+	static bool writeCached(const QDir &dir, const QpmxCacheFormat &data);
+
+	QString buildKit;
 };
 
 Q_DECLARE_METATYPE(QpmxDependency)
@@ -144,5 +160,6 @@ Q_DECLARE_METATYPE(QpmxFormatLicense)
 Q_DECLARE_METATYPE(QpmxFormat)
 Q_DECLARE_METATYPE(QpmxDevDependency)
 Q_DECLARE_METATYPE(QpmxUserFormat)
+Q_DECLARE_METATYPE(QpmxCacheFormat)
 
 #endif // QPMXFORMAT_H

@@ -21,7 +21,10 @@ private:
 	QFile *_genFile;
 	QString _qmake;
 
-	bool hasChanged(const QpmxUserFormat &current, const QpmxUserFormat &cache);
+	BuildId kitId(const QpmxUserFormat &format) const;
+	QpmxCacheFormat cachedFormat(const QpmxUserFormat &format) const;
+
+	bool hasChanged(const QpmxUserFormat &currentUser, const QpmxCacheFormat &cache);
 	void createPriFile(const QpmxUserFormat &current);
 };
 

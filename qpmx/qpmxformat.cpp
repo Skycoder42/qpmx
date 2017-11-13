@@ -98,9 +98,7 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 
 	try {
 		QJsonSerializer ser;
-		//ser.serializeTo(&qpmxFile, data);
-		auto json = ser.serialize(data);
-		qpmxFile.write(QJsonDocument(json).toJson(QJsonDocument::Indented));
+		ser.serializeTo(&qpmxFile, data, QJsonDocument::Indented);
 	} catch(QJsonSerializerException &e) {
 		qDebug() << e.what();
 		throw tr("Failed to write %1").arg(qpmxFile.fileName());
@@ -172,6 +170,7 @@ bool QpmxDevDependency::operator==(const QpmxDependency &other) const
 }
 
 
+
 QpmxUserFormat::QpmxUserFormat() :
 	QpmxFormat(),
 	devDependencies()
@@ -198,11 +197,6 @@ QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)
 	auto baseFormat = QpmxFormat::readDefault(mustExist);
 	auto userFormat = readFile(QDir::current(), QStringLiteral("qpmx.json.user"), false);
 	return {userFormat, baseFormat};
-}
-
-QpmxUserFormat QpmxUserFormat::readCached(const QDir &dir, bool mustExist)
-{
-	return readFile(dir, QStringLiteral(".qpmx.cache"), mustExist);
 }
 
 QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName, bool mustExist)
@@ -263,41 +257,13 @@ void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
 	}
 }
 
-bool QpmxUserFormat::writeCached(const QDir &dir, const QpmxUserFormat &data)
-{
-	QSaveFile qpmxUserFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
-	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-		qWarning().noquote() << tr("Failed to open %1 with error: %2")
-								.arg(qpmxUserFile.fileName())
-								.arg(qpmxUserFile.errorString());
-		return false;
-	}
-
-	try {
-		QJsonSerializer ser;
-		ser.serializeTo(&qpmxUserFile, data);
-	} catch(QJsonSerializerException &e) {
-		qDebug() << e.what();
-		qWarning().noquote() << tr("Failed to write %1").arg(qpmxUserFile.fileName());
-		return false;
-	}
-
-	if(!qpmxUserFile.commit()) {
-		qWarning().noquote() << tr("Failed to save %1 with error: %2")
-								.arg(qpmxUserFile.fileName())
-								.arg(qpmxUserFile.errorString());
-		return false;
-	} else
-		return true;
-}
-
 void QpmxUserFormat::checkDuplicates()
 {
 	QpmxFormat::checkDuplicates();
 	checkDuplicatesImpl(devDependencies);
 }
 
-void QpmxUserFormat::writeSafe(const QList<QpmxDevDependency> &data)
+void QpmxUserFormat::setDevmodeSafe(const QList<QpmxDevDependency> &data)
 {
 	if(data.isEmpty())
 		return;
@@ -310,6 +276,69 @@ void QpmxUserFormat::writeSafe(const QList<QpmxDevDependency> &data)
 QList<QpmxDevDependency> QpmxUserFormat::readDummy() const
 {
 	return {};
+}
+
+
+
+QpmxCacheFormat::QpmxCacheFormat() :
+	QpmxUserFormat(),
+	buildKit()
+{}
+
+QpmxCacheFormat::QpmxCacheFormat(const QpmxUserFormat &userFormat, const QString &kitId) :
+	QpmxUserFormat(userFormat),
+	buildKit(kitId)
+{}
+
+QpmxCacheFormat QpmxCacheFormat::readCached(const QDir &dir)
+{
+	QFile qpmxCacheFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
+	if(qpmxCacheFile.exists()) {
+		if(!qpmxCacheFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			throw tr("Failed to open %1 with error: %2")
+					.arg(qpmxCacheFile.fileName())
+					.arg(qpmxCacheFile.errorString());
+		}
+
+		try {
+			QJsonSerializer ser;
+			auto format = ser.deserializeFrom<QpmxCacheFormat>(&qpmxCacheFile);
+			format.checkDuplicates();
+			return format;
+		} catch(QJsonSerializerException &e) {
+			qDebug() << e.what();
+			throw tr("%1 contains invalid data").arg(qpmxCacheFile.fileName());
+		}
+	} else
+		return {};
+}
+
+bool QpmxCacheFormat::writeCached(const QDir &dir, const QpmxCacheFormat &data)
+{
+	QSaveFile qpmxCacheFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
+	if(!qpmxCacheFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		qWarning().noquote() << tr("Failed to open %1 with error: %2")
+								.arg(qpmxCacheFile.fileName())
+								.arg(qpmxCacheFile.errorString());
+		return false;
+	}
+
+	try {
+		QJsonSerializer ser;
+		ser.serializeTo(&qpmxCacheFile, data, QJsonDocument::Compact);
+	} catch(QJsonSerializerException &e) {
+		qDebug() << e.what();
+		qWarning().noquote() << tr("Failed to write %1").arg(qpmxCacheFile.fileName());
+		return false;
+	}
+
+	if(!qpmxCacheFile.commit()) {
+		qWarning().noquote() << tr("Failed to save %1 with error: %2")
+								.arg(qpmxCacheFile.fileName())
+								.arg(qpmxCacheFile.errorString());
+		return false;
+	} else
+		return true;
 }
 
 
