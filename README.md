@@ -3,6 +3,7 @@ The Advanced Qt package manager - a frontend/replacement for qpm.
 
 [![Travis Build Status](https://travis-ci.org/Skycoder42/qpmx.svg?branch=master)](https://travis-ci.org/Skycoder42/qpmx)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/xve94rbg8ewsg59s?svg=true)](https://ci.appveyor.com/project/Skycoder42/qpmx)
+[![AUR](https://img.shields.io/aur/version/qpmx.svg)](https://aur.archlinux.org/packages/qpmx/)
 
 ## Features
 qpmx is designed as a package manager tool without any backend. It is an advanced tool with support for qpm and git package repositories, and provides a bunch of features to make the usage as easy as possible. The main features ares:
@@ -33,8 +34,13 @@ With the qpm plugin, qpmx can be used to install qpm packages, without loosing a
 The git/github plugin supports any git repository. The urls are the package names, and the tags the versions. Tags must be real versions (e.g. `1.0.1`). It cannot search, and may not support all url schemes. It also comes with a github provider, which can be used to have simpler names for github projects.
 
 ## Installation
-- Arch-Users: [qpmx](https://aur.archlinux.org/packages/qpmx/), [qpmx-gitsource](https://aur.archlinux.org/packages/qpmx-gitsource/), [qpmx-qpmsource](https://aur.archlinux.org/packages/qpmx-qpmsource/)
-- Other package managers are planned (deb, rpm, brew, chocolaty, ...)
+- **Arch-Users:** [qpmx](https://aur.archlinux.org/packages/qpmx/), [qpmx-gitsource](https://aur.archlinux.org/packages/qpmx-gitsource/), [qpmx-qpmsource](https://aur.archlinux.org/packages/qpmx-qpmsource/)
+- **Ubuntu:** Launchpad-PPA:
+	- Artful: [ppa:skycoder42/qt-modules](https://launchpad.net/~skycoder42/+archive/ubuntu/qt-modules), package `qpmx`
+	- Xenial: [ppa:skycoder42/qt-modules-opt](https://launchpad.net/~skycoder42/+archive/ubuntu/qt-modules-opt), package `qpmx-opt`
+- **MacOs:**
+	- Tap: [`brew tap Skycoder42/qt-modules`](https://github.com/Skycoder42/homebrew-qt-modules)
+	- Package: `qpmx`
 - Compile yourself. You will need [QtJsonSerializer](https://github.com/Skycoder42/QJsonSerializer)
 - Download from the releases package
 
