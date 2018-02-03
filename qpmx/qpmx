@@ -1,0 +1,99 @@
+# file: qpmx
+# qpmx parameter-completion
+
+function _qpm_contains_element {
+	local e match="$1"
+	shift
+	for e; do [[ "$e" == "$match" ]] && return 0; done
+	return 1
+}
+
+function _qpmx {
+	local cur prev last bin arg optargs prefix
+
+	cur=${COMP_WORDS[COMP_CWORD]}
+	bin=${COMP_WORDS[0]}
+	last=${COMP_WORDS[COMP_CWORD-1]}
+	prev=("${COMP_WORDS[@]:1}")
+	unset 'prev[${#prev[@]}-1]'
+	COMPREPLY=()
+
+	## special last arg completitions for options
+	case "$last" in
+		-d|--dir|--dev-cache)
+			COMPREPLY=($(compgen -o plusdirs -d -- "${COMP_WORDS[COMP_CWORD]}"))
+			;;
+		-m|--qmake|--qpmx-prepare|--ts-prepare)
+			COMPREPLY=($(compgen -o plusdirs -f -- "${COMP_WORDS[COMP_CWORD]}"))
+			;;
+		-p|--prepare|--provider)
+			COMPREPLY=($(compgen -W "$($bin list providers --short)" -- $cur))
+			;;
+		*) ##default: normal completition
+			optargs='-h --help -v --version --verbose -q --quiet --no-color -d --dir --dev-cache'
+			prefix='clean-caches compile create dev generate init install list prepare publish search uninstall update'
+			for arg in "${prev[@]}"; do
+				## collect all opt args
+				case "$arg" in
+					clean-caches)
+						optargs="$optargs --no-src -y --yes"
+						;;
+					compile)
+						optargs="$optargs -m --qmake -g --global -r --recompile -e --stderr -c --clean"
+						;;
+					create)
+						optargs="$optargs -p --prepare"
+						;;
+					commit)
+						optargs="$optargs --no-add -p --provider"
+						;;
+					generate)
+						optargs="$optargs -m --qmake -r --recreate"
+						;;
+					init)
+						optargs="$optargs -r -e --stderr -c --clean --qpmx-prepare --ts-prepare"
+						;;
+					install)
+						optargs="$optargs -r --renew -c --cache --no-prepare"
+						;;
+					list)
+						optargs="$optargs --short"
+						;;
+					publish)
+						optargs="$optargs -p --provider"
+						;;
+					search)
+						optargs="$optargs -p --provider --short"
+						;;
+					uninstall)
+						optargs="$optargs -c --cached"
+						;;
+					update)
+						optargs="$optargs -i --install -y --yes"
+						;;
+				esac
+				
+				## find the prefix: check if prefix was in prev list
+				if _qpm_contains_element $arg $prefix; then
+					case "$arg" in
+						dev)
+							prefix="add commit remove"
+							;;
+						list)
+							prefix="kits providers"
+							;;
+						*)
+							prefix=""
+							;;
+					esac
+				fi
+			done
+			COMPREPLY=($(compgen -W "$prefix $optargs" -- $cur))
+			;;
+	esac
+	
+
+	return 0
+}
+
+complete -F _qpmx -o filenames qpmx

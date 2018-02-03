@@ -70,7 +70,8 @@ RESOURCES += \
 
 DISTFILES += \
 	config.xml \
-	meta/*
+	meta/* \
+    qpmx
 
 no_installer {
 	target.path = $$[QT_INSTALL_BINS]

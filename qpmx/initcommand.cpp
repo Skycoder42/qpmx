@@ -36,7 +36,7 @@ QSharedPointer<QCliNode> InitCommand::createCliNode() const
 							   "builds instead of caching them for speeding builds up."),
 						});
 	initNode->addOption({
-							QStringLiteral("prepare"),
+							QStringLiteral("qpmx-prepare"),
 							tr("Prepare the given <pro-file> by adding the qpmx initializations lines. By using this "
 							   "option, no initialization is performed."),
 							tr("pro-file")
@@ -104,8 +104,8 @@ void InitCommand::tsPrepare(const QString &proFile, bool info)
 void InitCommand::initialize(QCliParser &parser)
 {
 	try {
-		if(parser.isSet(QStringLiteral("prepare"))) {
-			prepare(parser.value(QStringLiteral("prepare")));
+		if(parser.isSet(QStringLiteral("qpmx-prepare"))) {
+			prepare(parser.value(QStringLiteral("qpmx-prepare")));
 			qApp->quit();
 			return;
 		}
