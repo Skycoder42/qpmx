@@ -159,13 +159,15 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//add possible includes
 	stream << "#local qpmx pri includes\n";
 	if(current.source) {//not supported
-		stream << "warning(pri includes for sources builds will NOT load startup hooks or resources. "
-			   << "Make shure to link the referenced library with ALL defined symbols!)\n"
-			   << "win32: warning(See https://docs.microsoft.com/de-de/cpp/build/reference/wholearchive-include-all-library-object-files)\n"
-			   << "else: warning(See https://stackoverflow.com/a/14116513)\n";
-		foreach(auto inc, current.priIncludes) {
-			stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
-				   << "QPMX_INCLUDE_GUARDS += $$fromfile(" << inc << "/qpmx_generated.pri, QPMX_INCLUDE_GUARDS)\n";
+		if(!current.priIncludes.isEmpty()) {
+			stream << "warning(pri includes for sources builds will NOT load startup hooks or resources. "
+				   << "Make shure to link the referenced library with ALL defined symbols!)\n"
+				   << "win32: warning(See https://docs.microsoft.com/de-de/cpp/build/reference/wholearchive-include-all-library-object-files)\n"
+				   << "else: warning(See https://stackoverflow.com/a/14116513)\n";
+			foreach(auto inc, current.priIncludes) {
+				stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
+					   << "QPMX_INCLUDE_GUARDS += $$fromfile(" << inc << "/qpmx_generated.pri, QPMX_INCLUDE_GUARDS)\n";
+			}
 		}
 	} else {
 		stream << "!qpmx_sub_pri {\n"

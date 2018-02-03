@@ -9,7 +9,7 @@ debug_and_release {
 win32: QPMX_SRC_SEPERATOR = %%%%
 else: QPMX_SRC_SEPERATOR = %%
 
-qpmx_src_build:staticlib: warning(qpmx source builds cannot generate a static library, as startup hooks and resources will not be available. Please switch to a compiled qpmx build!)
+qpmx_src_build:CONFIG(static, static|dynamic): warning(qpmx source builds cannot generate a static library, as startup hooks and resources will not be available. Please switch to a compiled qpmx build!)
 
 #qpmx startup hook
 !qpmx_src_build:!isEmpty(QPMX_STARTUP_HOOKS)|!isEmpty(QPMX_RESOURCE_FILES) {
