@@ -4,7 +4,6 @@ setlocal
 set qtplatform=%PLATFORM%
 set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
 where.exe qpmx.exe
-qpmx list providers
 
 if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;
@@ -19,6 +18,7 @@ if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
+qpmx list providers || exit /B 1
 
 :: build tests (bin and src)
 :: compile, compile-dev, src-dev, src
@@ -35,6 +35,7 @@ for /L %%i IN (0, 1, 3) DO (
 		del submodules\qpmx-sample-package\qpmx-test\qpmx.json.user
 	)
 
+	@echo on
 	for /L %%j IN (0, 1, 2) DO (
 		echo running test case %%i-%%j
 		
@@ -49,7 +50,6 @@ for /L %%i IN (0, 1, 3) DO (
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
-		@echo on
 		C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 				echo %%G
