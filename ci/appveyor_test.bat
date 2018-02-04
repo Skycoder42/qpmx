@@ -2,7 +2,8 @@
 setlocal
 
 set qtplatform=%PLATFORM%
-set PATH=C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx\release;
+set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
+where.exe qpmx.exe
 
 if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;

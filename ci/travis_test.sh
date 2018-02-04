@@ -9,8 +9,11 @@ if [[ "$PLATFORM" == "clang_64" ]]; then
 else
 	export MAKEFLAGS="-j$(nproc)"
 fi
-export PATH="$PATH:$(pwd)/build-$PLATFORM/qpmx"
-which qpmx
+export PATH="$PWD/build-$PLATFORM/qpmx:$PATH"
+if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
+	echo wrong qpmx executable found
+	exit 1
+fi
 
 # install plugins into qt
 $SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
