@@ -152,8 +152,11 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		   << "\tQPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n";
 	if(current.source)
 		stream << "\tCONFIG += qpmx_src_build\n";
-	else
-		stream << "\tgcc:!mac: LIBS += -Wl,--start-group\n";
+	else {
+		stream << "\tQPMX_APP_LIBS = $$LIBS\n"
+			   << "\tLIBS =\n"
+			   << "\tgcc:!mac: LIBS += -Wl,--start-group\n";
+	}
 	stream << "}\n\n";
 
 	//add possible includes
@@ -219,8 +222,12 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	tCmp.close();
 
 	//final
-	if(!current.source)
-		stream << "\n\tgcc:!mac: LIBS += -Wl,--end-group\n";
+	if(!current.source) {
+		stream << "\n\tgcc:!mac: LIBS += -Wl,--end-group\n"
+			   << "\tqpmx_as_private_lib: LIBS_PRIVATE += $$LIBS\n"
+			   << "\telse: QPMX_APP_LIBS += $$LIBS\n"
+			   << "\tLIBS = $$QPMX_APP_LIBS\n";
+	}
 	stream << "}\n";
 	stream.flush();
 	_genFile->close();

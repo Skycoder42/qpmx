@@ -6,6 +6,12 @@ debug_and_release {
 	QPMX_WORKINGDIR = $$QPMX_WORKINGDIR$$SUFFIX
 }
 
+# libbuild detection
+!qpmx_no_libbuild:equals(TEMPLATE, lib) {
+	CONFIG(shared, static|shared): CONFIG += qpmx_as_private_lib
+	#TODO merge ar/lib files else:CONFIG(static, static|shared): CONFIG += qpmx_as_private_lib
+}
+
 win32:!mingw: QPMX_SRC_SEPERATOR = %%%%
 else: QPMX_SRC_SEPERATOR = %%
 

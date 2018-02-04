@@ -93,10 +93,11 @@ EXTRA_TRANSLATIONS				| Just like `TRANSLATIONS`, but qpmx will not join those f
 qpmx_ts_target	| A target to install compiled translations (`.qm`) files. Use like the `target` target (See https://doc.qt.io/qt-5/qmake-advanced-usage.html#installing-files)
 
 ### Special CONFIG values
- Value			| Description
-----------------|-------------
-qpmx_static		| *qpmx package only:* Is defined when a qpmx package is build as static library
-qpmx_src_build	| *qpmx package only:* Is defined when a qpmx package is included as source package into a project
+ Value				| Description
+--------------------|-------------
+qpmx_static			| *qpmx package only:* Is defined when a qpmx package is build as static library
+qpmx_src_build		| *qpmx package only:* Is defined when a qpmx package is included as source package into a project
+qpmx_no_libbuild	| Disable auto-detection of library builds. Is used to hide/merge static libraries to prevent errors
 
 **Note:** If neither is defined, the package is used as static library in a project (typically, in your prc files)
 
