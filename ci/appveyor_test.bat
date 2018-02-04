@@ -4,14 +4,15 @@ setlocal
 set qtplatform=%PLATFORM%
 set PATH=C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx\release;
 
-if "%qtplatform%" == "msvc2017_64" (
-	call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
-	set MAKE=nmake
-) else (
+if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;
 	set MAKEFLAGS=-j%NUMBER_OF_PROCESSORS%
 	set MAKE=mingw32-make
-)
+	goto :setup_done
+:setup_vc
+	call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
+	set MAKE=nmake
+:setup_done
 
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
