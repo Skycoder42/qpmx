@@ -4,7 +4,7 @@ image:
 version: build-{build}
 
 environment:
-  QT_VER: 5.9.2
+  QT_VER: 5.10.0
   PLATFORM: msvc2017_64
   EXTRA_MODULES: .skycoder42.jsonserializer
   NO_TESTS: true
