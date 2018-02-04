@@ -3,9 +3,9 @@ TEMPLATE = lib
 CONFIG += staticlib
 win32: CONFIG += debug_and_release
 
-# add qtbase modules (from qtbase, qtdeclerative)
-QT *= core gui widgets network xml sql concurrent qml quick quickwidgets
-linux:!android: QT *= dbus
+# add modules (from qtbase, qtdeclerative, but only if available)
+QT_WANTS *= core gui widgets network xml sql concurrent dbus qml quick quickwidgets particles
+for(mod, QT_WANTS):qtHaveModule($$mod): QT *= $$mod
 
 TARGET = $$qtLibraryTarget($$QPMX_TARGET)
 VERSION = $$QPMX_VERSION
