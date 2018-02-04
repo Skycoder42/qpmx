@@ -69,8 +69,6 @@ RESOURCES += \
 	qpmx.qrc
 
 DISTFILES += \
-	config.xml \
-	meta/* \
 	qpmx
 
 include(../submodules/qcliparser/qcliparser.pri)

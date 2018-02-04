@@ -4,7 +4,14 @@ setlocal
 set qtplatform=%PLATFORM%
 set PATH=C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;%CD%\build-%qtplatform%\qpmx\release;
 
-call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
+if "%qtplatform%" == "msvc2017_64" (
+	call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
+	set MAKE=nmake
+) else (
+	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;
+	set MAKEFLAGS=-j%NUMBER_OF_PROCESSORS%
+	set MAKE=mingw32-make
+)
 
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
@@ -41,11 +48,10 @@ for /L %%i IN (0, 1, 3) DO (
 		exit /B 1
 	)
 
-	nmake all || exit /B 1
-	nmake lrelease || exit /B 1
+	%MAKE% all || exit /B 1
+	%MAKE% lrelease || exit /B 1
 	call :mktemp
-	nmake INSTALL_ROOT=%TMP_DIR% install || exit /B 1
-
+	%MAKE% INSTALL_ROOT=%TMP_DIR% install || exit /B 1
 
 	.\release\test.exe || exit /B 1
 	.\debug\test.exe || exit /B 1
