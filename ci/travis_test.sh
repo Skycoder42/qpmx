@@ -9,11 +9,14 @@ if [[ "$PLATFORM" == "clang_64" ]]; then
 else
 	export MAKEFLAGS="-j$(nproc)"
 fi
+
 export PATH="$PWD/build-$PLATFORM/qpmx:$PATH"
+which qpmx
 if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
 	echo wrong qpmx executable found
 	exit 1
 fi
+qpmx list providers
 
 # install plugins into qt
 $SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
@@ -61,4 +64,3 @@ done
 #extra tests
 #test install without provider/version
 qpmx install -cr --verbose de.skycoder42.qpathedit https://github.com/Skycoder42/qpmx-sample-package.git
-qpmx list providers

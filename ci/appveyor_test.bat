@@ -4,6 +4,7 @@ setlocal
 set qtplatform=%PLATFORM%
 set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
 where.exe qpmx.exe
+qpmx list providers
 
 if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;
@@ -48,16 +49,18 @@ for /L %%i IN (0, 1, 3) DO (
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
+		@echo on
 		C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
+				echo %%G
 				type %%G\qmake.stdout.log
 				type %%G\make.stdout.log
 				type %%G\install.stdout.log
 			)
 
-			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
-			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
-			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
+			type "C:\tmp\.qpmx-dev-cache\build\git\https.3A.2F.2Fgithub.2Ecom.2Fskycoder42.2Fqpmx-sample-package.2Egit\1.0.14\qmake.stdout.log"
+			type "C:\tmp\.qpmx-dev-cache\build\git\https.3A.2F.2Fgithub.2Ecom.2Fskycoder42.2Fqpmx-sample-package.2Egit\1.0.14\make.stdout.log"
+			type "C:\tmp\.qpmx-dev-cache\build\git\https.3A.2F.2Fgithub.2Ecom.2Fskycoder42.2Fqpmx-sample-package.2Egit\1.0.14\install.stdout.log"
 
 			exit /B 1
 		)
@@ -79,7 +82,6 @@ for /L %%i IN (0, 1, 3) DO (
 :: extra tests
 :: test install without provider/version
 qpmx install -cr --verbose de.skycoder42.qpathedit https://github.com/Skycoder42/qpmx-sample-package.git
-qpmx list providers
 
 :: create tmp dir
 :mktemp
