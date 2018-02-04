@@ -51,7 +51,9 @@ protected:
 		{}
 		inline BuildId(const QUuid &other) :
 			QString(other.toString())
-		{}
+		{
+			*this = mid(1, size() - 2);
+		}
 	};
 
 	class CacheLock

@@ -20,6 +20,7 @@ xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpm
 
 :: build tests (bin and src)
 :: compile, compile-dev, src-dev, src
+set "QMAKE_FLAGS=%QMAKE_FLAGS% CONFIG+=debug_and_release"
 for /L %%i IN (0, 1, 3) DO (
 	if "%%i" == "1" (
 		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.user.cm qpmx.json.user
@@ -32,32 +33,46 @@ for /L %%i IN (0, 1, 3) DO (
 		del submodules\qpmx-sample-package\qpmx-test\qpmx.json.user
 	)
 
-	mkdir build-%qtplatform%\tests-%%i
-	cd build-%qtplatform%\tests-%%i
+	for /L %%j IN (0, 1, 2) DO (
+		echo running test case %%i-%%j
+		
+		set "M_FLAGS=%QMAKE_FLAGS%"
+		if "%%j" == "1" (
+			set "M_FLAGS=%QMAKE_FLAGS% CONFIG+=test_as_shared"
+		)
+		if "%%j" == "2" (
+			set "M_FLAGS=%QMAKE_FLAGS% CONFIG+=test_as_static"
+		)
+	
+		mkdir build-%qtplatform%\tests-%%i-%%j
+		cd build-%qtplatform%\tests-%%i-%%j
 
-	C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r "CONFIG += debug_and_release" ../../submodules/qpmx-sample-package/qpmx-test/ || (
-		for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
-			type %%G\qmake.stdout.log
-			type %%G\make.stdout.log
-			type %%G\install.stdout.log
+		C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
+			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
+				type %%G\qmake.stdout.log
+				type %%G\make.stdout.log
+				type %%G\install.stdout.log
+			)
+
+			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
+			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
+			type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
+
+			exit /B 1
 		)
 
-		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\qmake.stdout.log"
-		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\make.stdout.log"
-		type "C:\tmp\.qpmx-dev-cache\build\git\https%%3A%%2F%%2Fgithub.com%%2Fskycoder42%%2Fqpmx-sample-package.git\1.0.14\install.stdout.log"
+		%MAKE% all || exit /B 1
+		%MAKE% lrelease || exit /B 1
+		call :mktemp
+		%MAKE% INSTALL_ROOT=%TMP_DIR% install || exit /B 1
 
-		exit /B 1
+		if "%%j" == "0" (
+			.\release\test.exe || exit /B 1
+			.\debug\test.exe || exit /B 1
+		)
+
+		cd ..\..
 	)
-
-	%MAKE% all || exit /B 1
-	%MAKE% lrelease || exit /B 1
-	call :mktemp
-	%MAKE% INSTALL_ROOT=%TMP_DIR% install || exit /B 1
-
-	.\release\test.exe || exit /B 1
-	.\debug\test.exe || exit /B 1
-
-	cd ..\..
 )
 
 :: extra tests

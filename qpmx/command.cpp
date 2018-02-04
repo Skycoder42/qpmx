@@ -448,13 +448,14 @@ QDir Command::lockDir(bool asDev) const
 QString Command::pkgEncode(const QString &name)
 {
 	return QString::fromUtf8(QUrl::toPercentEncoding(name))
-			.replace(QLatin1Char('%'), QLatin1Char('~'));
+			.replace(QLatin1Char('.'), QStringLiteral("%2E"))
+			.replace(QLatin1Char('%'), QLatin1Char('.'));
 }
 
 QString Command::pkgDecode(QString name)
 {
 	return QUrl::fromPercentEncoding(name
-									 .replace(QLatin1Char('~'), QLatin1Char('%'))
+									 .replace(QLatin1Char('.'), QLatin1Char('%'))
 									 .toUtf8());
 }
 

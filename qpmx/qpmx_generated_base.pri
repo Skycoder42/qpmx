@@ -7,9 +7,42 @@ debug_and_release {
 }
 
 # libbuild detection
+PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 !qpmx_no_libbuild:equals(TEMPLATE, lib) {
 	CONFIG(shared, static|shared): CONFIG += qpmx_as_private_lib
-	#TODO merge ar/lib files else:CONFIG(static, static|shared): CONFIG += qpmx_as_private_lib
+	else:CONFIG(static, static|shared):!isEmpty(QPMX_LIB_DEPS) {
+		qpmx_lib_merge.target = qpmx_lib_merge
+
+		win32|mac|ios {
+			QPMX_RAW_TARGET = $(TARGET).raw
+			QPMX_LIB_DEPS += $$QPMX_RAW_TARGET
+
+			qpmx_lib_merge.commands = $$QMAKE_MOVE $(TARGET) $$QPMX_RAW_TARGET $$escape_expand(\\n\\t)
+			mac|ios: qpmx_lib_merge.commands += libtool -static -o $(TARGET) $$QPMX_LIB_DEPS
+			else: qpmx_lib_merge.commands += lib.exe /OUT:$(TARGET) $$QPMX_LIB_DEPS
+		} else {
+			qpmx_lib_mri.target = $(TARGET).mri
+			qpmx_lib_mri.commands = echo "OPEN $(TARGET)" > $(TARGET).mri $$escape_expand(\\n\\t)
+			for(lib, QPMX_LIB_DEPS) {
+				qpmx_lib_mri.commands += echo "addlib $$lib" >> $(TARGET).mri $$escape_expand(\\n\\t)
+			}
+			qpmx_lib_mri.commands += echo "save" >> $(TARGET).mri $$escape_expand(\\n\\t)
+			qpmx_lib_mri.commands += echo "end" >> $(TARGET).mri
+			qpmx_lib_merge.commands += ar -M < "$(TARGET).mri"
+			qpmx_lib_merge.depends += qpmx_lib_mri
+			QMAKE_EXTRA_TARGETS += qpmx_lib_mri
+
+			qpmx_lib_mri_clean.target = qpmx_lib_mri_clean
+			qpmx_lib_mri_clean.commands = $$QMAKE_DEL_FILE $(TARGET).mri
+			clean.depends += qpmx_lib_mri_clean
+			QMAKE_EXTRA_TARGETS += qpmx_lib_mri_clean clean
+		}
+
+		qpmx_lib_merge.depends += "$(TARGET)"
+		all.depends += qpmx_lib_merge
+		staticlib.depends += qpmx_lib_merge
+		QMAKE_EXTRA_TARGETS += qpmx_lib_merge all staticlib
+	}
 }
 
 win32:!mingw: QPMX_SRC_SEPERATOR = %%%%

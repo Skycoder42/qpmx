@@ -29,16 +29,30 @@ for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 		rm submodules/qpmx-sample-package/qpmx-test/qpmx.json.user
 	fi
 
-	mkdir build-$PLATFORM/tests-$i
-	pushd build-$PLATFORM/tests-$i
+	for j in 0 1 2; do
+		echo running test case $i-$j
+		
+		M_FLAGS="$QMAKE_FLAGS"
+		if [[ "$j" == "1" ]]; then
+			M_FLAGS="$QMAKE_FLAGS CONFIG+=test_as_shared"
+		fi
+		if [[ "$j" == "2" ]]; then
+			M_FLAGS="$QMAKE_FLAGS CONFIG+=test_as_static"
+		fi
+		
+		mkdir build-$PLATFORM/tests-$i-$j
+		pushd build-$PLATFORM/tests-$i-$j
 
-	/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $QMAKE_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
-	make
-	make lrelease
-	make INSTALL_ROOT=$(mktemp -d) install
+		/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $M_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
+		make
+		make lrelease
+		make INSTALL_ROOT=$(mktemp -d) install
 
-	QT_QPA_PLATFORM=minimal ./test
-	popd
+		if [[ "$j" == "0" ]]; then
+			QT_QPA_PLATFORM=minimal ./test
+		fi
+		popd
+	done
 done
 
 #extra tests

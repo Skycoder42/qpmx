@@ -393,11 +393,11 @@ void CompileCommand::priGen()
 			   << "\twin32:CONFIG(debug, debug|release): LIBS += \"-L$$PWD/lib\" -l" << libName << "d\n"
 			   << "\telse:unix: LIBS += \"-L$$PWD/lib\" -l" << libName << "\n\n"
 
-			   << "\twin32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/lib" << libName << ".a\n"
-			   << "\telse:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/lib" << libName << "d.a\n"
-			   << "\telse:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/lib/" << libName << ".lib\n"
-			   << "\telse:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/lib/" << libName << "d.lib\n"
-			   << "\telse:unix: PRE_TARGETDEPS += $$PWD/lib/lib" << libName << ".a\n\n";
+			   << "\twin32-g++:CONFIG(release, debug|release): QPMX_LIB_DEPS += $$PWD/lib/lib" << libName << ".a\n"
+			   << "\telse:win32-g++:CONFIG(debug, debug|release): QPMX_LIB_DEPS += $$PWD/lib/lib" << libName << "d.a\n"
+			   << "\telse:win32:!win32-g++:CONFIG(release, debug|release): QPMX_LIB_DEPS += $$PWD/lib/" << libName << ".lib\n"
+			   << "\telse:win32:!win32-g++:CONFIG(debug, debug|release): QPMX_LIB_DEPS += $$PWD/lib/" << libName << "d.lib\n"
+			   << "\telse:unix: QPMX_LIB_DEPS += $$PWD/lib/lib" << libName << ".a\n\n";
 		//add startup hook (if needed)
 		auto hooks = readMultiVar(_compileDir->filePath(QStringLiteral(".qpmx_startup_hooks")));
 		if(!hooks.isEmpty())
