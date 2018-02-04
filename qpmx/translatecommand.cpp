@@ -89,13 +89,16 @@ void TranslateCommand::initialize(QCliParser &parser)
 		if(pArgs.isEmpty())
 			throw tr("You must specify the path to the lrelease binary after the qpmx file as argument, with possible additional arguments");
 		do {
-			QString arg = pArgs.takeFirst();
+			auto arg = pArgs.takeFirst();
 			if(arg == QStringLiteral("%%")) {
 				_qpmxTsFiles = pArgs;
 				xDebug() << tr("Extracted qpmx translation files/dirs as: %1").arg(_qpmxTsFiles.join(tr(", ")));
 				break;
 			}
-			_lrelease.append(arg.replace(QRegularExpression(QStringLiteral("^\\+")), QStringLiteral("-")));
+			if(arg[0] == QLatin1Char('+'))
+				_lrelease.append(arg.mid(1));
+			else
+				_lrelease.append(arg);
 		} while(!pArgs.isEmpty());
 		xDebug() << tr("Extracted lrelease as: %1").arg(_lrelease.join(QStringLiteral(" ")));
 

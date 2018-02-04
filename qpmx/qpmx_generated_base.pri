@@ -6,7 +6,7 @@ debug_and_release {
 	QPMX_WORKINGDIR = $$QPMX_WORKINGDIR$$SUFFIX
 }
 
-win32: QPMX_SRC_SEPERATOR = %%%%
+win32:!mingw: QPMX_SRC_SEPERATOR = %%%%
 else: QPMX_SRC_SEPERATOR = %%
 
 qpmx_src_build:CONFIG(static, static|dynamic): warning(qpmx source builds cannot generate a static library, as startup hooks and resources will not be available. Please switch to a compiled qpmx build!)
@@ -30,7 +30,7 @@ QPMX_TRANSLATIONS = $$TRANSLATIONS #translations comming from the qpmx dependenc
 TRANSLATIONS = $$QPMX_TMP_TS
 isEmpty(QPMX_LRELEASE) {
 	isEmpty(LRELEASE): qtPrepareTool(LRELEASE, lrelease)
-	QPMX_LRELEASE = $$replace(LRELEASE, -, +)
+	for(arg, LRELEASE):	QPMX_LRELEASE += "+$${arg}"
 }
 !qpmx_src_build: qtPrepareTool(QPMX_LCONVERT, lconvert)
 
