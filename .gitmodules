@@ -4,6 +4,3 @@
 [submodule "submodules/qpmx-sample-package"]
 	path = submodules/qpmx-sample-package
 	url = https://github.com/Skycoder42/qpmx-sample-package
-[submodule "submodules/qtifw-advanced-setup"]
-	path = submodules/qtifw-advanced-setup
-	url = https://github.com/Skycoder42/QtIFW-Advanced-Setup.git

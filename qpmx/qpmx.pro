@@ -41,9 +41,9 @@ HEADERS += $$PUBLIC_HEADERS \
 	preparecommand.h \
 	publishcommand.h \
 	createcommand.h \
-    hookcommand.h \
-    clearcachescommand.h \
-    updatecommand.h
+	hookcommand.h \
+	clearcachescommand.h \
+	updatecommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -61,9 +61,9 @@ SOURCES += main.cpp \
 	preparecommand.cpp \
 	publishcommand.cpp \
 	createcommand.cpp \
-    hookcommand.cpp \
-    clearcachescommand.cpp \
-    updatecommand.cpp
+	hookcommand.cpp \
+	clearcachescommand.cpp \
+	updatecommand.cpp
 
 RESOURCES += \
 	qpmx.qrc
@@ -71,37 +71,19 @@ RESOURCES += \
 DISTFILES += \
 	config.xml \
 	meta/* \
-    qpmx
+	qpmx
 
-no_installer {
-	target.path = $$[QT_INSTALL_BINS]
+include(../submodules/qcliparser/qcliparser.pri)
+include(../install.pri)
 
-	tHeaders.path = $$[QT_INSTALL_HEADERS]/../qpmx
-	tHeaders.files = $$PUBLIC_HEADERS
+target.path = $$INSTALL_BINS
+tHeaders.path = $${INSTALL_HEADERS}/qpmx
+tHeaders.files = $$PUBLIC_HEADERS
+INSTALLS += target tHeaders
 
-	INSTALLS += target tHeaders
-} else { # installer
-	QTIFW_CONFIG = config.xml
-	QTIFW_MODE = online_all
-
-	mac: subdir1.name = Headers
-	else: subdir1.name = include
-	subdir1.files += $$PUBLIC_HEADERS
-
-	mac: subdir2.name = PlugIns/qpmx
-	else: subdir2.name = plugins/qpmx
-	subdir2.dirs += $$OUT_PWD/../plugins/qpmx
-
-	qpmxpkg.pkg = de.skycoder42.qpmx
-	qpmxpkg.meta += meta
-	qpmxpkg.subdirs += subdir1 subdir2
-	QTIFW_AUTO_INSTALL_PKG = qpmxpkg
-
-	QTIFW_PACKAGES += qpmxpkg
-	QTIFW_DEPLOY_TSPRO = $$_PRO_FILE_
-
-	CONFIG += qtifw_auto_deploy
-	CONFIG += qtifw_install_target
+unix {
+	bashcomp.path = $${INSTALL_SHARE}/bash-completion/completions/
+	bashcomp.files = qpmx
+	INSTALLS += bashcomp
 }
 
-include(../submodules/submodules.pri)

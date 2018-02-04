@@ -17,7 +17,6 @@ SOURCES += \
 
 DISTFILES += gitsource.json
 
-no_installer {
-	target.path = $$[QT_INSTALL_PLUGINS]/qpmx
-	INSTALLS += target
-}
+include(../../install.pri)
+target.path = $${INSTALL_PLUGINS}/qpmx
+INSTALLS += target
