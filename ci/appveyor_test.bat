@@ -52,7 +52,7 @@ for /L %%i IN (0, 1, 3) DO (
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
-		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
+		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %M_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 				echo %%G
 				type %%G\qmake.stdout.log
