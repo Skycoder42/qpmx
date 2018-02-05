@@ -6,6 +6,7 @@ using namespace qpmx;
 
 SearchCommand::SearchCommand(QObject *parent) :
 	Command(parent),
+	_short(false),
 	_providerCache(),
 	_searchResults()
 {}
