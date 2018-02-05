@@ -18,8 +18,7 @@ if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
-qpmx list providers
-if errorlevel 1 (
+qpmx list providers || (
    echo Failed to run qpmx with error code %errorlevel%
    exit /B %errorlevel%
 )
