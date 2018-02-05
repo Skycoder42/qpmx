@@ -3,6 +3,7 @@ The Advanced Qt package manager - a frontend/replacement for qpm.
 
 [![Travis Build Status](https://travis-ci.org/Skycoder42/qpmx.svg?branch=master)](https://travis-ci.org/Skycoder42/qpmx)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/xve94rbg8ewsg59s?svg=true)](https://ci.appveyor.com/project/Skycoder42/qpmx)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/99993552c83f4fa18288620231b9a1fa)](https://www.codacy.com/app/Skycoder42/qpmx?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Skycoder42/qpmx&amp;utm_campaign=Badge_Grade)
 [![AUR](https://img.shields.io/aur/version/qpmx.svg)](https://aur.archlinux.org/packages/qpmx/)
 
 ## Features

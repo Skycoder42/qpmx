@@ -49,7 +49,8 @@ for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 		mkdir build-$PLATFORM/tests-$i-$j
 		pushd build-$PLATFORM/tests-$i-$j
 
-		/opt/qt/$QT_VER/$PLATFORM/bin/qmake -r $M_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
+		/opt/qt/$QT_VER/$PLATFORM/bin/qmake $M_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
+		make qmake_all
 		make
 		make lrelease
 		make INSTALL_ROOT=$(mktemp -d) install

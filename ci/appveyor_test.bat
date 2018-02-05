@@ -1,5 +1,6 @@
 :: build
 setlocal
+setlocal enabledelayedexpansion
 
 set qtplatform=%PLATFORM%
 set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\projects\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
@@ -52,7 +53,8 @@ for /L %%i IN (0, 1, 3) DO (
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
-		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %M_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
+		echo running qmake with flags %M_FLAGS%
+		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake %M_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 				echo %%G
 				type %%G\qmake.stdout.log
@@ -67,7 +69,8 @@ for /L %%i IN (0, 1, 3) DO (
 			exit /B 1
 		)
 
-		%MAKE% all || exit /B 1
+		%MAKE% qmake_all || exit /B 1
+		%MAKE% || exit /B 1
 		%MAKE% lrelease || exit /B 1
 		call :mktemp
 		%MAKE% INSTALL_ROOT=%TMP_DIR% install || exit /B 1
