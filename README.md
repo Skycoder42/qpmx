@@ -97,9 +97,22 @@ qpmx_ts_target	| A target to install compiled translations (`.qm`) files. Use li
 --------------------|-------------
 qpmx_static			| *qpmx package only:* Is defined when a qpmx package is build as static library
 qpmx_src_build		| *qpmx package only:* Is defined when a qpmx package is included as source package into a project
-qpmx_no_libbuild	| Disable auto-detection of library builds. Is used to hide/merge static libraries to prevent errors
+qpmx_no_libbuild	| Disable auto-detection of library builds. See section below
 
-**Note:** If neither is defined, the package is used as static library in a project (typically, in your prc files)
+**Note:** If neither `qpmx_static` nor `qpmx_src_build` are defined, the package is used as static library in a project (typically, in your prc files)
+
+#### QPMX libbuilds
+In order to make it possible to use qpmx to create static and shared libraries that depend on qpmx packages but want to keep that dependency "internal",
+qpmx by default does 2 things to make this possible. Both can be disabled by adding `qpmx_no_libbuild` to the config.
+
+1. Private libs: The qpmx libraries are linked against as "private" libraries, effectively hiding them from for example la or prl files.
+2. Static library merging: Generated static libraries are merged with the compiled qpmx packages into one library that can be easily deployed.
+
+### Environment variables
+Variable		| Description
+----------------|-------------
+QPMX_CACHE_DIR	| The directory to use as to cache qpmx stuff to. If not set or empty, QStandardPaths::CacheLocation is used.
+
 
 ## Documentation
 Planned for the future. You can run `qpmx --help` and `qpmx <command> --help` to see what the tool can do. it's mostly non-interactive, but a few commands do require user interaction.

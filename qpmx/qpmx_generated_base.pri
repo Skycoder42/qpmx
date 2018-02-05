@@ -9,8 +9,8 @@ debug_and_release {
 # libbuild detection
 PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 !qpmx_no_libbuild:equals(TEMPLATE, lib) {
-	CONFIG(shared, static|shared): CONFIG += qpmx_as_private_lib
-	else:CONFIG(static, static|shared):!isEmpty(QPMX_LIB_DEPS) {
+	CONFIG += qpmx_as_private_lib
+	CONFIG(static, static|shared):!isEmpty(QPMX_LIB_DEPS) {
 		qpmx_lib_merge.target = qpmx_lib_merge
 
 		win32|mac|ios {
@@ -48,7 +48,7 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 win32:!mingw: QPMX_SRC_SEPERATOR = %%%%
 else: QPMX_SRC_SEPERATOR = %%
 
-qpmx_src_build:CONFIG(static, static|dynamic): warning(qpmx source builds cannot generate a static library, as startup hooks and resources will not be available. Please switch to a compiled qpmx build!)
+qpmx_src_build:CONFIG(static, static|shared): warning(qpmx source builds cannot generate a static library, as startup hooks and resources will not be available. Please switch to a compiled qpmx build!)
 
 #qpmx startup hook
 !qpmx_src_build:!isEmpty(QPMX_STARTUP_HOOKS)|!isEmpty(QPMX_RESOURCE_FILES) {
@@ -65,7 +65,7 @@ qpmx_src_build:CONFIG(static, static|dynamic): warning(qpmx source builds cannot
 }
 
 #translations
-QPMX_TRANSLATIONS = $$TRANSLATIONS #translations comming from the qpmx dependencies (src only)
+QPMX_TRANSLATIONS += $$TRANSLATIONS #translations comming from the qpmx dependencies (src only)
 TRANSLATIONS = $$QPMX_TMP_TS
 isEmpty(QPMX_LRELEASE) {
 	isEmpty(LRELEASE): qtPrepareTool(LRELEASE, lrelease)

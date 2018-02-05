@@ -345,7 +345,7 @@ void Command::subCall(QStringList arguments, const QString &workingDir) const
 
 QDir Command::srcDir() const
 {
-	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+	auto dir = cacheDir();
 	auto name = QStringLiteral("src");
 	if(!dir.mkpath(name) || !dir.cd(name))
 		throw tr("Failed to create source directory");
@@ -386,7 +386,7 @@ QDir Command::buildDir() const
 			dir = _cacheDir;
 		subFolder = QStringLiteral(".qpmx-dev-cache");
 	} else {
-		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+		dir = cacheDir();
 		subFolder = QStringLiteral("build");
 	}
 	if(!dir.mkpath(subFolder) || !dir.cd(subFolder))
@@ -419,7 +419,7 @@ QDir Command::buildDir(const BuildId &kitId, const QString &provider, const QStr
 
 QDir Command::tmpDir() const
 {
-	QDir dir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+	auto dir = cacheDir();
 	auto name = QStringLiteral("tmp");
 	if(!dir.mkpath(name) || !dir.cd(name))
 		throw tr("Failed to create temporary directory");
@@ -437,7 +437,7 @@ QDir Command::lockDir(bool asDev) const
 			dir = _cacheDir;
 		subFolder = QStringLiteral(".qpmx-dev-cache/locks");
 	} else {
-		dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+		dir = cacheDir();
 		subFolder = QStringLiteral("locks");
 	}
 	if(!dir.mkpath(subFolder) || !dir.cd(subFolder))
@@ -465,6 +465,18 @@ QString Command::dashed(QString option)
 		return QLatin1Char('-') + option;
 	else
 		return QStringLiteral("--") + option;
+}
+
+QDir Command::cacheDir() const
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+	auto envDir = qEnvironmentVariable("QPMX_CACHE_DIR");
+#else
+	auto envDir = QString::fromUtf8(qgetenv("QPMX_CACHE_DIR"));
+#endif
+	if(!envDir.isEmpty())
+		return envDir;
+	return QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
 }
 
 Command::CacheLock Command::lock(const QString &name, bool asDev) const

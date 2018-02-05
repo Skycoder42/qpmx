@@ -145,6 +145,7 @@ private:
 	bool _qmakeRun;
 	QString _cacheDir;
 
+	QDir cacheDir() const;
 	Q_REQUIRED_RESULT CacheLock lock(const QString &name, bool asDev = false) const;
 };
 
