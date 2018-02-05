@@ -22,7 +22,6 @@ environment:
 #      image: Visual Studio 2017
 
 install:
-  - echo %PREFIX%
   - git submodule init
   - git submodule update
   - git clone https://github.com/Skycoder42/QtModules.git .\qtmodules-travis
