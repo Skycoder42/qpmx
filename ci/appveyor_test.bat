@@ -70,7 +70,8 @@ for /L %%i IN (0, 1, 3) DO (
 		)
 
 		%MAKE% qmake_all || exit /B 1
-		%MAKE% || exit /B 1
+		:: make all needed because of debug and release...
+		%MAKE% all || exit /B 1
 		%MAKE% lrelease || exit /B 1
 		call :mktemp
 		%MAKE% INSTALL_ROOT=%TMP_DIR% install || exit /B 1
