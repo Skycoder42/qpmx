@@ -18,7 +18,11 @@ if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 :: install plugins into qt
 mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
-qpmx list providers || exit /B 1
+qpmx list providers
+if errorlevel 1 (
+   echo Failed to run qpmx with error code %errorlevel%
+   exit /B %errorlevel%
+)
 
 :: build tests (bin and src)
 :: compile, compile-dev, src-dev, src
@@ -35,7 +39,6 @@ for /L %%i IN (0, 1, 3) DO (
 		del submodules\qpmx-sample-package\qpmx-test\qpmx.json.user
 	)
 
-	@echo on
 	for /L %%j IN (0, 1, 2) DO (
 		echo running test case %%i-%%j
 		
