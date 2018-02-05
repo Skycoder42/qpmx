@@ -20,7 +20,11 @@ mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 qpmx list providers || (
    echo Failed to run qpmx with error code %errorlevel%
-   exit /B %errorlevel%
+   echo running choco version:
+   C:\ProgramData\chocolatey\bin\qpmx.exe list providers
+   echo running built version
+   C:\projects\qpmx\build-msvc2017_64\qpmx\release\qpmx.exe list providers
+   exit /B 1
 )
 
 :: build tests (bin and src)
