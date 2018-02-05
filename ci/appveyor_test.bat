@@ -2,7 +2,7 @@
 setlocal
 
 set qtplatform=%PLATFORM%
-set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
+set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\projects\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
 where.exe qpmx.exe
 
 if "%qtplatform%" == "msvc2017_64" goto :setup_vc
@@ -16,15 +16,11 @@ if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 :setup_done
 
 :: install plugins into qt
-mkdir C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
-xcopy /s build-%qtplatform%\plugins\qpmx C:\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
+mkdir C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
+xcopy /s build-%qtplatform%\plugins\qpmx C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 qpmx list providers || (
    echo Failed to run qpmx with error code %errorlevel%
-   echo running choco version:
-   C:\ProgramData\chocolatey\bin\qpmx.exe list providers
-   echo running built version
-   C:\projects\qpmx\build-msvc2017_64\qpmx\release\qpmx.exe list providers
-   exit /B 1
+   exit /B %errorlevel%
 )
 
 :: build tests (bin and src)
@@ -56,7 +52,7 @@ for /L %%i IN (0, 1, 3) DO (
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
-		C:\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
+		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake -r %QMAKE_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 				echo %%G
 				type %%G\qmake.stdout.log
