@@ -12,38 +12,35 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 	CONFIG += qpmx_as_private_lib
 	CONFIG(static, static|shared):!isEmpty(QPMX_LIB_DEPS) {
 		qpmx_lib_merge.target = qpmx_lib_merge
+		debug_and_release: QPMX_MERGE_TARGET = $(DESTDIR_TARGET)
+		else: QPMX_MERGE_TARGET = $(TARGET)
 
-		mac|ios {
-			QPMX_RAW_TARGET = $(TARGET).raw
+		mac|ios|win32:!mingw {
+			QPMX_RAW_TARGET = $${QPMX_MERGE_TARGET}.raw
 			QPMX_LIB_DEPS += $$QPMX_RAW_TARGET
-			qpmx_lib_merge.commands = $$QMAKE_MOVE $(TARGET) $$QPMX_RAW_TARGET $$escape_expand(\\n\\t)
-			qpmx_lib_merge.commands += libtool -static -o $(TARGET) $$QPMX_LIB_DEPS
-			qpmx_lib_merge.depends += "$(TARGET)"
-		} else:win32 {
-			QPMX_RAW_TARGET = $(DESTDIR_TARGET).raw
-			QPMX_LIB_DEPS += $$QPMX_RAW_TARGET
-			qpmx_lib_merge.commands = $$QMAKE_MOVE $(DESTDIR_TARGET) $$QPMX_RAW_TARGET $$escape_expand(\\n\\t)
-			qpmx_lib_merge.commands += lib.exe /OUT:$(DESTDIR_TARGET) $$QPMX_LIB_DEPS
-			qpmx_lib_merge.depends += "$(DESTDIR_TARGET)"
+			qpmx_lib_merge.commands = $$QMAKE_MOVE $$QPMX_MERGE_TARGET $$QPMX_RAW_TARGET $$escape_expand(\\n\\t)
+			mac|ios: qpmx_lib_merge.commands += libtool -static -o $$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS
+			win32: qpmx_lib_merge.commands += lib.exe /OUT:$$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS
+			qpmx_lib_merge.depends += "$$QPMX_MERGE_TARGET"
 		} else {
-			qpmx_lib_mri.target = $(TARGET).mri
-			qpmx_lib_mri.commands = echo "OPEN $(TARGET)" > $(TARGET).mri $$escape_expand(\\n\\t)
-			for(lib, QPMX_LIB_DEPS): qpmx_lib_mri.commands += echo "addlib $$lib" >> $(TARGET).mri $$escape_expand(\\n\\t)
-			qpmx_lib_mri.commands += echo "save" >> $(TARGET).mri $$escape_expand(\\n\\t)
-			qpmx_lib_mri.commands += echo "end" >> $(TARGET).mri
-			qpmx_lib_merge.commands += ar -M < "$(TARGET).mri"
-			qpmx_lib_merge.depends += "$(TARGET)" qpmx_lib_mri
+			qpmx_lib_mri.target = $${QPMX_MERGE_TARGET}.mri
+			qpmx_lib_mri.commands = echo "OPEN $${QPMX_MERGE_TARGET}" > $${QPMX_MERGE_TARGET}.mri $$escape_expand(\\n\\t)
+			for(lib, QPMX_LIB_DEPS): qpmx_lib_mri.commands += echo "addlib $$lib" >> $${QPMX_MERGE_TARGET}.mri $$escape_expand(\\n\\t)
+			qpmx_lib_mri.commands += echo "save" >> $${QPMX_MERGE_TARGET}.mri $$escape_expand(\\n\\t)
+			qpmx_lib_mri.commands += echo "end" >> $${QPMX_MERGE_TARGET}.mri
+			qpmx_lib_merge.commands += ar -M < "$${QPMX_MERGE_TARGET}.mri"
+			qpmx_lib_merge.depends += "$${QPMX_MERGE_TARGET}" qpmx_lib_mri
 			QMAKE_EXTRA_TARGETS += qpmx_lib_mri
 
 			qpmx_lib_mri_clean.target = qpmx_lib_mri_clean
-			qpmx_lib_mri_clean.commands = $$QMAKE_DEL_FILE $(TARGET).mri
+			qpmx_lib_mri_clean.commands = $$QMAKE_DEL_FILE $${QPMX_MERGE_TARGET}.mri
 			clean.depends += qpmx_lib_mri_clean
 			QMAKE_EXTRA_TARGETS += qpmx_lib_mri_clean clean
 		}
 
 		all.depends += qpmx_lib_merge
 		staticlib.depends += qpmx_lib_merge
-		win32:!ReleaseBuild:!DebugBuild {
+		debug_and_release:!ReleaseBuild:!DebugBuild {
 			qpmx_lib_merge_sub.target = qpmx_lib_merge
 			qpmx_lib_merge_sub.CONFIG += recursive
 			qpmx_lib_merge_sub.recurse_target = qpmx_lib_merge
@@ -99,18 +96,18 @@ qpmx_extra_translate.output = $$OUT_PWD/${QMAKE_FILE_BASE}.qm
 qpmx_extra_translate.CONFIG += no_link
 QMAKE_EXTRA_COMPILERS += qpmx_extra_translate
 
-lreleaseTarget.target = lrelease
-win32:!ReleaseBuild:!DebugBuild: {
-	lreleaseSubTarget.target = lrelease-subtarget
-	lreleaseSubTarget.CONFIG += recursive
-	lreleaseSubTarget.recurse_target = lrelease
-	QMAKE_EXTRA_TARGETS += lreleaseSubTarget
+lrelease_target.target = lrelease
+debug_and_release:!ReleaseBuild:!DebugBuild: {
+	lrelease_sub_target.target = lrelease-subtarget
+	lrelease_sub_target.CONFIG += recursive
+	lrelease_sub_target.recurse_target = lrelease
+	QMAKE_EXTRA_TARGETS += lrelease_sub_target
 
-	CONFIG(debug, debug|release): lreleaseTarget.depends += debug-lreleaseSubTarget
-	CONFIG(release, debug|release): lreleaseTarget.depends += release-lreleaseSubTarget
-} else: lreleaseTarget.depends += compiler_qpmx_translate_make_all compiler_qpmx_extra_translate_make_all
-lreleaseTarget.commands =
-QMAKE_EXTRA_TARGETS += lreleaseTarget
+	CONFIG(debug, debug|release): lrelease_target.depends += debug-lrelease_sub_target
+	CONFIG(release, debug|release): lrelease_target.depends += release-lrelease_sub_target
+} else: lrelease_target.depends += compiler_qpmx_translate_make_all compiler_qpmx_extra_translate_make_all
+lrelease_target.commands =
+QMAKE_EXTRA_TARGETS += lrelease_target
 
 qpmx_ts_target.CONFIG += no_check_exist
 #qpmx_ts_target.files = $$TRANSLATIONS_QM
