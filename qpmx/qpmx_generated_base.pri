@@ -19,8 +19,8 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 			QPMX_RAW_TARGET = $${QPMX_MERGE_TARGET}.raw
 			QPMX_LIB_DEPS += $$QPMX_RAW_TARGET
 			qpmx_lib_merge.commands = $$QMAKE_MOVE $$QPMX_MERGE_TARGET $$QPMX_RAW_TARGET $$escape_expand(\\n\\t)
-			mac|ios: qpmx_lib_merge.commands += libtool -static -o $$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS
-			win32: qpmx_lib_merge.commands += lib.exe /OUT:$$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS
+			mac|ios: qpmx_lib_merge.commands += libtool -static -o $$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS $$escape_expand(\\n\\t)
+			win32: qpmx_lib_merge.commands += lib.exe /OUT:$$QPMX_MERGE_TARGET $$QPMX_LIB_DEPS $$escape_expand(\\n\\t)
 			qpmx_lib_merge.depends += "$$QPMX_MERGE_TARGET"
 		} else {
 			qpmx_lib_mri.target = $${QPMX_MERGE_TARGET}.mri
@@ -28,7 +28,7 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 			for(lib, QPMX_LIB_DEPS): qpmx_lib_mri.commands += echo "addlib $$lib" >> $${QPMX_MERGE_TARGET}.mri $$escape_expand(\\n\\t)
 			qpmx_lib_mri.commands += echo "save" >> $${QPMX_MERGE_TARGET}.mri $$escape_expand(\\n\\t)
 			qpmx_lib_mri.commands += echo "end" >> $${QPMX_MERGE_TARGET}.mri
-			qpmx_lib_merge.commands += ar -M < "$${QPMX_MERGE_TARGET}.mri"
+			qpmx_lib_merge.commands += ar -M < "$${QPMX_MERGE_TARGET}.mri" $$escape_expand(\\n\\t)
 			qpmx_lib_merge.depends += "$${QPMX_MERGE_TARGET}" qpmx_lib_mri
 			QMAKE_EXTRA_TARGETS += qpmx_lib_mri
 
@@ -38,6 +38,11 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 			QMAKE_EXTRA_TARGETS += qpmx_lib_mri_clean clean
 		}
 
+		qpmx_lib_merge.commands += echo "merged" > qpmx_lib_merge #prevents the target from beeing run multiple times
+		qpmx_lib_merge_clean.target = qpmx_lib_merge_clean
+		qpmx_lib_merge_clean.commands = $$QMAKE_DEL_FILE qpmx_lib_merge
+		clean.depends += qpmx_lib_merge_clean
+
 		all.depends += qpmx_lib_merge
 		staticlib.depends += qpmx_lib_merge
 		debug_and_release:!ReleaseBuild:!DebugBuild {
@@ -45,7 +50,7 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 			qpmx_lib_merge_sub.CONFIG += recursive
 			qpmx_lib_merge_sub.recurse_target = qpmx_lib_merge
 			QMAKE_EXTRA_TARGETS += qpmx_lib_merge_sub
-		} else: QMAKE_EXTRA_TARGETS += qpmx_lib_merge all staticlib
+		} else: QMAKE_EXTRA_TARGETS += qpmx_lib_merge qpmx_lib_merge_clean all staticlib clean
 	}
 }
 
