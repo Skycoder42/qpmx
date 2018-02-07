@@ -588,9 +588,10 @@ Command::SharedCacheLock::SharedCacheLock() :
 	QSharedPointer(new CacheLock())
 {}
 
-Command::SharedCacheLock &Command::SharedCacheLock::operator=(const Command::CacheLock &other)
+Command::SharedCacheLock &Command::SharedCacheLock::operator=(const Command::SharedCacheLock &other)
 {
-	(*this) = other;
+	auto cp = other;
+	swap(cp);
 	return (*this);
 }
 

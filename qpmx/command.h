@@ -82,7 +82,7 @@ protected:
 	public:
 		SharedCacheLock();
 		SharedCacheLock(const SharedCacheLock &other) = default;
-		SharedCacheLock &operator=(const CacheLock &other);
+		SharedCacheLock &operator=(const SharedCacheLock &other);
 		SharedCacheLock(CacheLock &&mv);
 		SharedCacheLock &operator=(CacheLock &&mv);
 
