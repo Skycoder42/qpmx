@@ -1,6 +1,6 @@
 image:
   - Visual Studio 2017
-#  - Visual Studio 2015
+  - Visual Studio 2015
 
 version: build-{build}
 
@@ -12,14 +12,14 @@ environment:
 
   matrix:
     - PLATFORM: msvc2017_64
-#    - PLATFORM: mingw53_32
+    - PLATFORM: mingw53_32
 
-#matrix:
-#  exclude:
-#    - PLATFORM: msvc2017_64
-#      image: Visual Studio 2015
-#    - PLATFORM: mingw53_32
-#      image: Visual Studio 2017
+matrix:
+  exclude:
+    - PLATFORM: msvc2017_64
+      image: Visual Studio 2015
+    - PLATFORM: mingw53_32
+      image: Visual Studio 2017
 
 install:
   - git submodule init

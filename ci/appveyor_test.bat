@@ -1,6 +1,7 @@
 :: build
 setlocal
 setlocal enabledelayedexpansion
+@echo off
 
 set qtplatform=%PLATFORM%
 set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\projects\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
@@ -26,7 +27,7 @@ qpmx list providers || (
 
 :: build tests (bin and src)
 :: compile, compile-dev, src-dev, src
-set "QMAKE_FLAGS=%QMAKE_FLAGS% CONFIG+=debug_and_release"
+set "QMAKE_FLAGS=CONFIG+=debug_and_release %QMAKE_FLAGS%"
 for /L %%i IN (0, 1, 3) DO (
 	if "%%i" == "1" (
 		ren submodules\qpmx-sample-package\qpmx-test\qpmx.json.user.cm qpmx.json.user
@@ -44,17 +45,17 @@ for /L %%i IN (0, 1, 3) DO (
 		
 		set "M_FLAGS=%QMAKE_FLAGS%"
 		if "%%j" == "1" (
-			set "M_FLAGS=%QMAKE_FLAGS% CONFIG+=test_as_shared"
+			set "M_FLAGS=CONFIG+=test_as_shared %QMAKE_FLAGS%"
 		)
 		if "%%j" == "2" (
-			set "M_FLAGS=%QMAKE_FLAGS% CONFIG+=test_as_static"
+			set "M_FLAGS=CONFIG+=test_as_static %QMAKE_FLAGS%"
 		)
 	
 		mkdir build-%qtplatform%\tests-%%i-%%j
 		cd build-%qtplatform%\tests-%%i-%%j
 
-		echo running qmake with flags %M_FLAGS%
-		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake %M_FLAGS% ../../submodules/qpmx-sample-package/qpmx-test/ || (
+		echo running qmake with flags !M_FLAGS!
+		C:\projects\Qt\%QT_VER%\%qtplatform%\bin\qmake !M_FLAGS! ../../submodules/qpmx-sample-package/qpmx-test/ || (
 			for /D %%G in (C:\Users\appveyor\AppData\Local\Temp\1\qpmx*) do (
 				echo %%G
 				type %%G\qmake.stdout.log

@@ -475,7 +475,7 @@ QString CompileCommand::findMake()
 
 	if(make.isEmpty() && _kit.xspec.contains(QStringLiteral("msvc")))
 		make = QStandardPaths::findExecutable(QStringLiteral("nmake"));
-	if(make.isEmpty() && _kit.xspec == QStringLiteral("win32-g++"))
+	if(make.isEmpty() && _kit.xspec.contains(QStringLiteral("win32-g++")))
 		make = QStandardPaths::findExecutable(QStringLiteral("mingw32-make"));
 
 	if(make.isEmpty())
