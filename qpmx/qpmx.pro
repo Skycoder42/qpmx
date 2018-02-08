@@ -69,7 +69,7 @@ RESOURCES += \
 	qpmx.qrc
 
 DISTFILES += \
-	qpmx
+	completitions/bash/qpmx
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../install.pri)
@@ -81,7 +81,7 @@ INSTALLS += target tHeaders
 
 unix {
 	bashcomp.path = $${INSTALL_SHARE}/bash-completion/completions/
-	bashcomp.files = qpmx
+	bashcomp.files = completitions/bash/qpmx
 	INSTALLS += bashcomp
 }
 
