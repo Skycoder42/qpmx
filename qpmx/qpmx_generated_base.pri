@@ -12,7 +12,8 @@ PRE_TARGETDEPS += $$QPMX_LIB_DEPS #lib targetdeps, needed for private merge
 	CONFIG += qpmx_as_private_lib
 	CONFIG(static, static|shared):!isEmpty(QPMX_LIB_DEPS) {
 		qpmx_lib_merge.target = qpmx_lib_merge
-		debug_and_release: QPMX_MERGE_TARGET = $(DESTDIR_TARGET)
+		win32:debug_and_release: QPMX_MERGE_TARGET = $(DESTDIR_TARGET)
+		else:debug_and_release: QPMX_MERGE_TARGET = $(DESTDIR)$(TARGET)
 		else: QPMX_MERGE_TARGET = $(TARGET)
 
 		mac|ios|win32:!mingw {
