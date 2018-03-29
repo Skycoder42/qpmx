@@ -312,10 +312,11 @@ QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package, QString *prefi
 		auto match = _githubRegex.match(package.package());
 		if(!match.hasMatch())
 			throw tr("The Package %1 is not a valid github package").arg(package.toString());
-		pkgUrl = QStringLiteral("https://github.com/%1/%2.git#%3")
+		pkgUrl = QStringLiteral("https://github.com/%1/%2.git")
 				 .arg(match.captured(1))
-				 .arg(match.captured(2))
-				 .arg(match.captured(3));
+				 .arg(match.captured(2));
+		if(!match.captured(3).isEmpty())
+			pkgUrl += QLatin1Char('#') + match.captured(3);
 	} else
 		throw tr("Unsupported provider %{bld}%1%{end}").arg(package.provider());
 
