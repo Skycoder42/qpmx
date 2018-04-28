@@ -87,6 +87,7 @@ QPMX_HOOK_EXTRA_OPTIONS			| Additional option parameters for the `qpmx hook` inv
 PUBLIC_HEADERS					| *qpmx package only:* The headers to be used by users. If left empty, `HEADERS` is used
 QPMX_WORKINGDIR					| The (sub)directory to use for generation of qpmx files. If left empty, the build directory is used
 EXTRA_TRANSLATIONS				| Just like `TRANSLATIONS`, but qpmx will not join those files with the qpmx translations (but still compile)
+QPMX_INSTALL_DIR					| A special variable set for prc files included in static qpmx usage. Contains the path where the binaries etc. have been installed to
 
 ### Extra targets
  Target			| Description

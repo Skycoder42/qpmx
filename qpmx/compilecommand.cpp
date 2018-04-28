@@ -405,7 +405,9 @@ void CompileCommand::priGen()
 	}
 	if(!_format.prcFile.isEmpty()) {
 		stream << "\n\t#prc include\n"
-			   << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n";
+			   << "\tQPMX_INSTALL_DIR=$$PWD\n"
+			   << "\tinclude(" << bDir.relativeFilePath(srcDir(_current).absoluteFilePath(_format.prcFile)) << ")\n"
+			   << "\tQPMX_INSTALL_DIR=\n";
 	}
 	stream << "}\n";
 	stream.flush();
