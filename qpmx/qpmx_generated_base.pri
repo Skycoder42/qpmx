@@ -98,7 +98,7 @@ qpmx_extra_translate.name = $$LRELEASE translate ${QMAKE_FILE_IN}
 qpmx_extra_translate.input = EXTRA_TRANSLATIONS
 qpmx_extra_translate.variable_out = TRANSLATIONS_QM
 qpmx_extra_translate.commands = $$LRELEASE ${QMAKE_FILE_IN} -qm ${QMAKE_FILE_OUT}
-qpmx_extra_translate.output = $$OUT_PWD/${QMAKE_FILE_BASE}.qm
+qpmx_extra_translate.output = $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm
 qpmx_extra_translate.CONFIG += no_link
 QMAKE_EXTRA_COMPILERS += qpmx_extra_translate
 
