@@ -81,14 +81,14 @@ isEmpty(QPMX_LRELEASE) {
 	isEmpty(LRELEASE): qtPrepareTool(LRELEASE, lrelease)
 	for(arg, LRELEASE):	QPMX_LRELEASE += "+$${arg}"
 }
-!qpmx_src_build: qtPrepareTool(QPMX_LCONVERT, lconvert)
+!qpmx_src_build:isEmpty(QPMX_LCONVERT): qtPrepareTool(QPMX_LCONVERT, lconvert)
 
 qpmx_translate.name = $$QPMX_BIN translate ${QMAKE_FILE_IN}
 qpmx_translate.input = TRANSLATIONS
 qpmx_translate.variable_out = TRANSLATIONS_QM
 qpmx_translate.commands = $$QPMX_BIN translate $$QPMX_TRANSLATE_EXTRA_OPTIONS --outdir $$shell_quote($$QPMX_WORKINGDIR) --ts-file ${QMAKE_FILE_IN}
 qpmx_src_build: qpmx_translate.commands += --src $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TRANSLATIONS
-else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$shell_quote($$QPMX_LCONVERT) $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TS_DIRS
+else: qpmx_translate.commands += --qmake $$shell_quote($$QMAKE_QMAKE) --lconvert $$QPMX_LCONVERT $$QPMX_LRELEASE $$QPMX_SRC_SEPERATOR $$QPMX_TS_DIRS
 qpmx_translate.output = $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm
 qpmx_translate.clean += $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm $$QPMX_WORKINGDIR/${QMAKE_FILE_BASE}.qm-base
 qpmx_translate.CONFIG += no_link
