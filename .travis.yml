@@ -13,7 +13,8 @@ env:
     - DOCKER_IMAGE=json
     - NO_TESTS=true
     - EXTRA_MODULES=".skycoder42.jsonserializer"
-    
+    - QPMX_CACHE_DIR=/tmp/.qpmx-cache
+
 matrix:
   include:
     - os: linux
