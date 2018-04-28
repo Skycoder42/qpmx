@@ -62,7 +62,7 @@ void InitCommand::prepare(const QString &proFile, bool info)
 	if(!file.exists())
 		throw tr("Target file \"%1\" does not exist").arg(proFile);
 	if(!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
-		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile).arg(file.errorString());
+		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile, file.errorString());
 
 	QTextStream stream(&file);
 	stream << "\n!ReleaseBuild:!DebugBuild:!system(qpmx -d $$shell_quote($$_PRO_FILE_PWD_) --qmake-run init $$QPMX_EXTRA_OPTIONS $$shell_quote($$QMAKE_QMAKE) $$shell_quote($$OUT_PWD)): "
@@ -84,7 +84,7 @@ void InitCommand::tsPrepare(const QString &proFile, bool info)
 	if(!file.exists())
 		throw tr("Target file \"%1\" does not exist").arg(proFile);
 	if(!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
-		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile).arg(file.errorString());
+		throw tr("Failed to open pro file \"%1\" with error: %2").arg(proFile, file.errorString());
 
 	QTextStream stream(&file);
 	stream << "\nqpmxlrelease.target = lrelease\n"
@@ -121,8 +121,8 @@ void InitCommand::initialize(QCliParser &parser)
 			throw tr("Invalid arguments! You must specify the qmake path to use for compilation "
 					 "and the target directory to place the generated files in");
 		}
-		auto qmake = parser.positionalArguments()[0];
-		auto outdir = parser.positionalArguments()[1];
+		auto qmake = parser.positionalArguments().value(0);
+		auto outdir = parser.positionalArguments().value(1);
 
 		//run install
 		QStringList runArgs {

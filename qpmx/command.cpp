@@ -66,7 +66,7 @@ void Command::setupParser(QCliParser &parser, const QHash<QString, Command *> &c
 	qOpt.setFlags(QCommandLineOption::HiddenFromHelp);
 	parser.addOption(qOpt);
 
-	foreach(auto cmd, commands) {
+	for(auto cmd : commands) {
 		parser.addCliNode(cmd->commandName(),
 						  cmd->commandDescription(),
 						  cmd->createCliNode());
@@ -83,7 +83,7 @@ void Command::init(QCliParser &parser)
 	_qmakeRun = parser.isSet(QStringLiteral("qmake-run"));
 	_cacheDir = parser.value(QStringLiteral("dev-cache"));
 
-	qsrand(QDateTime::currentMSecsSinceEpoch());
+	qsrand(static_cast<uint>(QDateTime::currentMSecsSinceEpoch()));
 	initialize(parser);
 }
 
@@ -186,9 +186,10 @@ Command::CacheLock Command::kitLock() const
 QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool fullPkgOnly) const
 {
 	QList<PackageInfo> pkgList;
+	pkgList.reserve(arguments.size());
 
 	auto regex = PackageInfo::packageRegexp();
-	foreach(auto arg, arguments) {
+	for(const auto &arg : arguments) {
 		auto match = regex.match(arg);
 		if(!match.hasMatch())
 			throw tr("Malformed package: %1").arg(arg);
@@ -200,9 +201,7 @@ QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool f
 			throw tr("You must explicitly specify provider, package name and version for this command");
 		pkgList.append(info);
 		xDebug() << tr("Parsed package: \"%1\" at version %2 (Provider: %3)")
-					.arg(info.package())
-					.arg(info.version().toString())
-					.arg(info.provider());
+					.arg(info.package(), info.version().toString(), info.provider());
 	}
 
 	if(pkgList.isEmpty())
@@ -213,7 +212,8 @@ QList<PackageInfo> Command::readCliPackages(const QStringList &arguments, bool f
 QList<QpmxDependency> Command::depList(const QList<PackageInfo> &pkgList)
 {
 	QList<QpmxDependency> depList;
-	foreach(auto pkg, pkgList)
+	depList.reserve(pkgList.size());
+	for(const auto &pkg : pkgList)
 		depList.append(pkg);
 	return depList;
 }
@@ -221,7 +221,8 @@ QList<QpmxDependency> Command::depList(const QList<PackageInfo> &pkgList)
 QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
 {
 	QList<QpmxDevDependency> depList;
-	foreach(auto pkg, pkgList)
+	depList.reserve(pkgList.size());
+	for(const auto &pkg : pkgList)
 		depList.append({pkg, QString()});
 	return depList;
 }
@@ -239,7 +240,7 @@ void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRe
 	if(!sDir.removeRecursively())
 		throw tr("Failed to remove source cache for %1").arg(package.toString());
 	auto bDir = buildDir();
-	foreach(auto cmpDir, bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
+	for(const auto &cmpDir : bDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable)) {
 		auto rDir = buildDir(cmpDir, package);
 		if(!rDir.removeRecursively())
 			throw tr("Failed to remove compilation cache for %1").arg(package.toString());
@@ -266,8 +267,6 @@ bool Command::readBool(const QString &message, QTextStream &stream, bool default
 		else
 			xWarning() << "Invalid input! Please type y or n";
 	}
-
-	return defaultValue;
 }
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
@@ -275,6 +274,7 @@ bool Command::readBool(const QString &message, QTextStream &stream, bool default
 void Command::printTable(const QStringList &headers, const QList<int> &minimals, const QList<QStringList> &rows) const
 {
 	QStringList maskList;
+	maskList.reserve(headers.size());
 	for(auto i = 0; i < headers.size(); i++)
 		maskList.append(QStringLiteral("%%1").arg(i + 1));
 	QString mask = QLatin1Char(' ') + maskList.join(tr(" | ")) + QLatin1Char(' ');
@@ -292,7 +292,7 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 	}
 	print(sLine);
 
-	foreach(auto row, rows) {
+	for(auto row : rows) {
 		Q_ASSERT_X(row.size() == headers.size(), Q_FUNC_INFO, "tables must have constant row lengths!");
 		auto rString = mask;
 		for(auto i = 0; i < headers.size(); i++)
@@ -459,7 +459,7 @@ QString Command::pkgDecode(QString name)
 									 .toUtf8());
 }
 
-QString Command::dashed(QString option)
+QString Command::dashed(const QString &option)
 {
 	if(option.size() == 1)
 		return QLatin1Char('-') + option;
@@ -485,7 +485,7 @@ Command::CacheLock Command::lock(const QString &name, bool asDev) const
 
 	auto fName = lockDir(asDev).absoluteFilePath(pkgEncode(name) + QStringLiteral(".lock"));
 	auto staleLock = _settings->value(QStringLiteral("stale-timeout"),
-									  (int)duration_cast<milliseconds>(minutes(2)).count())
+									  static_cast<int>(duration_cast<milliseconds>(minutes(2)).count()))
 					 .toInt();
 
 	return CacheLock(fName, staleLock);
@@ -548,14 +548,12 @@ Command::CacheLock::CacheLock(const QString &path, int timeout) :
 						   "\tHostname: %2\n"
 						   "\tAppname:  %3")
 						.arg(pid)
-						.arg(hostname)
-						.arg(appname);
+						.arg(hostname, appname);
 		}
 
 		_lock.reset();
 		throw tr("Lockfile-error on file %{bld}%1%{end}: %2")
-				.arg(path)
-				.arg(errorStr);
+				.arg(path, errorStr);
 	}
 
 	xDebug() << tr("Created lock %{bld}%1%{end}").arg(path);

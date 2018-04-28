@@ -99,7 +99,7 @@ class QpmxDevDependency : public QpmxDependency
 
 public:
 	QpmxDevDependency();
-	QpmxDevDependency(const QpmxDependency &dep, const QString &localPath = {});
+	QpmxDevDependency(const QpmxDependency &dep, QString localPath = {});
 
 	bool isDev() const;
 
@@ -147,7 +147,7 @@ class QpmxCacheFormat : public QpmxUserFormat
 
 public:
 	QpmxCacheFormat();
-	QpmxCacheFormat(const QpmxUserFormat &userFormat, const QString &kitId);
+	QpmxCacheFormat(const QpmxUserFormat &userFormat, QString kitId);
 
 	static QpmxCacheFormat readCached(const QDir &dir);
 	static bool writeCached(const QDir &dir, const QpmxCacheFormat &data);

@@ -45,7 +45,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 		if(parser.positionalArguments().size() != 1)
 			throw tr("Invalid arguments! You must specify the target directory as a single parameter");
 
-		QDir tDir(parser.positionalArguments().first());
+		QDir tDir(parser.positionalArguments().value(0));
 		if(!tDir.mkpath(QStringLiteral(".")))
 			throw tr("Failed to create target directory");
 		_genFile = new QFile(tDir.absoluteFilePath(QStringLiteral("qpmx_generated.pri")), this);
@@ -113,7 +113,7 @@ bool GenerateCommand::hasChanged(const QpmxUserFormat &currentUser, const QpmxCa
 		return true;
 
 	auto cCache = cache.dependencies;
-	foreach(auto dep, current.dependencies) {
+	for(const auto &dep : qAsConst(current.dependencies)) {
 		auto cIdx = cCache.indexOf(dep);
 		if(cIdx == -1)
 			return true;
@@ -124,7 +124,7 @@ bool GenerateCommand::hasChanged(const QpmxUserFormat &currentUser, const QpmxCa
 		return true;
 
 	auto dCache = cache.devDependencies;
-	foreach(auto dep, current.devDependencies) {
+	for(const auto &dep : qAsConst(current.devDependencies)) {
 		auto cIdx = dCache.indexOf(dep);
 		if(cIdx == -1)
 			return true;
@@ -167,7 +167,7 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 				   << "Make shure to link the referenced library with ALL defined symbols!)\n"
 				   << "win32: warning(See https://docs.microsoft.com/de-de/cpp/build/reference/wholearchive-include-all-library-object-files)\n"
 				   << "else: warning(See https://stackoverflow.com/a/14116513)\n";
-			foreach(auto inc, current.priIncludes) {
+			for(const auto &inc : current.priIncludes) {
 				stream << "INCLUDEPATH += $$fromfile(" << inc << "/qpmx_generated.pri, INCLUDEPATH)\n"
 					   << "QPMX_INCLUDE_GUARDS += $$fromfile(" << inc << "/qpmx_generated.pri, QPMX_INCLUDE_GUARDS)\n";
 			}
@@ -175,11 +175,11 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	} else {
 		stream << "!qpmx_sub_pri {\n"
 			   << "\tCONFIG += qpmx_sub_pri\n";
-		foreach(auto inc, current.priIncludes)
+		for(const auto &inc : current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
 		stream << "\tCONFIG -= qpmx_sub_pri\n"
 			   << "} else {\n";
-		foreach(auto inc, current.priIncludes)
+		for(const auto &inc : current.priIncludes)
 			stream << "\tinclude(" << inc << "/qpmx_generated.pri)\n";
 		stream << "}\n";
 	}
@@ -187,7 +187,7 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 	//add dependencies
 	stream << "\n#dependencies\n"
 		   << "QPMX_TS_DIRS = \n"; //clean for only use local deps
-	foreach(auto dep, current.allDeps()) {
+	for(const auto &dep : current.allDeps()) {
 		auto dir = buildDir(kitId(current), dep.pkg());
 		stream << "include(" << dir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
@@ -199,7 +199,7 @@ void GenerateCommand::createPriFile(const QpmxUserFormat &current)
 		//add "dummy" dev deps, for easier access
 		stream << "\tCONFIG -= qpmx_never_ever_ever_true\n"
 			   << "\tqpmx_never_ever_ever_true { #trick to make QtCreator show dev dependencies in the build tree\n";
-		foreach(auto dep, current.devDependencies) {
+		for(const auto &dep : current.devDependencies) {
 			auto depDir = QDir::current();
 			if(!depDir.cd(dep.path)) {
 				xWarning() << tr("Unabled to find directory of dev dependency %1").arg(dep.toString());

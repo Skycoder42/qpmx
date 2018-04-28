@@ -53,19 +53,19 @@ void SearchCommand::initialize(QCliParser &parser)
 
 		auto providers = parser.values(QStringLiteral("provider"));
 		if(!providers.isEmpty()) {
-			foreach(auto provider, providers) {
+			for(const auto &provider : providers) {
 				if(!registry()->sourcePlugin(provider)->canSearch(provider))
 					throw tr("Provider %{bld}%1%{end} does not support searching").arg(provider);
 			}
 		} else {
-			foreach(auto provider, registry()->providerNames()) {
+			for(const auto &provider : registry()->providerNames()) {
 				if(registry()->sourcePlugin(provider)->canSearch(provider))
 					providers.append(provider);
 			}
 			xDebug() << tr("Searching providers: %1").arg(providers.join(tr(", ")));
 		}
 
-		foreach(auto provider, providers) {
+		for(const auto &provider : providers) {
 			auto plg = registry()->sourcePlugin(provider);
 			auto plgobj = dynamic_cast<QObject*>(plg);
 			connect(plgobj, SIGNAL(searchResult(int,QStringList)),
@@ -104,23 +104,22 @@ void SearchCommand::sourceError(int requestId, const QString &error)
 	   return;
 
    xCritical() << tr("Failed to search provider %{bld}%1%{end} with error:\n%2")
-				  .arg(provider)
-				  .arg(error);
+				  .arg(provider, error);
 }
 
 void SearchCommand::printResult()
 {
 	if(_short) {
 		QStringList resList;
-		foreach(auto res, _searchResults) {
-			foreach(auto pkg, res.second)
+		for(const auto &res : qAsConst(_searchResults)) {
+			for(const auto &pkg : res.second)
 				resList.append(PackageInfo(res.first, pkg).toString(false));
 		}
 		print(resList.join(QLatin1Char(' ')));
 	} else {
-		foreach(auto res, _searchResults) {
+		for(const auto &res : qAsConst(_searchResults)) {
 			print(tr("--- %1").arg(res.first + QLatin1Char(' '), -76, QLatin1Char('-')));
-			foreach(auto pkg, res.second)
+			for(const auto &pkg : res.second)
 				print(tr(" %1").arg(pkg));
 		}
 	}

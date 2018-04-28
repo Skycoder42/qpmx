@@ -98,7 +98,7 @@ void DevCommand::addDev(const QCliParser &parser)
 			throw tr("You must specify a package and a local path");
 		auto pkg = pkgList.takeFirst();
 
-		auto path = parser.positionalArguments()[i + 1];
+		auto path = parser.positionalArguments().value(i + 1);
 		if(!QFile::exists(path))
 			throw tr("The given local path \"%1\" is not valid").arg(path);
 
@@ -111,8 +111,7 @@ void DevCommand::addDev(const QCliParser &parser)
 			userFormat.devDependencies.append(devDep);
 
 		xDebug() << tr("Added package %1 as dev dependency with path \"%2\"")
-					.arg(devDep.toString())
-					.arg(path);
+					.arg(devDep.toString(), path);
 	}
 
 	QpmxUserFormat::writeUser(userFormat);
@@ -123,7 +122,7 @@ void DevCommand::removeDev(const QCliParser &parser)
 	auto packages = readCliPackages(parser.positionalArguments(), true);
 
 	auto userFormat = QpmxUserFormat::readDefault();
-	foreach(auto package, packages){
+	for(const auto &package : packages){
 		userFormat.devDependencies.removeOne(QpmxDevDependency(package));
 		xDebug() << tr("Removed package %1 from the dev dependencies")
 					.arg(package.toString());
@@ -154,7 +153,7 @@ void DevCommand::commitDev(const QCliParser &parser)
 			throw tr("Package %1 is not a dev dependency and cannot be commited").arg(pkg.toString());
 		dep = userFormat.devDependencies.value(depIndex);
 
-		auto version = QVersionNumber::fromString(parser.positionalArguments()[i + 1]);
+		auto version = QVersionNumber::fromString(parser.positionalArguments().value(i + 1));
 		if(version.isNull())
 			throw tr("The given version \"%1\" is not valid").arg(version.toString());
 
@@ -184,7 +183,8 @@ void DevCommand::runPublish(const QStringList &providers, const QpmxDevDependenc
 		QStringLiteral("publish"),
 		version.toString()
 	};
-	foreach(auto provider, providers)
+	args.reserve(providers.size() + args.size());
+	for(const auto &provider : providers)
 		args.append({QStringLiteral("--provider"), provider});
 
 	xInfo() << tr("\nPublishing package %1").arg(dep.toString());

@@ -40,7 +40,7 @@ void PublishCommand::initialize(QCliParser &parser)
 		if(parser.positionalArguments().size() != 1)
 			throw tr("You must specify the version to publish as a single parameter");
 
-		_version = QVersionNumber::fromString(parser.positionalArguments().first());
+		_version = QVersionNumber::fromString(parser.positionalArguments().value(0));
 		if(_version.isNull())
 			throw tr("Invalid version! Please pass a valid version name");
 		_format = QpmxFormat::readDefault(true);
@@ -79,8 +79,7 @@ void PublishCommand::sourceError(int requestId, const QString &error)
 		return;
 
 	xCritical() << tr("Failed to publish package for provider %{bld}%1%{end} with error:\n%2")
-				   .arg(provider)
-				   .arg(error);
+				   .arg(provider, error);
 }
 
 void PublishCommand::publishNext()

@@ -12,7 +12,7 @@ class PluginRegistry : public QObject
 	Q_OBJECT
 
 public:
-	explicit PluginRegistry();
+	explicit PluginRegistry(QObject *parent = nullptr);
 
 	static PluginRegistry *instance();
 

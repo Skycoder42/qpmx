@@ -17,17 +17,11 @@ public:
 		};
 	}
 
-	inline PackageInfo(QString provider = {}, QString package = {}, QVersionNumber version = {}) :
+	inline PackageInfo(const QString &provider = {},const QString &package = {}, const QVersionNumber &version = {}) :
 		d(new Data(provider, package, version))
 	{}
-	inline PackageInfo(const PackageInfo &other) :
-		d(other.d)
-	{}
-
-	inline PackageInfo &operator=(const PackageInfo &other) {
-		d = other.d;
-		return *this;
-	}
+	inline PackageInfo(const PackageInfo &other) = default;
+	inline PackageInfo &operator=(const PackageInfo &other) = default;
 
 	inline QString provider() const {
 		return d->provider;
@@ -71,18 +65,13 @@ private:
 		QString package;
 		QVersionNumber version;
 
-		inline Data(QString provider, QString package, QVersionNumber version) :
+		inline Data(QString provider, const QString &package, QVersionNumber version) :
 			QSharedData(),
-			provider(provider),
+			provider(std::move(provider)),
 			package(package.toLower()),
-			version(version)
+			version(std::move(version))
 		{}
-		inline Data(const Data &other) :
-			QSharedData(other),
-			provider(other.provider),
-			package(other.package),
-			version(other.version)
-		{}
+		inline Data(const Data &other) = default;
 
 		inline bool operator==(const Data &other) const {
 			return provider == other.provider &&

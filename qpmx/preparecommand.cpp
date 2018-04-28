@@ -29,7 +29,7 @@ void PrepareCommand::initialize(QCliParser &parser)
 		if(parser.positionalArguments().size() != 1)
 			throw tr("You must specify exactly one provider to prepare publishing for");
 
-		auto provider = parser.positionalArguments().first();
+		auto provider = parser.positionalArguments().value(0);
 		auto plugin = registry()->sourcePlugin(provider);
 		if(!plugin->canPublish(provider))
 			throw tr("Provider %{bld}%1%{end} cannot publish packages via qpmx").arg(provider);

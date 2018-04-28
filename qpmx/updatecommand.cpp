@@ -58,7 +58,7 @@ void UpdateCommand::initialize(QCliParser &parser)
 	}
 }
 
-void UpdateCommand::versionResult(int requestId, QVersionNumber version)
+void UpdateCommand::versionResult(int requestId, const QVersionNumber &version)
 {
 	if(!_actionCache.contains(requestId))
 	   return;
@@ -77,8 +77,7 @@ void UpdateCommand::sourceError(int requestId, const QString &error)
 	auto dep = _actionCache.take(requestId);
 
 	xCritical() << tr("Failed to fetch latest version of %1 with error:\n%2")
-				   .arg(dep.toString())
-				   .arg(error);
+				   .arg(dep.toString(), error);
 	checkNext();
 }
 
@@ -98,8 +97,7 @@ void UpdateCommand::checkNext()
 		auto plugin = registry()->sourcePlugin(nextDep.provider);
 		if(!plugin->packageValid(nextDep.pkg())) {
 			throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
-					.arg(nextDep.package)
-					.arg(nextDep.provider);
+					.arg(nextDep.package, nextDep.provider);
 		}
 
 		xDebug() << tr("Searching for latest version of %1").arg(nextDep.toString());
@@ -115,10 +113,9 @@ void UpdateCommand::checkNext()
 void UpdateCommand::completeUpdate()
 {
 	QString pkgStr;
-	foreach(auto p, _updateList) {
+	for(const auto &p : qAsConst(_updateList)) {
 		pkgStr.append(tr("\n * %1 -> %{bld}%2%{end}")
-					  .arg(p.first.toString())
-					  .arg(p.second.toString()));
+					  .arg(p.first.toString(), p.second.toString()));
 	}
 
 	if(!_skipYes) {
@@ -136,7 +133,7 @@ void UpdateCommand::completeUpdate()
 		xInfo() << tr("Updating the following packages:") << pkgStr;
 
 	auto format = QpmxFormat::readDefault(true);
-	foreach(auto p, _updateList) {
+	for(const auto &p : qAsConst(_updateList)) {
 		auto dIndex = format.dependencies.indexOf(p.first);
 		if(dIndex != -1)
 			format.dependencies[dIndex].version = p.second;

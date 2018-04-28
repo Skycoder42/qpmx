@@ -48,8 +48,7 @@ void HookCommand::initialize(QCliParser &parser)
 		QFile out(outFile);
 		if(!out.open(QIODevice::WriteOnly | QIODevice::Text)) {
 			throw tr("Failed to create %1 file with error: %2")
-					.arg(out.fileName())
-					.arg(out.errorString());
+					.arg(out.fileName(), out.errorString());
 		}
 
 		if(parser.isSet(QStringLiteral("prepare")))
@@ -70,7 +69,7 @@ void HookCommand::createHookSrc(const QStringList &args, QIODevice *out)
 	QRegularExpression replaceRegex(QStringLiteral(R"__([\.-])__"));
 	QStringList hooks;
 	QStringList resources;
-	foreach(auto arg, args) {
+	for(auto arg : args) {
 		if(sep)
 			resources.append(arg.replace(replaceRegex, QStringLiteral("_")));
 		else if(arg == QStringLiteral("%%"))
@@ -83,14 +82,14 @@ void HookCommand::createHookSrc(const QStringList &args, QIODevice *out)
 	QTextStream stream(out);
 	stream << "#include <QtCore/QCoreApplication>\n\n"
 		   << "namespace __qpmx_startup_hooks {\n";
-	foreach(auto hook, hooks)
+	for(const auto &hook : hooks)
 		stream << "\tvoid hook_" << hook << "();\n";
 	stream << "}\n\n";
 	stream << "using namespace __qpmx_startup_hooks;\n"
 		   << "static void __qpmx_root_hook() {\n";
-	foreach(auto resource, resources)
+	for(const auto &resource : resources)
 		stream << "\tQ_INIT_RESOURCE(" << resource << ");\n";
-	foreach(auto hook, hooks)
+	for(const auto &hook : hooks)
 		stream << "\thook_" << hook << "();\n";
 	stream << "}\n"
 		   << "Q_CONSTRUCTOR_FUNCTION(__qpmx_root_hook)\n";
@@ -105,8 +104,7 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 	QFile file(inFile);
 	if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		throw tr("Failed to read source file %1 with error: %2")
-				.arg(file.fileName())
-				.arg(file.errorString());
+				.arg(file.fileName(), file.errorString());
 	}
 	auto inData = QTextStream(&file).readAll();
 	QRegularExpression fileRegex(QStringLiteral(R"__(^Q_COREAPP_STARTUP_FUNCTION\(([^\)]+)\)$)__"),
@@ -133,7 +131,7 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 		QTextStream hookStream(&hookFile);
 
 		stream << "\nnamespace __qpmx_startup_hooks {";
-		foreach(auto fn, functions) {
+		for(const auto &fn : functions) {
 			auto fnId = QCryptographicHash::hash(fn.toUtf8() + QByteArray::number(qrand()), QCryptographicHash::Sha3_256)
 						.toHex();
 			stream << "\n\tvoid hook_" << fnId << "() {\n"

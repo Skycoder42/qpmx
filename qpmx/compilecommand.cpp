@@ -95,19 +95,19 @@ void CompileCommand::initialize(QCliParser &parser)
 		} else if(global){
 			auto wDir = srcDir();
 			auto flags = QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable;
-			foreach(auto provider, wDir.entryList(flags)) {
+			for(const auto &provider : wDir.entryList(flags)) {
 				if(!wDir.cd(provider))
 					continue;
-				foreach(auto package, wDir.entryList(flags)) {
+				for(const auto &package : wDir.entryList(flags)) {
 					if(!wDir.cd(package))
 						continue;
-					foreach(auto version, wDir.entryList(flags)) {
+					for(const auto &version : wDir.entryList(flags)) {
 						PackageInfo pkg {
 							provider,
 							pkgDecode(package),
 							QVersionNumber::fromString(version)
 						};
-						_pkgList.append((QpmxDependency)pkg);
+						_pkgList.append(static_cast<QpmxDependency>(pkg));
 					}
 					wDir.cdUp();
 				}
@@ -173,8 +173,7 @@ void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		if(exitCode != EXIT_SUCCESS) {
 			_compileDir->setAutoRemove(false);
 			xCritical() << tr("Failed to run %1 step for %2 compilation with exit code %3. Check the error logs at \"%4\"")
-						   .arg(stage())
-						   .arg(_current.toString())
+						   .arg(stage(), _current.toString())
 						   .arg(exitCode)
 						   .arg(_compileDir->path());
 			_process->deleteLater();
@@ -189,9 +188,7 @@ void CompileCommand::errorOccurred(QProcess::ProcessError error)
 	Q_UNUSED(error)
 	_compileDir->setAutoRemove(false);
 	xCritical() << tr("Failed to run %1 step for %2 compilation. Error: %3")
-				   .arg(stage())
-				   .arg(_current.toString())
-				   .arg(_process->errorString());
+				   .arg(stage(), _current.toString(), _process->errorString());
 	_process->deleteLater();
 	_process = nullptr;
 }
@@ -220,20 +217,16 @@ void CompileCommand::compileNext()
 		   !bDir.exists(QStringLiteral("include.pri")) || //no include.pri -> invalid -> delete and recompile
 		   (_recompile && _explicitPkg.contains(_current))) { //only recompile explicitly specified (which is all except if passing as arguments)
 			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
-					   .arg(_current.toString())
-					   .arg(_kit.path);
+					   .arg(_current.toString(), _kit.path);
 			if(!bDir.removeRecursively()) {
 				throw tr("Failed to remove previous build of %1 with \"%2\"")
-				.arg(_current.toString())
-				.arg(_kit.path);
+				.arg(_current.toString(), _kit.path);
 			}
 			xDebug() << tr("Removed previous build of %1 with \"%2\"")
-						.arg(_current.toString())
-						.arg(_kit.path);
+						.arg(_current.toString(), _kit.path);
 		} else {
 			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
-						.arg(_current.toString())
-						.arg(_kit.path);
+						.arg(_current.toString(), _kit.path);
 			//done -> unlock
 			_buildLock.free();
 			compileNext();
@@ -241,8 +234,7 @@ void CompileCommand::compileNext()
 		}
 	} else {
 		xInfo() << tr("Compiling package %1 with qmake \"%2\"")
-				   .arg(_current.toString())
-				   .arg(_kit.path);
+				   .arg(_current.toString(), _kit.path);
 	}
 
 	//create temp dir and load qpmx.json
@@ -323,7 +315,7 @@ void CompileCommand::qmake()
 		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
 		   << "QPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n"
 		   << "TS_TMP = $$TRANSLATIONS\n\n";
-	foreach(auto dep, _format.dependencies) {
+	for(const auto &dep : qAsConst(_format.dependencies)) {
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "include(" << depDir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
@@ -380,7 +372,7 @@ void CompileCommand::priGen()
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n"
 		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n\n";
 	stream << "\t#dependencies\n";
-	foreach(auto dep, _format.dependencies) {
+	for(const auto &dep : qAsConst(_format.dependencies)) {
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
@@ -406,7 +398,7 @@ void CompileCommand::priGen()
 		auto resources = readVar(_compileDir->filePath(QStringLiteral(".qpmx_resources")));
 		if(!resources.isEmpty()) {
 			stream << "\tQPMX_RESOURCE_FILES +=";
-			foreach(auto res, resources)
+			for(const auto &res : resources)
 				stream << " \"" << QFileInfo(res).completeBaseName() << "\"";
 			stream << "\n";
 		}
@@ -446,14 +438,14 @@ void CompileCommand::depCollect()
 	});
 
 	QQueue<QpmxDevDependency> queue;
-	foreach(auto pkg, _pkgList)
+	for(const auto &pkg : qAsConst(_pkgList))
 		queue.enqueue(pkg);
 
 	while(!queue.isEmpty()) {
 		auto pkg = queue.dequeue();
 		auto _pl = pkgLock(pkg);
 		auto format = QpmxFormat::readFile(srcDir(pkg), true);
-		foreach(auto dep, format.dependencies) {
+		for(const auto &dep : format.dependencies) {
 			if(!sortHelper.contains(dep)) {
 				sortHelper.addData(dep);
 				queue.enqueue(dep);
@@ -571,7 +563,7 @@ void CompileCommand::setupEnv()
 	if(_procEnv.contains(QStringLiteral("MAKEFLAGS"))) {
 		auto flags = _procEnv.value(QStringLiteral("MAKEFLAGS")).split(QLatin1Char(' '));
 		auto removed = false;
-		foreach(auto flag, flags) {
+		for(const auto &flag : flags) {
 			if(regex.match(flag).hasMatch()) {
 				flags.removeOne(flag);
 				removed = true;
@@ -595,6 +587,7 @@ void CompileCommand::initKits(const QStringList &qmakes)
 	if(qmakes.isEmpty()) {
 		// update all known kits
 		QStringList pathsCache;
+		pathsCache.reserve(allKits.size());
 		for(auto i = 0; i < allKits.size(); i++) {
 			auto nKit = updateKit(allKits[i], false);
 			if(nKit) {
@@ -613,14 +606,14 @@ void CompileCommand::initKits(const QStringList &qmakes)
 		}
 		_qtKits = allKits;
 	} else {
-		foreach(auto qmake, qmakes) {
+		for(const auto &qmake : qmakes) {
 			//try to find a matching existing qmake config
 			auto found = false;
-			for(auto i = 0; i < allKits.size(); i++) {
-				if(allKits[i].path == qmake) {
+			for(auto &allKit : allKits) {
+				if(allKit.path == qmake) {
 					found = true;
-					allKits[i] = updateKit(allKits[i], true);
-					_qtKits.append(allKits[i]);
+					allKit = updateKit(allKit, true);
+					_qtKits.append(allKit);
 					break;
 				}
 			}
@@ -676,13 +669,11 @@ QtKitInfo CompileCommand::createKit(const QString &qmakePath)
 
 	if(proc.exitStatus() == QProcess::CrashExit) {
 		throw tr("qmake process for qmake \"%1\" crashed with error: %2")
-				.arg(qmakePath)
-				.arg(proc.errorString());
+				.arg(qmakePath, proc.errorString());
 	}
 	if(proc.exitCode() != EXIT_SUCCESS) {
 		throw tr("qmake process for qmake \"%1\" failed with exit code: %2")
-				.arg(qmakePath)
-				.arg(proc.exitCode());
+				.arg(qmakePath, proc.exitCode());
 	}
 
 	auto data = proc.readAllStandardOutput();
@@ -692,7 +683,8 @@ QtKitInfo CompileCommand::createKit(const QString &qmakePath)
 
 	//assing values
 	QByteArrayList params;
-	foreach(auto res, results)
+	params.reserve(results.size());
+	for(const auto &res : results)
 		params.append(res.split(':').last());//contains always at least 1 element
 	kit.qmakeVer = QVersionNumber::fromString(QString::fromUtf8(params[0]));
 	kit.qtVer = QVersionNumber::fromString(QString::fromUtf8(params[1]));
@@ -724,17 +716,16 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 		if(mustWork)
 			throw;
 		xWarning() << tr("Invalid qmake \"%1\" removed from qmake list. Error: %2")
-					  .arg(oldKit.path)
-					  .arg(s);
+					  .arg(oldKit.path, s);
 		return {};
 	}
 }
 
 
 
-QtKitInfo::QtKitInfo(const QString &path) :
+QtKitInfo::QtKitInfo(QString path) :
 	id(QUuid::createUuid()),
-	path(path),
+	path(std::move(path)),
 	qmakeVer(),
 	qtVer(),
 	spec(),

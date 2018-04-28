@@ -63,8 +63,7 @@ QpmxFormat QpmxFormat::readFile(const QDir &dir, const QString &fileName, bool m
 	if(qpmxFile.exists()) {
 		if(!qpmxFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 			throw tr("Failed to open %1 with error: %2")
-					.arg(qpmxFile.fileName())
-					.arg(qpmxFile.errorString());
+					.arg(qpmxFile.fileName(), qpmxFile.errorString());
 		}
 
 		try {
@@ -92,8 +91,7 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 	QSaveFile qpmxFile(QStringLiteral("./qpmx.json"));
 	if(!qpmxFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw tr("Failed to open %1 with error: %2")
-				.arg(qpmxFile.fileName())
-				.arg(qpmxFile.errorString());
+				.arg(qpmxFile.fileName(), qpmxFile.errorString());
 	}
 
 	try {
@@ -106,8 +104,7 @@ void QpmxFormat::writeDefault(const QpmxFormat &data)
 
 	if(!qpmxFile.commit()) {
 		throw tr("Failed to save %1 with error: %2")
-				.arg(qpmxFile.fileName())
-				.arg(qpmxFile.errorString());
+				.arg(qpmxFile.fileName(), qpmxFile.errorString());
 	}
 }
 
@@ -154,9 +151,9 @@ QpmxDevDependency::QpmxDevDependency() :
 	path()
 {}
 
-QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, const QString &localPath) :
+QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, QString localPath) :
 	QpmxDependency(dep),
-	path(localPath)
+	path(std::move(localPath))
 {}
 
 bool QpmxDevDependency::isDev() const
@@ -180,14 +177,15 @@ QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxForma
 	QpmxFormat(format),
 	devDependencies(userFormat.devDependencies)
 {
-	foreach(auto dep, devDependencies)
+	for(const auto &dep : qAsConst(devDependencies))
 		dependencies.removeOne(dep);
 }
 
 QList<QpmxDevDependency> QpmxUserFormat::allDeps() const
 {
 	auto res = devDependencies;
-	foreach(auto dep, dependencies)
+	res.reserve(res.size() + dependencies.size());
+	for(const auto &dep : qAsConst(dependencies))
 		res.append(dep);
 	return res;
 }
@@ -205,8 +203,7 @@ QpmxUserFormat QpmxUserFormat::readFile(const QDir &dir, const QString &fileName
 	if(qpmxUserFile.exists()) {
 		if(!qpmxUserFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 			throw tr("Failed to open %1 with error: %2")
-					.arg(qpmxUserFile.fileName())
-					.arg(qpmxUserFile.errorString());
+					.arg(qpmxUserFile.fileName(), qpmxUserFile.errorString());
 		}
 
 		try {
@@ -229,8 +226,7 @@ void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
 	QSaveFile qpmxUserFile(QDir::current().absoluteFilePath(QStringLiteral("qpmx.json.user")));
 	if(!qpmxUserFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw tr("Failed to open %1 with error: %2")
-				.arg(qpmxUserFile.fileName())
-				.arg(qpmxUserFile.errorString());
+				.arg(qpmxUserFile.fileName(), qpmxUserFile.errorString());
 	}
 
 	try {
@@ -252,8 +248,7 @@ void QpmxUserFormat::writeUser(const QpmxUserFormat &data)
 
 	if(!qpmxUserFile.commit()) {
 		throw tr("Failed to save %1 with error: %2")
-				.arg(qpmxUserFile.fileName())
-				.arg(qpmxUserFile.errorString());
+				.arg(qpmxUserFile.fileName(), qpmxUserFile.errorString());
 	}
 }
 
@@ -285,9 +280,9 @@ QpmxCacheFormat::QpmxCacheFormat() :
 	buildKit()
 {}
 
-QpmxCacheFormat::QpmxCacheFormat(const QpmxUserFormat &userFormat, const QString &kitId) :
+QpmxCacheFormat::QpmxCacheFormat(const QpmxUserFormat &userFormat, QString kitId) :
 	QpmxUserFormat(userFormat),
-	buildKit(kitId)
+	buildKit(std::move(kitId))
 {}
 
 QpmxCacheFormat QpmxCacheFormat::readCached(const QDir &dir)
@@ -296,8 +291,7 @@ QpmxCacheFormat QpmxCacheFormat::readCached(const QDir &dir)
 	if(qpmxCacheFile.exists()) {
 		if(!qpmxCacheFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 			throw tr("Failed to open %1 with error: %2")
-					.arg(qpmxCacheFile.fileName())
-					.arg(qpmxCacheFile.errorString());
+					.arg(qpmxCacheFile.fileName(), qpmxCacheFile.errorString());
 		}
 
 		try {
@@ -318,8 +312,7 @@ bool QpmxCacheFormat::writeCached(const QDir &dir, const QpmxCacheFormat &data)
 	QSaveFile qpmxCacheFile(dir.absoluteFilePath(QStringLiteral(".qpmx.cache")));
 	if(!qpmxCacheFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		qWarning().noquote() << tr("Failed to open %1 with error: %2")
-								.arg(qpmxCacheFile.fileName())
-								.arg(qpmxCacheFile.errorString());
+								.arg(qpmxCacheFile.fileName(), qpmxCacheFile.errorString());
 		return false;
 	}
 
@@ -334,8 +327,7 @@ bool QpmxCacheFormat::writeCached(const QDir &dir, const QpmxCacheFormat &data)
 
 	if(!qpmxCacheFile.commit()) {
 		qWarning().noquote() << tr("Failed to save %1 with error: %2")
-								.arg(qpmxCacheFile.fileName())
-								.arg(qpmxCacheFile.errorString());
+								.arg(qpmxCacheFile.fileName(), qpmxCacheFile.errorString());
 		return false;
 	} else
 		return true;

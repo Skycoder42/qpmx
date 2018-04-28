@@ -21,7 +21,7 @@ protected slots:
 
 private slots:
 	void sourceFetched(int requestId);
-	void versionResult(int requestId, QVersionNumber version);
+	void versionResult(int requestId, const QVersionNumber &version);
 	void existsResult(int requestId);
 	void sourceError(int requestId, const QString &error);
 
@@ -51,7 +51,7 @@ private:
 				  QTemporaryDir *tDir = nullptr,
 				  bool mustWork = false,
 				  qpmx::SourcePlugin *plugin = nullptr,
-				  SharedCacheLock lock = {});
+				  const SharedCacheLock &lock = {});
 		operator bool() const;
 	};
 
@@ -60,7 +60,7 @@ private:
 	QSet<qpmx::SourcePlugin*> _connectCache;
 
 	void getNext();
-	void getSource(QString provider, qpmx::SourcePlugin *plugin, bool mustWork);
+	void getSource(const QString &provider, qpmx::SourcePlugin *plugin, bool mustWork);
 	void completeSource();
 	void completeInstall();
 

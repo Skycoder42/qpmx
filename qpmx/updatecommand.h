@@ -20,7 +20,7 @@ protected slots:
 	void initialize(QCliParser &parser) override;
 
 private slots:
-	void versionResult(int requestId, QVersionNumber version);
+	void versionResult(int requestId, const QVersionNumber &version);
 	void sourceError(int requestId, const QString &error);
 
 private:

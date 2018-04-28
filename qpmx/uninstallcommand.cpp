@@ -42,7 +42,7 @@ void UninstallCommand::initialize(QCliParser &parser)
 		auto pkgList = readCliPackages(parser.positionalArguments());
 
 		_format = QpmxFormat::readDefault();
-		foreach(auto pkg, pkgList)
+		for(const auto &pkg : pkgList)
 			removePkg(pkg);
 		QpmxFormat::writeDefault(_format);
 
@@ -57,7 +57,7 @@ void UninstallCommand::removePkg(PackageInfo package)
 {
 	auto found = false;
 	if(package.provider().isNull()) {
-		foreach(auto dep, _format.dependencies) {
+		for(const auto &dep : qAsConst(_format.dependencies)) {
 			if(dep.package == package.package() &&
 			   (package.version().isNull() ||
 				package.version() == dep.version)) {
@@ -69,7 +69,7 @@ void UninstallCommand::removePkg(PackageInfo package)
 		if(!found)
 			throw tr("Failed to find a full package in qpmx.json that matches %1").arg(package.toString());
 	} else if(package.version().isNull()) {
-		foreach(auto dep, _format.dependencies) {
+		for(const auto &dep : qAsConst(_format.dependencies)) {
 			if(dep.package == package.package() &&
 			   dep.provider == package.provider()) {
 				package = dep.pkg();

@@ -45,7 +45,7 @@ void CreateCommand::initialize(QCliParser &parser)
 
 		auto providers = parser.values(QStringLiteral("prepare"));
 		if(!providers.isEmpty()) {
-			foreach(auto provider, providers)
+			for(const auto &provider : providers)
 				runPrepare(provider);
 		}
 
@@ -124,8 +124,7 @@ void CreateCommand::runBaseInit()
 			if(!format.prcFile.isEmpty()) {
 				if(!priFile.open(QIODevice::Append | QIODevice::Text)) {
 					throw tr("Failed to open %1 file with error: %2")
-							.arg(priFile.fileName())
-							.arg(priFile.errorString());
+							.arg(priFile.fileName(), priFile.errorString());
 				}
 
 				QTextStream priStream(&priFile);
@@ -141,8 +140,7 @@ void CreateCommand::runBaseInit()
 			QFile prcFile(format.prcFile);
 			if(!prcFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 				throw tr("Failed to create %1 file with error: %2")
-						.arg(prcFile.fileName())
-						.arg(prcFile.errorString());
+						.arg(prcFile.fileName(), prcFile.errorString());
 			}
 			prcFile.write("\n");
 			prcFile.close();

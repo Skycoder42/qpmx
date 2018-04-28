@@ -140,8 +140,7 @@ void TranslateCommand::binTranslate()
 		QStringLiteral("-i"), qmBaseFile
 	};
 
-	QList<QpmxDependency> allDeps;
-	foreach(auto tsDir, _qpmxTsFiles) {
+	for(const auto &tsDir : qAsConst(_qpmxTsFiles)) {
 		QDir bDir(tsDir);
 		if(!bDir.exists()) {
 			xWarning() << tr("Translation directory does not exist: %1").arg(tsDir);
@@ -150,7 +149,7 @@ void TranslateCommand::binTranslate()
 
 		bDir.setFilter(QDir::Files | QDir::Readable);
 		bDir.setNameFilters({QStringLiteral("*.qm")});
-		foreach(auto qpmxQmFile, bDir.entryInfoList()) {
+		for(const auto &qpmxQmFile : bDir.entryInfoList()) {
 			auto baseName = qpmxQmFile.completeBaseName();
 			if(baseName.endsWith(locale))
 				args.append({QStringLiteral("-i"), qpmxQmFile.absoluteFilePath()});
@@ -171,7 +170,7 @@ void TranslateCommand::srcTranslate()
 	auto locale = localeString();
 	if(!locale.isNull()) {
 		//collect all possible qpmx ts files
-		foreach(auto ts, _qpmxTsFiles) {
+		for(const auto &ts : qAsConst(_qpmxTsFiles)) {
 			auto baseName = QFileInfo(ts).completeBaseName();
 			if(baseName.endsWith(locale))
 				tsFiles.append(ts);
@@ -193,25 +192,18 @@ void TranslateCommand::execute(QStringList command)
 	switch (res) {
 	case -2://not started
 		throw tr("Failed to start \"%1\" to compile \"%2\"")
-				.arg(pName)
-				.arg(_tsFile);
-		break;
+				.arg(pName, _tsFile);
 	case -1://crashed
 		throw tr("Failed to run \"%1\" to compile \"%2\" - it crashed")
-				.arg(pName)
-				.arg(_tsFile);
-		break;
+				.arg(pName, _tsFile);
 	case 0://success
 		xDebug() << tr("Successfully ran \"%1\" to compile \"%2\"")
-					.arg(pName)
-					.arg(_tsFile);
+					.arg(pName, _tsFile);
 		break;
 	default:
 		throw tr("Running \"%1\" to compile \"%2\" failed with exit code: %3")
-				.arg(pName)
-				.arg(_tsFile)
+				.arg(pName, _tsFile)
 				.arg(res);
-		break;
 	}
 }
 

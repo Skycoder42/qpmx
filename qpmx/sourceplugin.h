@@ -12,7 +12,9 @@ namespace qpmx { //qpmx public namespace
 
 class SourcePlugin
 {
+	Q_DISABLE_COPY(SourcePlugin)
 public:
+	inline SourcePlugin() = default;
 	virtual inline ~SourcePlugin() = default;
 
 	virtual bool canSearch(const QString &provider) const = 0;

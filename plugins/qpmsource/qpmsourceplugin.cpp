@@ -103,12 +103,12 @@ void QpmSourcePlugin::cancelAll(int timeout)
 	auto procs = _processCache.keys();
 	_processCache.clear();
 
-	foreach(auto proc, procs) {
+	for(auto proc : procs) {
 		proc->disconnect();
 		proc->terminate();
 	}
 
-	foreach(auto proc, procs) {
+	for(auto proc : procs) {
 		auto startTime = QDateTime::currentMSecsSinceEpoch();
 		if(!proc->waitForFinished(timeout)) {
 			timeout = 1;
@@ -116,7 +116,7 @@ void QpmSourcePlugin::cancelAll(int timeout)
 			proc->waitForFinished(100);
 		} else {
 			auto endTime = QDateTime::currentMSecsSinceEpoch();
-			timeout = qMax(1ll, timeout - (endTime - startTime));
+			timeout = static_cast<int>(qMax(1ll, timeout - (endTime - startTime)));
 		}
 	}
 
@@ -135,7 +135,7 @@ void QpmSourcePlugin::searchPackage(int requestId, const QString &provider, cons
 							  };
 
 		auto proc = createProcess(arguments, true);
-		_processCache.insert(proc, tpl{requestId, Search, {}});
+		_processCache.insert(proc, std::make_tuple(requestId, Search, QVariantHash{}));
 		qDebug().noquote() << tr("Running qpm search for query: %1").arg(query);
 		proc->start();
 	} catch (QString &s) {
@@ -169,7 +169,7 @@ void QpmSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 		params.insert(QStringLiteral("package"), package.package());
 		auto proc = createProcess(arguments);
 		proc->setWorkingDirectory(tDir.path());
-		_processCache.insert(proc, tpl{requestId, Version, params});
+		_processCache.insert(proc, std::make_tuple(requestId, Version, params));
 		qDebug().noquote() << tr("Running qpm install for qpm package %1 to find it's latest version").arg(package.package());
 		proc->start();
 	} catch (QString &s) {
@@ -213,7 +213,7 @@ void QpmSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		params.insert(QStringLiteral("package"), package.package());
 		auto proc = createProcess(arguments);
 		proc->setWorkingDirectory(targetDir.absoluteFilePath(subPath));
-		_processCache.insert(proc, tpl{requestId, Install, params});
+		_processCache.insert(proc, std::make_tuple(requestId, Install, params));
 		qDebug().noquote() << tr("Running qpm install for qpm package %1").arg(qpmPkg);
 		proc->start();
 	} catch (QString &s) {
@@ -252,7 +252,7 @@ void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		qpmJson[QStringLiteral("version")] = vJson;
 
 		QJsonArray dArray;
-		foreach(auto dep, qpmxJson[QStringLiteral("dependencies")].toArray()) {
+		for(auto dep : qpmxJson[QStringLiteral("dependencies")].toArray()) {
 			auto depObj = dep.toObject();
 			if(depObj[QStringLiteral("provider")].toString() != QStringLiteral("qpm"))
 				throw tr("A qpm package can only have qpm dependencies. Other providers are not allowed");
@@ -288,7 +288,7 @@ void QpmSourcePlugin::publishPackage(int requestId, const QString &provider, con
 		proc->setWorkingDirectory(qpmxDir.absolutePath());
 		proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 		proc->setInputChannelMode(QProcess::ForwardedInputChannel);
-		_processCache.insert(proc, tpl{requestId, Publish, {}});
+		_processCache.insert(proc, std::make_tuple(requestId, Publish, QVariantHash{}));
 		qDebug().noquote() << tr("Running qpm publish");
 		proc->start();
 	} catch (QString &s) {
@@ -303,7 +303,7 @@ void QpmSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, tpl{-1, Search, {}});
+		auto data = _processCache.value(proc, std::make_tuple(-1, Search, QVariantHash{}));
 		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
 			switch (std::get<1>(data)) {
@@ -332,7 +332,7 @@ void QpmSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, tpl{-1, Search, {}});
+	auto data = _processCache.value(proc, std::make_tuple(-1, Search, QVariantHash{}));
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
 		QString reason;
@@ -537,7 +537,7 @@ void QpmSourcePlugin::cleanCache(const qpmx::PackageInfo &package)
 
 void QpmSourcePlugin::cleanCaches()
 {
-	foreach(auto dir, _cachedDownloads) {
+	for(auto dir : _cachedDownloads) {
 		QDir cDir(dir);
 		if(cDir.exists() && !cDir.removeRecursively())
 			qWarning().noquote() << tr("Failed to delete cached directory %1").arg(dir);
@@ -563,7 +563,7 @@ void QpmSourcePlugin::qpmTransform(const QDir &tDir)
 		auto qpmRoot = doc.object();
 
 		QJsonArray depArray;
-		foreach(auto dep, qpmRoot[QStringLiteral("dependencies")].toArray()) {
+		for(auto dep : qpmRoot[QStringLiteral("dependencies")].toArray()) {
 			auto nDep = dep.toString().split(QLatin1Char('@'));
 			if(nDep.size() != 2) {
 				qWarning().noquote() << tr("Skipping invalid qpm dependency \"%1\"").arg(dep.toString());

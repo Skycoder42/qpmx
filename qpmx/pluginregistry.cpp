@@ -10,8 +10,8 @@ using namespace qpmx;
 
 Q_GLOBAL_STATIC(PluginRegistry, registry)
 
-PluginRegistry::PluginRegistry() :
-	QObject(),
+PluginRegistry::PluginRegistry(QObject *parent) :
+	QObject(parent),
 	_srcCache(),
 	_loadCache()
 {}
@@ -42,8 +42,7 @@ SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 	auto instance = loader->instance();
 	if(!instance) {
 		throw tr("Failed to load plugin %{bld}%1%{end} with error: %2")
-				.arg(loader->fileName())
-				.arg(loader->errorString());
+				.arg(loader->fileName(), loader->errorString());
 	}
 
 	srcPlg = qobject_cast<SourcePlugin*>(instance);
@@ -55,7 +54,7 @@ SourcePlugin *PluginRegistry::sourcePlugin(const QString &provider)
 
 void PluginRegistry::cancelAll()
 {
-	foreach(auto loadedPlg, _loadCache.values())
+	for(const auto &loadedPlg : qAsConst(_loadCache))
 		loadedPlg->cancelAll(2500);
 }
 
@@ -81,14 +80,14 @@ void PluginRegistry::initSrcCache()
 	}
 
 	plugDir.setFilter(QDir::Files | QDir::Readable);
-	foreach (auto plg, plugDir.entryList()) {
+	for(const auto &plg : plugDir.entryList()) {
 		auto loader = new QPluginLoader(plugDir.absoluteFilePath(plg), this);
 		auto meta = loader->metaData();
 		if(meta[QStringLiteral("IID")].toString() == QStringLiteral(SourcePlugin_iid)) {
 			auto data = meta[QStringLiteral("MetaData")].toObject();
 			auto providers = data[QStringLiteral("Providers")].toArray();
 			if(!providers.isEmpty()) {
-				foreach(auto provider, providers)
+				for(const auto provider : providers)
 					_srcCache.insert(provider.toString(), loader);
 				continue;
 			} else

@@ -97,7 +97,7 @@ QList<T> TopSort<T>::sort() const
 		topOrder.append(u);
 
 		// reduce all deps indegree by 1 and enque ones with 0
-		foreach(auto dep, _dependencies.values(u)) {
+		for(auto dep : _dependencies.values(u)) {
 			if (--inDegree[dep] == 0)
 				queue.enqueue(dep);
 		}
@@ -109,7 +109,7 @@ QList<T> TopSort<T>::sort() const
 
 	// generate result list
 	QList<T> result;
-	foreach(auto i, topOrder)
+	for(auto i : topOrder)
 		result.prepend(_data[i]);
 	return result;
 }

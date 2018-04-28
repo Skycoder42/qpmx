@@ -49,7 +49,7 @@ protected:
 		inline BuildId(const QString &other) :
 			QString(other)
 		{}
-		inline BuildId(const QUuid &other) :
+		inline BuildId(QUuid other) :
 			QString(other.toString())
 		{
 			*this = mid(1, size() - 2);
@@ -130,7 +130,7 @@ protected:
 
 	static QString pkgEncode(const QString &name);
 	static QString pkgDecode(QString name);
-	static QString dashed(QString option);
+	static QString dashed(const QString &option);
 
 private:
 	PluginRegistry *_registry;

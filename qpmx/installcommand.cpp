@@ -103,7 +103,7 @@ void InstallCommand::sourceFetched(int requestId)
 	completeSource();
 }
 
-void InstallCommand::versionResult(int requestId, QVersionNumber version)
+void InstallCommand::versionResult(int requestId, const QVersionNumber &version)
 {
 	auto data = _actionCache.take(requestId);
 	if(!data)
@@ -123,8 +123,7 @@ void InstallCommand::versionResult(int requestId, QVersionNumber version)
 			xDebug() << tr("Fetched latest version as %1").arg(version.toString());
 		else {
 			xDebug() << tr("Fetched latest version as %1 from provider %{bld}%2%{end}")
-						.arg(version.toString())
-						.arg(data.provider);
+						.arg(version.toString(), data.provider);
 		}
 
 		_current.version = version;
@@ -160,7 +159,7 @@ void InstallCommand::sourceError(int requestId, const QString &error)
 		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error:\n%2");
 	else
 		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error:\n%2");
-	str = str.arg(data.provider).arg(error);
+	str = str.arg(data.provider, error);
 
 	if(data.mustWork)
 		xCritical() << str.arg(tr(" for %1 ").arg(_current.toString()));
@@ -189,7 +188,7 @@ void InstallCommand::getNext()
 	if(_current.provider.isEmpty()) {
 		auto allProvs = registry()->providerNames();
 		auto any = false;
-		foreach(auto prov, allProvs) {
+		for(const auto &prov : allProvs) {
 			auto plugin = registry()->sourcePlugin(prov);
 			if(plugin->packageValid(_current.pkg(prov))) {
 				any = true;
@@ -206,14 +205,13 @@ void InstallCommand::getNext()
 		auto plugin = registry()->sourcePlugin(_current.provider);
 		if(!plugin->packageValid(_current.pkg())) {
 			throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
-					.arg(_current.package)
-					.arg(_current.provider);
+					.arg(_current.package, _current.provider);
 		}
 		getSource(_current.provider, plugin, true);
 	}
 }
 
-void InstallCommand::getSource(QString provider, SourcePlugin *plugin, bool mustWork)
+void InstallCommand::getSource(const QString &provider, SourcePlugin *plugin, bool mustWork)
 {
 	//no version -> fetch first
 	if(_current.version.isNull()) {
@@ -302,12 +300,11 @@ void InstallCommand::completeSource()
 			throw tr("Unable to find any provider for package %1").arg(_current.toString());
 		else if(_resCache.size() > 1) {
 			QStringList provList;
-			foreach(auto data, _resCache)
+			for(const auto &data : qAsConst(_resCache))
 				provList.append(data.provider);
 			_resCache.clear();//to unlock
 			throw tr("Found more then one provider for package %1. Providers are: %2")
-					.arg(_current.toString())
-					.arg(provList.join(tr(", ")));
+					.arg(_current.toString(), provList.join(tr(", ")));
 		}
 
 		auto data = _resCache.first();
@@ -379,7 +376,7 @@ void InstallCommand::completeInstall()
 	}
 
 	auto format = QpmxFormat::readDefault();
-	foreach(auto pkg, _pkgList.mid(0, _addPkgCount))
+	for(const auto &pkg : _pkgList.mid(0, _addPkgCount))
 		format.putDependency(pkg);
 	QpmxFormat::writeDefault(format);
 	xInfo() << "Added all packages to qpmx.json";
@@ -388,7 +385,7 @@ void InstallCommand::completeInstall()
 		auto dir = QDir::current();
 		dir.setFilter(QDir::Files);
 		dir.setNameFilters({QStringLiteral("*.pro")});
-		foreach(auto proFile, dir.entryList())
+		for(const auto &proFile : dir.entryList())
 			InitCommand::prepare(proFile, true);
 	}
 }
@@ -428,7 +425,7 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n\n"
 		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n"
 		   << "\t#dependencies\n";
-	foreach(auto dep, format.dependencies) {
+	for(const auto &dep : format.dependencies) {
 		auto depDir = buildDir(QStringLiteral("src"), dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
@@ -445,7 +442,7 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 
 void InstallCommand::detectDeps(const QpmxFormat &format)
 {
-	foreach(auto dep, format.dependencies) {
+	for(const auto &dep : format.dependencies) {
 		auto dIndex = -1;
 		do {
 			dIndex = _pkgList.indexOf(dep, dIndex + 1);
@@ -463,9 +460,9 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 
 
 
-InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin, SharedCacheLock lock) :
+InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin, const SharedCacheLock &lock) :
 	type(type),
-	provider(provider),
+	provider(std::move(provider)),
 	tDir(tDir),
 	mustWork(mustWork),
 	plugin(plugin),

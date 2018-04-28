@@ -22,7 +22,7 @@ public:
 	Q_ENUM(Mode)
 
 	QpmSourcePlugin(QObject *parent = nullptr);
-	~QpmSourcePlugin();
+	~QpmSourcePlugin() override;
 
 	bool canSearch(const QString &provider) const override;
 	bool canPublish(const QString &provider) const override;
@@ -51,8 +51,7 @@ private slots:
 	void errorOccurred(QProcess::ProcessError error);
 
 private:
-	typedef std::tuple<int, Mode, QVariantHash> tpl;
-	QHash<QProcess*, tpl> _processCache;
+	QHash<QProcess*, std::tuple<int, Mode, QVariantHash>> _processCache;
 	QHash<qpmx::PackageInfo, QString> _cachedDownloads;
 
 	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false, bool timeout = true);

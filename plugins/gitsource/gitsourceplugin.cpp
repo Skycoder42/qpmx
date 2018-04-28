@@ -100,12 +100,12 @@ void GitSourcePlugin::cancelAll(int timeout)
 	auto procs = _processCache.keys();
 	_processCache.clear();
 
-	foreach(auto proc, procs) {
+	for(auto proc : procs) {
 		proc->disconnect();
 		proc->terminate();
 	}
 
-	foreach(auto proc, procs) {
+	for(auto proc : procs) {
 		auto startTime = QDateTime::currentMSecsSinceEpoch();
 		if(!proc->waitForFinished(timeout)) {
 			timeout = 1;
@@ -113,7 +113,7 @@ void GitSourcePlugin::cancelAll(int timeout)
 			proc->waitForFinished(100);
 		} else {
 			auto endTime = QDateTime::currentMSecsSinceEpoch();
-			timeout = qMax(1ll, timeout - (endTime - startTime));
+			timeout = static_cast<int>(qMax(1ll, timeout - (endTime - startTime)));
 		}
 	}
 }
@@ -144,7 +144,7 @@ void GitSourcePlugin::findPackageVersion(int requestId, const qpmx::PackageInfo 
 			arguments.append(prefix + QLatin1Char('*'));
 
 		auto proc = createProcess(arguments, true);
-		_processCache.insert(proc, tpl{requestId, LsRemote, {}});
+		_processCache.insert(proc, std::make_tuple(requestId, LsRemote, QVariantHash{}));
 		qDebug().noquote() << tr("Listing remote for repository %1").arg(url);
 		proc->start();
 	} catch(QString &s) {
@@ -172,7 +172,7 @@ void GitSourcePlugin::getPackageSource(int requestId, const qpmx::PackageInfo &p
 		params.insert(QStringLiteral("dir"), targetDir.absolutePath());
 
 		auto proc = createProcess(arguments);
-		_processCache.insert(proc, tpl{requestId, Clone, params});
+		_processCache.insert(proc, std::make_tuple(requestId, Clone, params));
 		qDebug().noquote() << tr("Cloning git repository %1").arg(url);
 		proc->start();
 	} catch(QString &s) {
@@ -202,7 +202,7 @@ void GitSourcePlugin::publishPackage(int requestId, const QString &provider, con
 	QString remote;
 	QSettings gitConfig(qpmxDir.absoluteFilePath(QStringLiteral(".git/config")), QSettings::IniFormat);
 	QRegularExpression regex(QStringLiteral(R"__(remote\s*"(.+)")__"));
-	foreach(auto group, gitConfig.childGroups()) {
+	for(auto group : gitConfig.childGroups()) {
 		auto match = regex.match(group);
 		if(match.hasMatch()) {
 			gitConfig.beginGroup(group);
@@ -230,7 +230,7 @@ void GitSourcePlugin::publishPackage(int requestId, const QString &provider, con
 	QVariantHash params;
 	params.insert(QStringLiteral("remote"), remote);
 	params.insert(QStringLiteral("tag"), tag);
-	_processCache.insert(proc, tpl{requestId, Tag, params});
+	_processCache.insert(proc, std::make_tuple(requestId, Tag, params));
 	qDebug().noquote() << tr("Create new tag %{bld}%1%{end}").arg(tag);
 	proc->start();
 }
@@ -241,7 +241,7 @@ void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
 		errorOccurred(QProcess::Crashed);
 	else {
 		auto proc = qobject_cast<QProcess*>(sender());
-		auto data = _processCache.value(proc, tpl{-1, Invalid, {}});
+		auto data = _processCache.value(proc, std::make_tuple(-1, Invalid, QVariantHash{}));
 		if(std::get<0>(data) != -1) {
 			_processCache.remove(proc);
 			switch (std::get<1>(data)) {
@@ -272,7 +272,7 @@ void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
 {
 	Q_UNUSED(error)
 	auto proc = qobject_cast<QProcess*>(sender());
-	auto data = _processCache.value(proc, tpl{-1, Invalid, {}});
+	auto data = _processCache.value(proc, std::make_tuple(-1, Invalid, QVariantHash{}));
 	if(std::get<0>(data) != -1) {
 		_processCache.remove(proc);
 		QString op;
@@ -397,7 +397,7 @@ void GitSourcePlugin::lsRemoteDone(int requestId, QProcess *proc, int exitCode)
 		qDebug().noquote() << tr("Parsing ls-remote output");
 		QSet<QVersionNumber> versions;
 		QRegularExpression tagRegex(QStringLiteral(R"__(^\w+\trefs\/tags\/(.*)$)__"));
-		foreach(auto line, proc->readAllStandardOutput().split('\n')) {
+		for(auto line : proc->readAllStandardOutput().split('\n')) {
 			auto match = tagRegex.match(QString::fromUtf8(line));
 			if(match.hasMatch())
 				versions.insert(QVersionNumber::fromString(match.captured(1)));
@@ -445,7 +445,7 @@ void GitSourcePlugin::tagDone(int requestId, QProcess *proc, int exitCode, const
 	auto nProc = createProcess(arguments, true, false);
 	nProc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
 	nProc->setInputChannelMode(QProcess::ForwardedInputChannel);
-	_processCache.insert(nProc, tpl{requestId, Push, {}});
+	_processCache.insert(nProc, std::make_tuple(requestId, Push, QVariantHash{}));
 	qDebug().noquote() << tr("Pushing tag to remote \"%1\"").arg(remote);
 	nProc->start();
 }
