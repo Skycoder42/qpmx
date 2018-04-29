@@ -78,6 +78,8 @@ Module {
 				args.push("--profile");
 				args.push(profile);
 			});
+			args.push("--qbs-version");
+			args.push(qbs.version);
 			if(recreate)
 				args.push("-r");
 			if(forwardStderr)

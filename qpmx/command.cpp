@@ -343,7 +343,7 @@ void Command::subCall(QStringList arguments, const QString &workingDir) const
 	if(p.error() != QProcess::UnknownError)
 		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
 	if(p.exitStatus() != QProcess::NormalExit)
-		throw tr("Failed to run qpmx subprocess with process - it crashed");
+		throw tr("Failed to run qpmx subprocess - it crashed");
 	else if(p.exitCode() != EXIT_SUCCESS) {
 		_ExitCode = p.exitCode();
 		throw tr("qpmx subprocess failed.");

@@ -15,6 +15,17 @@ public:
 
 protected slots:
 	void initialize(QCliParser &parser) override;
+
+private:
+	QString _qbsPath;
+	QDir _settingsDir;
+
+	void qbsInit(const QCliParser &parser);
+	void qbsGenerate(const QCliParser &parser);
+
+	QVersionNumber findQbsVersion();
+	QStringList findProfiles(const QDir &settingsDir);
+	QString findQmake(const QDir &settingsDir, const QString &profile);
 };
 
 #endif // QBSCOMMAND_H
