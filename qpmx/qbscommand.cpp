@@ -1,3 +1,4 @@
+#include "compilecommand.h"
 #include "qbscommand.h"
 
 #include <QProcess>
@@ -190,7 +191,57 @@ void QbsCommand::qbsInit(const QCliParser &parser)
 
 void QbsCommand::qbsGenerate(const QCliParser &parser)
 {
+	//get the version
+	QVersionNumber qbsVersion;
+	if(parser.isSet(QStringLiteral("qbs-version")))
+		qbsVersion = QVersionNumber::fromString(parser.value(QStringLiteral("qbs-version")));
+	else
+		qbsVersion = findQbsVersion();
 
+	// get the profile dir
+	auto profileDir = _settingsDir;
+	if(!profileDir.cd(QStringLiteral("qbs")) ||
+	   !profileDir.cd(qbsVersion.toString()))
+		throw tr("Unabled to find settings directory. Specify it explicitly via --settings-dir");
+	xDebug() << tr("Using qbs settings path: %1").arg(profileDir.path());
+
+	auto profiles = parser.values(QStringLiteral("profile"));
+	if(profiles.isEmpty())
+		profiles = findProfiles(profileDir);
+
+	xDebug() << tr("Running for following qbs profiles: %1").arg(profiles.join(tr(", ")));
+	auto format = QpmxUserFormat::readDefault(true);
+	if(format.hasDevOptions())
+		throw tr("For now, qbs builds do not support the dev mode!");
+	auto recreate = parser.isSet(QStringLiteral("recreate"));
+
+	for(const auto &profile : qAsConst(profiles)) {
+		xDebug() << tr("Running qbs generate for qbs profile %{bld}%1%{end}").arg(profile);
+
+		auto qmake = findQmake(profileDir, profile);
+		BuildId kitId;
+		if(format.source)
+			kitId = QStringLiteral("src");
+		else
+			kitId = QtKitInfo::findKitId(buildDir(), qmake);
+
+		//create meta files
+		auto pDir = profileDir;
+		if(!pDir.cd(QStringLiteral("profiles")) ||
+		   !pDir.cd(profile) ||
+		   !pDir.cd(QStringLiteral("modules")))
+			throw tr("Unable to find qbs modules folder for profile %{bld}%1%{end}").arg(profile);
+
+		if(pDir.exists(QStringLiteral("qpmx")) && recreate) {
+			auto rmDir = pDir;
+			if(!rmDir.cd(QStringLiteral("qpmx")) ||
+			   !rmDir.removeRecursively())
+				throw tr("Failed to remove old qpmx module for profile %{bld}%1%{end}").arg(profile);
+			xDebug() << tr("Removed old qpmx module");
+		}
+		createQpmxQbs(pDir);
+		createQpmxGlobalQbs(pDir, kitId);
+	}
 }
 
 QVersionNumber QbsCommand::findQbsVersion()
@@ -253,6 +304,92 @@ QString QbsCommand::findQmake(const QDir &settingsDir, const QString &profile)
 			xDebug() << tr("Detected qmake for profile %{bld}%1%{end} as: %2")
 						.arg(profile, qmakePath);
 			return qmakePath;
+		}
+	}
+
+	throw tr("Unable to find property binPath in core.qbs");
+}
+
+void QbsCommand::createQpmxQbs(const QDir &modRoot)
+{
+	auto appVer = QVersionNumber::fromString(QCoreApplication::applicationVersion());
+
+	auto modDir = modRoot;
+	if(!modDir.mkpath(QStringLiteral("qpmx")) ||
+	   !modDir.cd(QStringLiteral("qpmx")))
+		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
+	QFile outFile(modDir.absoluteFilePath(QStringLiteral("module.qbs")));
+	if(outFile.exists() && appVer == readVersion(outFile))
+		return;
+
+	xDebug() << QStringLiteral("qpmx qbs module needs to be created or updated");
+	QFile inFile(QStringLiteral(":/build/qbs/qpmx.qbs"));
+	if(!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(inFile.fileName(), inFile.errorString());
+	}
+
+	auto content = inFile.readAll();
+	inFile.close();
+	content.replace("%{version}", '"' + appVer.toString().toUtf8() + '"');
+
+	if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(outFile.fileName(), outFile.errorString());
+	}
+	outFile.write(content);
+	outFile.close();
+	xDebug() << tr("Created qpmx qbs module");
+}
+
+void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
+{
+	auto modDir = modRoot;
+	if(!modDir.mkpath(QStringLiteral("qpmx/global")) ||
+	   !modDir.cd(QStringLiteral("qpmx/global")))
+		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
+
+	// check if kit id matches
+	if(!modDir.exists(kitId)) {
+		if(!modDir.removeRecursively() ||
+		   !modDir.mkpath(QStringLiteral(".")))
+			throw tr("Failed to recreate qpmx.global qbs module: %1").arg(modDir.path());
+	}
+
+	QFile outFile(modDir.absoluteFilePath(QStringLiteral("module.qbs")));
+	if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(outFile.fileName(), outFile.errorString());
+	}
+	QTextStream stream(&outFile);
+	stream << "import qbs\n\n"
+		   << "Module {\n"
+		   << "\tversion: \"" << QCoreApplication::applicationVersion() << "\"\n"
+		   << "\treadonly property string cacheDir: \"" << buildDir(kitId).absolutePath() << "\"\n"
+		   << "}\n";
+	stream.flush();
+	outFile.close();
+	xDebug() << tr("Created qpmx.global qbs module");
+}
+
+QVersionNumber QbsCommand::readVersion(QFile &file)
+{
+	if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(file.fileName(), file.errorString());
+	}
+	QTextStream stream(&file);
+	static const QRegularExpression binRegex {
+		QStringLiteral(R"__(version: "((?:\d|\.)*)")__"),
+		QRegularExpression::OptimizeOnFirstUsageOption
+	};
+	while(!stream.atEnd()) {
+		auto line = stream.readLine().trimmed();
+		auto match = binRegex.match(line);
+		if(match.hasMatch()) {
+			auto version = match.captured(1);
+			file.close();
+			return QVersionNumber::fromString(version);
 		}
 	}
 

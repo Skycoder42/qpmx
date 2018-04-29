@@ -8,9 +8,9 @@ Module {
 
 	Depends { name: "cpp" }
 	Depends { name: "Qt"; submodules: ["core", "gui", "widgets"]}
-	Depends { name: "qpmxglobal" }
+	Depends { name: "qpmx.global" }
 
-	readonly property string installPath: qpmxglobal.cacheDir + "/" + provider + "/" + identity + "/" + version
+	readonly property string installPath: qpmx.global.cacheDir + "/" + provider + "/" + identity + "/" + version
 
 	cpp.includePaths: [installPath + "/include"]
 	cpp.libraryPaths: [installPath + "/lib"]

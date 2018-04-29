@@ -30,6 +30,7 @@ public:
 	QString installPrefix;
 	QString sysRoot;
 };
+
 class BuildDir
 {
 public:

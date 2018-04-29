@@ -6,7 +6,7 @@ import qbs.Process
 Module {
 	id: qpmxModule
 
-	version: 1.5.0 //TODO always update
+	version: %{version}
 
 	Depends { name: "qbs" }
 
@@ -97,7 +97,7 @@ Module {
 		condition: File.exists(qpmxFile) && (!autoProbe || qpmxDepsProbe.found)
 		submodules: {
 			var proc = new Process();
-			var args = setBaseArgs(["qbs", "init"]);
+			var args = setBaseArgs(["qbs", "load"]);
 			proc.exec(qpmxBin, args, true);
 			return proc.readStdOut().split("\n");
 		}

@@ -26,6 +26,11 @@ private:
 	QVersionNumber findQbsVersion();
 	QStringList findProfiles(const QDir &settingsDir);
 	QString findQmake(const QDir &settingsDir, const QString &profile);
+
+	void createQpmxQbs(const QDir &modRoot);
+	void createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId);
+
+	QVersionNumber readVersion(QFile &file);
 };
 
 #endif // QBSCOMMAND_H
