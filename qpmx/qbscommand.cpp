@@ -18,9 +18,9 @@ QSharedPointer<QCliNode> QbsCommand::createCliNode() const
 {
 	auto qbsNode = QSharedPointer<QCliContext>::create();
 	qbsNode->addOption({
-						   {QStringLiteral("p"), QStringLiteral("path")},
+						   QStringLiteral("path"),
 						   tr("The path to the qbs executable to be used. "
-						   "If not specified the system default is used.")
+						   "If not specified the environments default is used.")
 					   });
 	qbsNode->addOption({
 						   {QStringLiteral("s"), QStringLiteral("settings-dir")},
@@ -45,13 +45,24 @@ QSharedPointer<QCliNode> QbsCommand::createCliNode() const
 							tr("Pass the --clean cli flag to the compile step. This will generate clean dev "
 							   "builds instead of caching them for speeding builds up.")
 						});
+	initNode->addOption({
+							{QStringLiteral("p"), QStringLiteral("profile")},
+							tr("Pass all as --profile cli flags to to generate step. "
+							"This determines for which profiles the qpmx qbs modules should be created.")
+						});
 
 	auto generateNode = qbsNode->addLeafNode(QStringLiteral("generate"),
 											 tr("Generate the qbs modules for all given packages."));
 	generateNode->addOption({
 								{QStringLiteral("r"), QStringLiteral("recreate")},
-								tr("Always delete and recreate the files if they exist, not only when the configuration changed."),
+								tr("Always delete and recreate the files if they exist, not only when the configuration changed.")
 						   });
+	generateNode->addOption({
+								{QStringLiteral("p"), QStringLiteral("profile")},
+								tr("The <profiles> to generate the qpmx qbs modules for. "
+								"Can be specified multiple times to create for multiple modules."),
+								QStringLiteral("profile")
+							});
 
 	auto loadNode = qbsNode->addLeafNode(QStringLiteral("load"),
 										 tr("Load the names of all top level qbs qpmx modules that the qpmx.json file requires."));
