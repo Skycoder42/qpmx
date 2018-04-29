@@ -3,6 +3,7 @@
 set -e
 
 SUDO=$1
+unset QPMX_CACHE_DIR
 
 if [[ "$PLATFORM" == "clang_64" ]]; then
 	export MAKEFLAGS="-j$(sysctl -n hw.ncpu)"
