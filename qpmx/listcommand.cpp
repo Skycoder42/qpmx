@@ -89,12 +89,13 @@ void ListCommand::listKits(const QCliParser &parser)
 							kit.qtVer.toString(),
 							kit.qmakeVer.toString(),
 							kit.xspec,
+							kit.id.toString(),
 							kit.path
 						});
 		}
 
-		printTable({tr("Qt"), tr("qmake"), tr("xspec"), tr("qmake path")},
-				   {5, 5, 15, 0},
+		printTable({tr("Qt"), tr("qmake"), tr("xspec"), tr("ID"), tr("qmake path")},
+				   {6, 5, 15, 38, 0},
 				   rows);
 	}
 }
