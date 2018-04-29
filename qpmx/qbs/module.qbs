@@ -12,6 +12,7 @@ Module {
 
 	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
+	property bool autoProbe: true
 
 	// general params
 	property string logLevel: "normal"
@@ -69,7 +70,7 @@ Module {
 		readonly property alias clean: qpmxModule.clean
 		readonly property var profiles : qbs.profiles
 
-		condition: File.exists(qpmxFile)
+		condition: autoProbe && File.exists(qpmxFile)
 		configure: {
 			var proc = new Process();
 			var args = setBaseArgs(["qbs", "init"]);
@@ -91,7 +92,7 @@ Module {
 	Depends {
 		id: qpmxDeps
 		name: "qpmx-deps"
-		condition: qpmxDepsProbe.found
+		condition: File.exists(qpmxFile) && (!autoProbe || qpmxDepsProbe.found)
 		submodules: {
 			var proc = new Process();
 			var args = setBaseArgs(["qbs", "init"]);

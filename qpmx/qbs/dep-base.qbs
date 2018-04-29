@@ -1,13 +1,18 @@
-import qbs 1.0
+import qbs
 
 Module {
-	property string qpmxModuleName: "dialog-master"
+	readonly property string provider: "qpm"
+	readonly property string qpmxModuleName: "de.skycoder42.dialog-master"
+	readonly property string identity: encodeURIComponent(qpmxModuleName).replace(/\./g, "%2E").replace(/%/g, ".")
 	version: "1.3.2"
 
 	Depends { name: "cpp" }
 	Depends { name: "Qt"; submodules: ["core", "gui", "widgets"]}
+	Depends { name: "qpmxglobal" }
 
-	cpp.includePaths: ["/home/sky/.cache/Skycoder42/qpmx/build/dc9777cf-a22f-4464-b4c9-6c9c505b9151/qpm/de.2Eskycoder42.2Edialog-master/1.3.2/include/"]
-	cpp.libraryPaths: ["/home/sky/.cache/Skycoder42/qpmx/build/dc9777cf-a22f-4464-b4c9-6c9c505b9151/qpm/de.2Eskycoder42.2Edialog-master/1.3.2/lib/"]
+	readonly property string installPath: qpmxglobal.cacheDir + "/" + provider + "/" + identity + "/" + version
+
+	cpp.includePaths: [installPath + "/include"]
+	cpp.libraryPaths: [installPath + "/lib"]
 	cpp.staticLibraries: ["de_skycoder42_dialog-master"]
 }
