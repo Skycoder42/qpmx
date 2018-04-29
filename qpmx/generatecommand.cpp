@@ -75,7 +75,7 @@ void GenerateCommand::initialize(QCliParser &parser)
 
 		//create the file
 		xInfo() << tr("Updating qpmx_generated.pri to apply changes");
-		if(!mainFormat.devDependencies.isEmpty())
+		if(mainFormat.hasDevOptions())
 			setDevMode(true);
 		createPriFile(mainFormat);
 		if(!QpmxCacheFormat::writeCached(tDir, cachedFormat(mainFormat)))

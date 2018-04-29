@@ -22,6 +22,9 @@ private:
 	void removeDev(const QCliParser &parser);
 	void commitDev(const QCliParser &parser);
 
+	void addAlias(const QCliParser &parser);
+	void removeAlias(const QCliParser &parser);
+
 	void runPublish(const QStringList &providers, const QpmxDevDependency &dep, const QVersionNumber &version);
 };
 

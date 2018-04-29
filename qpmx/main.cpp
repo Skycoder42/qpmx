@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
 
 	QJsonSerializer::registerAllConverters<QpmxDependency>();
 	QJsonSerializer::registerAllConverters<QpmxDevDependency>();
+	QJsonSerializer::registerAllConverters<QpmxDevAlias>();
 	qRegisterMetaTypeStreamOperators<QVersionNumber>();
 
 	QHash<QString, Command*> commands;

@@ -5,11 +5,7 @@
 #include <QSaveFile>
 using namespace qpmx;
 
-QpmxDependency::QpmxDependency() :
-	provider(),
-	package(),
-	version()
-{}
+QpmxDependency::QpmxDependency() = default;
 
 QpmxDependency::QpmxDependency(const PackageInfo &package) :
 	provider(package.provider()),
@@ -24,6 +20,13 @@ bool QpmxDependency::operator==(const QpmxDependency &other) const
 	//only provider and package "identify" the dependency
 	return provider == other.provider &&
 			package == other.package;
+}
+
+bool QpmxDependency::operator!=(const QpmxDependency &other) const
+{
+	//only provider and package "identify" the dependency
+	return provider != other.provider ||
+			package != other.package;
 }
 
 QString QpmxDependency::toString(bool scoped) const
@@ -43,12 +46,15 @@ PackageInfo QpmxDependency::pkg(const QString &provider) const
 	return {provider.isEmpty() ? this->provider : provider, package, version};
 }
 
-QpmxFormat::QpmxFormat() :
-	priFile(),
-	prcFile(),
-	source(false),
-	dependencies()
-{}
+
+
+bool QpmxFormatLicense::operator!=(const QpmxFormatLicense &other) const
+{
+	return name != other.name ||
+		file != other.file;
+}
+
+
 
 QpmxFormat::~QpmxFormat() = default;
 
@@ -146,10 +152,8 @@ void QpmxFormat::checkDuplicatesImpl(const QList<T> &data)
 }
 
 
-QpmxDevDependency::QpmxDevDependency() :
-	QpmxDependency(),
-	path()
-{}
+
+QpmxDevDependency::QpmxDevDependency() = default;
 
 QpmxDevDependency::QpmxDevDependency(const QpmxDependency &dep, QString localPath) :
 	QpmxDependency(dep),
@@ -168,14 +172,32 @@ bool QpmxDevDependency::operator==(const QpmxDependency &other) const
 
 
 
-QpmxUserFormat::QpmxUserFormat() :
-	QpmxFormat(),
-	devDependencies()
+QpmxDevAlias::QpmxDevAlias() = default;
+
+QpmxDevAlias::QpmxDevAlias(const QpmxDependency &original, const QpmxDependency &alias) :
+	original(original),
+	alias(alias)
 {}
+
+bool QpmxDevAlias::operator==(const QpmxDependency &orig) const
+{
+	return original == orig &&
+			original.version == orig.version;
+}
+
+bool QpmxDevAlias::operator==(const QpmxDevAlias &other) const
+{
+	return operator==(other.original);
+}
+
+
+
+QpmxUserFormat::QpmxUserFormat() = default;
 
 QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxFormat &format) :
 	QpmxFormat(format),
-	devDependencies(userFormat.devDependencies)
+	devDependencies(userFormat.devDependencies),
+	devAliases(userFormat.devAliases)
 {
 	for(const auto &dep : qAsConst(devDependencies))
 		dependencies.removeOne(dep);
@@ -188,6 +210,11 @@ QList<QpmxDevDependency> QpmxUserFormat::allDeps() const
 	for(const auto &dep : qAsConst(dependencies))
 		res.append(dep);
 	return res;
+}
+
+bool QpmxUserFormat::hasDevOptions() const
+{
+	return !devDependencies.isEmpty() || !devAliases.isEmpty();
 }
 
 QpmxUserFormat QpmxUserFormat::readDefault(bool mustExist)
@@ -275,10 +302,7 @@ QList<QpmxDevDependency> QpmxUserFormat::readDummy() const
 
 
 
-QpmxCacheFormat::QpmxCacheFormat() :
-	QpmxUserFormat(),
-	buildKit()
-{}
+QpmxCacheFormat::QpmxCacheFormat() = default;
 
 QpmxCacheFormat::QpmxCacheFormat(const QpmxUserFormat &userFormat, QString kitId) :
 	QpmxUserFormat(userFormat),
@@ -331,12 +355,4 @@ bool QpmxCacheFormat::writeCached(const QDir &dir, const QpmxCacheFormat &data)
 		return false;
 	} else
 		return true;
-}
-
-
-
-bool QpmxFormatLicense::operator!=(const QpmxFormatLicense &other) const
-{
-	return name != other.name ||
-		file != other.file;
 }

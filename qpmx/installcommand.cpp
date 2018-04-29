@@ -72,7 +72,7 @@ void InstallCommand::initialize(QCliParser &parser)
 				qApp->quit();
 				return;
 			}
-			if(!format.devDependencies.isEmpty())
+			if(format.hasDevOptions())
 				setDevMode(true);
 
 			xDebug() << tr("Installing %n package(s) from qpmx.json file", "", _pkgList.size());
