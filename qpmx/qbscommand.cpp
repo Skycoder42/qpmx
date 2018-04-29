@@ -53,6 +53,9 @@ QSharedPointer<QCliNode> QbsCommand::createCliNode() const
 								tr("Always delete and recreate the files if they exist, not only when the configuration changed."),
 						   });
 
+	auto loadNode = qbsNode->addLeafNode(QStringLiteral("load"),
+										 tr("Load the names of all top level qbs qpmx modules that the qpmx.json file requires."));
+
 	return qbsNode;
 }
 
