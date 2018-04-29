@@ -16,6 +16,7 @@
 #include "clearcachescommand.h"
 #include "translatecommand.h"
 #include "hookcommand.h"
+#include "qbscommand.h"
 
 #include <QCoreApplication>
 #include <QException>
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
 	addCommand<ClearCachesCommand>(commands);
 	addCommand<TranslateCommand>(commands);
 	addCommand<HookCommand>(commands);
+	addCommand<QbsCommand>(commands);
 
 	QCliParser parser;
 	Command::setupParser(parser, commands);

@@ -43,7 +43,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	createcommand.h \
 	hookcommand.h \
 	clearcachescommand.h \
-	updatecommand.h
+	updatecommand.h \
+    qbscommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -63,13 +64,16 @@ SOURCES += main.cpp \
 	createcommand.cpp \
 	hookcommand.cpp \
 	clearcachescommand.cpp \
-	updatecommand.cpp
+	updatecommand.cpp \
+    qbscommand.cpp
 
 RESOURCES += \
 	qpmx.qrc
 
 DISTFILES += \
-	completitions/bash/qpmx
+	completitions/bash/qpmx \
+	qbs/module.qbs \
+	qbs/dep-base.qbs
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../install.pri)
