@@ -426,7 +426,10 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n\n"
 		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n"
 		   << "\t#dependencies\n";
-	for(const auto &dep : format.dependencies) {
+	for(auto dep : format.dependencies) {
+		// replace alias
+		replaceAlias(dep, _aliases);
+		// add dep
 		auto depDir = buildDir(QStringLiteral("src"), dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}

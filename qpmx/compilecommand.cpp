@@ -319,7 +319,10 @@ void CompileCommand::qmake()
 		   << "QPMX_INSTALL = \"" << bDir.absolutePath() << "\"\n"
 		   << "QPMX_BIN = \"" << QDir::toNativeSeparators(QCoreApplication::applicationFilePath()) << "\"\n"
 		   << "TS_TMP = $$TRANSLATIONS\n\n";
-	for(const auto &dep : qAsConst(_format.dependencies)) {
+	for(auto dep : qAsConst(_format.dependencies)) {
+		// replace alias
+		replaceAlias(dep, _aliases);
+		// add dep
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "include(" << depDir.absoluteFilePath(QStringLiteral("include.pri")) << ")\n";
 	}
