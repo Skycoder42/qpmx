@@ -199,6 +199,15 @@ QpmxUserFormat::QpmxUserFormat(const QpmxUserFormat &userFormat, const QpmxForma
 	devDependencies(userFormat.devDependencies),
 	devAliases(userFormat.devAliases)
 {
+	// replace all aliases
+	if(!devAliases.isEmpty()) {
+		for(auto &dep : dependencies) {
+			auto index = devAliases.indexOf(dep);
+			if(index != -1)
+				dep = devAliases[index].alias;
+		}
+	}
+	// remove all dev dep duplicates
 	for(const auto &dep : qAsConst(devDependencies))
 		dependencies.removeOne(dep);
 }

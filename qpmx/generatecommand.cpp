@@ -136,6 +136,19 @@ bool GenerateCommand::hasChanged(const QpmxUserFormat &currentUser, const QpmxCa
 	if(!dCache.isEmpty())
 		return true;
 
+	auto aCache = cache.devAliases;
+	for(const auto &alias : qAsConst(current.devAliases)) {
+		auto cIdx = aCache.indexOf(alias);
+		if(cIdx == -1)
+			return true;
+		auto cAlias = aCache.takeAt(cIdx);
+		if(cAlias.alias != alias.alias ||
+		   cAlias.alias.version != alias.alias.version)
+			return true;
+	}
+	if(!aCache.isEmpty())
+		return true;
+
 	return false;
 }
 

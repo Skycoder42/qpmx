@@ -30,6 +30,7 @@ private:
 	bool _noPrepare;
 
 	QList<QpmxDevDependency> _pkgList;
+	QList<QpmxDevAlias> _aliases;
 	int _addPkgCount;
 	int _pkgIndex;
 	QpmxDevDependency _current;

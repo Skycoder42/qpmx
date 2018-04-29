@@ -81,6 +81,7 @@ private:
 
 	QList<QpmxDevDependency> _pkgList;
 	QList<QpmxDevDependency> _explicitPkg;
+	QList<QpmxDevAlias> _aliases;
 	QList<QtKitInfo> _qtKits;
 #ifndef QPMX_NO_MAKEBUG
 	QProcessEnvironment _procEnv;
@@ -90,7 +91,6 @@ private:
 	int _kitIndex;
 	QtKitInfo _kit;
 	CacheLock _buildLock;
-	CacheLock _srcLock;//also serves as lock for build-folder of dev-deps
 	QScopedPointer<BuildDir> _compileDir;
 	QpmxFormat _format;
 	Stage _stage;

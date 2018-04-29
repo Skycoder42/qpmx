@@ -67,6 +67,7 @@ void InstallCommand::initialize(QCliParser &parser)
 		} else {
 			auto format = QpmxUserFormat::readDefault(true);
 			_pkgList = format.allDeps();
+			_aliases = format.devAliases;
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No dependencies found in qpmx.json. Nothing will be done");
 				qApp->quit();
@@ -442,7 +443,10 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 
 void InstallCommand::detectDeps(const QpmxFormat &format)
 {
-	for(const auto &dep : format.dependencies) {
+	for(auto dep : format.dependencies) {
+		// replace aliases
+		replaceAlias(dep, _aliases);
+		// check if needed
 		auto dIndex = -1;
 		do {
 			dIndex = _pkgList.indexOf(dep, dIndex + 1);
@@ -451,6 +455,7 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 				break;
 			}
 		} while(dIndex != -1);
+
 		if(dIndex == -1) {
 			xDebug() << tr("Detected dependency to install: %1").arg(dep.toString());
 			_pkgList.append(dep);

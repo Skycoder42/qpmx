@@ -103,6 +103,7 @@ protected:
 	QList<qpmx::PackageInfo> readCliPackages(const QStringList &arguments, bool fullPkgOnly = false) const;
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
 	static QList<QpmxDevDependency> devDepList(const QList<qpmx::PackageInfo> &pkgList);
+	static void replaceAlias(QpmxDependency &original, const QList<QpmxDevAlias> &aliases);
 	template <typename T>
 	int randId(QHash<int, T> &cache) const;
 

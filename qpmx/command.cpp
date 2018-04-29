@@ -227,6 +227,15 @@ QList<QpmxDevDependency> Command::devDepList(const QList<PackageInfo> &pkgList)
 	return depList;
 }
 
+void Command::replaceAlias(QpmxDependency &original, const QList<QpmxDevAlias> &aliases)
+{
+	auto aIndex = aliases.indexOf(original);
+	if(aIndex != -1) {
+		xDebug() << tr("Replacing dependency %1 by alias %2").arg(original.toString(), aliases[aIndex].alias.toString());
+		original = aliases[aIndex].alias;
+	}
+}
+
 void Command::cleanCaches(const PackageInfo &package, const Command::SharedCacheLock &sharedSrcLockRef) const
 {
 	cleanCaches(package, sharedSrcLockRef.lockRef());

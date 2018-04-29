@@ -16,6 +16,8 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_fwdStderr(false),
 	_clean(false),
 	_pkgList(),
+	_explicitPkg(),
+	_aliases(),
 	_qtKits(),
 #ifndef QPMX_NO_MAKEBUG
 	_procEnv(),
@@ -23,6 +25,7 @@ CompileCommand::CompileCommand(QObject *parent) :
 	_current(),
 	_kitIndex(-1),
 	_kit(),
+	_buildLock(),
 	_compileDir(nullptr),
 	_format(),
 	_stage(None),
@@ -128,6 +131,7 @@ void CompileCommand::initialize(QCliParser &parser)
 			}
 
 			_pkgList = format.allDeps();
+			_aliases = format.devAliases;
 			if(_pkgList.isEmpty()) {
 				xWarning() << tr("No packages to compile found in qpmx.json. Nothing will be done");
 				qApp->quit();
@@ -372,7 +376,10 @@ void CompileCommand::priGen()
 	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n"
 		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n\n";
 	stream << "\t#dependencies\n";
-	for(const auto &dep : qAsConst(_format.dependencies)) {
+	for(auto dep : qAsConst(_format.dependencies)) {
+		// replace aliases
+		replaceAlias(dep, _aliases);
+		// add dep
 		auto depDir = buildDir(_kit.id, dep);
 		stream << "\tinclude(" << bDir.relativeFilePath(depDir.absoluteFilePath(QStringLiteral("include.pri"))) << ")\n";
 	}
@@ -447,7 +454,10 @@ void CompileCommand::depCollect()
 		auto pkg = queue.dequeue();
 		auto _pl = pkgLock(pkg);
 		auto format = QpmxFormat::readFile(srcDir(pkg), true);
-		for(const auto &dep : format.dependencies) {
+		for(auto dep : qAsConst(format.dependencies)) {
+			// replace aliases
+			replaceAlias(dep, _aliases);
+			// insert as dep if needed
 			if(!sortHelper.contains(dep)) {
 				sortHelper.addData(dep);
 				queue.enqueue(dep);
