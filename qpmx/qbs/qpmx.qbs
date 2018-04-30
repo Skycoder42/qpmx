@@ -2,6 +2,7 @@ import qbs
 import qbs.TextFile
 import qbs.File
 import qbs.Process
+import "qpmx.js" as Qpmx
 
 Module {
 	id: qpmxModule
@@ -12,7 +13,7 @@ Module {
 
 	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
-	property bool autoProbe: true
+	property bool autoProbe: false
 
 	// general params
 	property string logLevel: "normal"
@@ -30,32 +31,6 @@ Module {
 
 	readonly property string qpmxFile: qpmxDir + "/qpmx.json"
 
-	function setBaseArgs(args) {
-		args.push("--dir");
-		args.push(qpmxDir);
-		switch(logLevel) {
-		case "quiet":
-			args.push("--quiet");
-			break;
-		case "warn-only":
-			args.push("--quiet");
-			args.push("--verbose");
-			break;
-		case "normal":
-			break;
-		case "verbose":
-			args.push("--verbose");
-			break;
-		}
-		if(!colors)
-			args.push("--no-color");
-		if(devCache != "") {
-			args.push("--dev-cache");
-			args.push(devCache);
-		}
-		return args;
-	}
-
 	FileTagger {
 		patterns: ["qpmx.json", "qpmx.user.json"]
 		fileTags: "qpmx-config"
@@ -64,42 +39,37 @@ Module {
 	Probe {
 		id: qpmxDepsProbe
 
-		readonly property alias qpmxBin: qpmxModule.qpmxBin
-		readonly property alias recreate: qpmxModule.recreate
-		readonly property alias forwardStderr: qpmxModule.forwardStderr
-		readonly property alias clean: qpmxModule.clean
-		readonly property var profiles : qbs.profiles
-
 		condition: autoProbe && File.exists(qpmxFile)
 		configure: {
 			var proc = new Process();
-			var args = setBaseArgs(["qbs", "init"]);
-			profiles.forEach(function(profile) {
+			var args = Qpmx.setBaseArgs(["qbs", "init"], qpmxModule.qpmxDir, qpmxModule.logLevel, qpmxModule.colors);
+			qbs.profiles.forEach(function(profile) {
 				args.push("--profile");
 				args.push(profile);
 			});
 			args.push("--qbs-version");
 			args.push(qbs.version);
-			if(recreate)
+			if(qpmxModule.recreate)
 				args.push("-r");
-			if(forwardStderr)
+			if(qpmxModule.forwardStderr)
 				args.push("--stderr");
-			if(clean)
+			if(qpmxModule.clean)
 				args.push("--clean");
-			proc.exec(qpmxBin, args, true);
+			proc.exec(qpmxModule.qpmxBin, args, true);
 			found = true;
 		}
 	}
 
 	Depends {
-		id: qpmxDeps
-		name: "qpmx-deps"
+		name: "qpmxdeps"
 		condition: File.exists(qpmxFile) && (!autoProbe || qpmxDepsProbe.found)
 		submodules: {
 			var proc = new Process();
-			var args = setBaseArgs(["qbs", "load"]);
+			var args = Qpmx.setBaseArgs(["qbs", "load"], qpmxDir, logLevel, colors);
 			proc.exec(qpmxBin, args, true);
-			return proc.readStdOut().split("\n");
+			var subMods = proc.readStdOut().split("\n");
+			subMods.pop();
+			return subMods;
 		}
 	}
 }

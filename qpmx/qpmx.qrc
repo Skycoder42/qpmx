@@ -3,7 +3,7 @@
         <file>template_static.pro</file>
         <file>qpmx_generated_base.pri</file>
         <file>default.pri</file>
-        <file>qbs/dep-base.qbs</file>
         <file>qbs/qpmx.qbs</file>
+        <file>qbs/qpmx.js</file>
     </qresource>
 </RCC>

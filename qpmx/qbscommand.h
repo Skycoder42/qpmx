@@ -25,6 +25,7 @@ private:
 
 	void qbsInit(const QCliParser &parser);
 	void qbsGenerate(const QCliParser &parser);
+	void qbsLoad();
 
 	QVersionNumber findQbsVersion();
 	QStringList findProfiles(const QDir &settingsDir);

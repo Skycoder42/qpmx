@@ -3,6 +3,7 @@
 
 #include <QProcess>
 #include <QStandardPaths>
+#include <iostream>
 
 QbsCommand::QbsCommand(QObject *parent) :
 	Command(parent)
@@ -94,7 +95,6 @@ void QbsCommand::initialize(QCliParser &parser)
 	try {
 		// qbs path
 		_qbsPath = parser.value(QStringLiteral("path"));
-		xDebug() << tr("Using qbs executable: %1").arg(_qbsPath);
 
 		// find the settings dir
 		if(parser.isSet(QStringLiteral("settings-dir")))
@@ -108,6 +108,8 @@ void QbsCommand::initialize(QCliParser &parser)
 			qbsInit(parser);
 		else if(parser.enterContext(QStringLiteral("generate")))
 			qbsGenerate(parser);
+		else if(parser.enterContext(QStringLiteral("load")))
+			qbsLoad();
 		else
 			Q_UNREACHABLE();
 		qApp->quit();
@@ -118,6 +120,7 @@ void QbsCommand::initialize(QCliParser &parser)
 
 void QbsCommand::qbsInit(const QCliParser &parser)
 {
+	xDebug() << tr("Using qbs executable: %1").arg(_qbsPath);
 	//get the version
 	QVersionNumber qbsVersion;
 	if(parser.isSet(QStringLiteral("qbs-version")))
@@ -191,6 +194,7 @@ void QbsCommand::qbsInit(const QCliParser &parser)
 
 void QbsCommand::qbsGenerate(const QCliParser &parser)
 {
+	xDebug() << tr("Using qbs executable: %1").arg(_qbsPath);
 	//get the version
 	QVersionNumber qbsVersion;
 	if(parser.isSet(QStringLiteral("qbs-version")))
@@ -239,12 +243,12 @@ void QbsCommand::qbsGenerate(const QCliParser &parser)
 				throw tr("Failed to remove old qpmx module for profile %{bld}%1%{end}").arg(profile);
 			xDebug() << tr("Removed old qpmx module");
 		}
-		if(pDir.exists(QStringLiteral("qpmx-deps")) && recreate) {
+		if(pDir.exists(QStringLiteral("qpmxdeps")) && recreate) {
 			auto rmDir = pDir;
-			if(!rmDir.cd(QStringLiteral("qpmx-deps")) ||
+			if(!rmDir.cd(QStringLiteral("qpmxdeps")) ||
 			   !rmDir.removeRecursively())
-				throw tr("Failed to remove old qpmx-deps module dir for profile %{bld}%1%{end}").arg(profile);
-			xDebug() << tr("Removed old qpmx-deps module dir");
+				throw tr("Failed to remove old qpmxdeps module dir for profile %{bld}%1%{end}").arg(profile);
+			xDebug() << tr("Removed old qpmxdeps module dir");
 		}
 		createQpmxQbs(pDir);
 		createQpmxGlobalQbs(pDir, kitId);
@@ -255,6 +259,19 @@ void QbsCommand::qbsGenerate(const QCliParser &parser)
 			createNextMod(pDir);
 	}
 }
+
+#define print(x) std::cout << QString(x).toStdString() << std::endl
+
+void QbsCommand::qbsLoad()
+{
+	auto format = QpmxUserFormat::readDefault(true);
+	if(format.hasDevOptions())
+		throw tr("For now, qbs builds do not support the dev mode!");
+	for(const auto &dep : format.dependencies)
+		print(dep.provider + QLatin1Char('.') + qbsPkgName(dep));
+}
+
+#undef print
 
 QVersionNumber QbsCommand::findQbsVersion()
 {
@@ -353,23 +370,26 @@ void QbsCommand::createQpmxQbs(const QDir &modRoot)
 	}
 	outFile.write(content);
 	outFile.close();
+	if(!QFile::copy(QStringLiteral(":/build/qbs/qpmx.js"),
+					modDir.absoluteFilePath(QStringLiteral("qpmx.js"))))
+		throw tr("Failed to copy module script to module dir");
 	xDebug() << tr("Created qpmx qbs module");
 }
 
 void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 {
 	auto modDir = modRoot;
-	if(!modDir.mkpath(QStringLiteral("qpmx/global")) ||
-	   !modDir.cd(QStringLiteral("qpmx/global")))
-		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
+	if(!modDir.mkpath(QStringLiteral("qpmxdeps/global")) ||
+	   !modDir.cd(QStringLiteral("qpmxdeps/global")))
+		throw tr("Failed to create qpmxdeps.global module dir in: %1").arg(modDir.path());
 
 	// check if kit id matches
 	if(!modDir.exists(kitId)) {
 		if(!modDir.removeRecursively() ||
 		   !modDir.mkpath(QStringLiteral(".")))
-			throw tr("Failed to recreate qpmx.global qbs module: %1").arg(modDir.path());
+			throw tr("Failed to recreate qpmxdeps.global qbs module: %1").arg(modDir.path());
 	} else {
-		xDebug() << tr("qpmx.global qbs module already exists");
+		xDebug() << tr("qpmxdeps.global qbs module already exists");
 		return;
 	}
 
@@ -392,30 +412,31 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		xWarning() <<  tr("Failed to open %1 with error: %2")
 					   .arg(kitFile.fileName(), kitFile.errorString());
 	}
-	xDebug() << tr("Created qpmx.global qbs module");
+	xDebug() << tr("Created qpmxdeps.global qbs module");
 }
 
 void QbsCommand::createNextMod(const QDir &modRoot)
 {
 	auto dep = _pkgList.value(_pkgIndex);
 	auto depName = qbsPkgName(dep);
-	QString modPath = QStringLiteral("qpmx-deps/") + dep.provider + QLatin1Char('/') + depName;
+	QString modPath = QStringLiteral("qpmxdeps/") + dep.provider + QLatin1Char('/') + depName;
 
 	auto modDir = modRoot;
 	if(!modDir.mkpath(modPath) ||
 	   !modDir.cd(modPath))
 		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
+	if(QFile::exists(modDir.absoluteFilePath(QStringLiteral("module.qbs")))) {
+		xDebug() << tr("qbs module for package %1 already exists").arg(dep.toString());
+		return;
+	}
 
 	// load src qpmx.json
 	auto srcFmDir = srcDir(dep);
 	auto srcFormat = QpmxFormat::readFile(srcFmDir, true);
 
 	// generate the qbs file
-	QFile qbsMod(modDir.absoluteFilePath(QStringLiteral("QpmxModule.qbs")));
-	if(qbsMod.exists()) {
-		xDebug() << tr("qbs module for package %1 already exists").arg(dep.toString());
-		return;
-	}
+	modDir.mkdir(QStringLiteral("basemod"));
+	QFile qbsMod(modDir.absoluteFilePath(QStringLiteral("basemod/QpmxModule.qbs")));
 	if(!qbsMod.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw tr("Failed to open %1 with error: %2")
 				.arg(qbsMod.fileName(), qbsMod.errorString());
@@ -429,18 +450,24 @@ void QbsCommand::createNextMod(const QDir &modRoot)
 	// fixed part
 	stream << '\t' << R"__(readonly property string identity: encodeURIComponent(qpmxModuleName).replace(/\./g, "%2E").replace(/%/g, "."))__" << '\n'
 		   << '\t' << R"__(readonly property string dependencyName : (identity + "@" + version).replace(/\./g, "_"))__" << '\n'
-		   << '\t' << R"__(readonly property string fullDependencyName : "qpmx-deps." + provider + "." + dependencyName)__" << "\n\n"
+		   << '\t' << R"__(readonly property string fullDependencyName : "qpmxdeps." + provider + "." + dependencyName)__" << "\n\n"
 		   << "\tDepends { name: \"cpp\" }\n"
-		   << "\tDepends { name: \"qpmx.global\" }\n";
+		   << "\tDepends { name: \"qpmxdeps.global\" }\n";
 	// dependencies
 	for(const auto &dependency : srcFormat.dependencies) {
-		if(!_pkgList.contains(dependency)) //TODO take version into account
+		auto dIndex = -1;
+		do {
+			dIndex = _pkgList.indexOf(dependency, dIndex + 1);
+			if(dIndex != -1 && _pkgList[dIndex].version == dependency.version) //fine here, as dependencies do not trigger "duplicate" warnings
+				break;
+		} while(dIndex != -1);
+		if(dIndex == -1)
 			_pkgList.append(dependency);
-		stream << "\tDepends { name: \"qpmx-deps." << dependency.provider << '.' << qbsPkgName(dependency) << "\" }\n";
+		stream << "\tDepends { name: \"qpmxdeps." << dependency.provider << '.' << qbsPkgName(dependency) << "\" }\n";
 	}
 	// includes and the lib
 	auto libName = QFileInfo(srcFormat.priFile).completeBaseName();
-	stream << "\n\t" << R"__(readonly property string installPath: qpmx.global.cacheDir + "/" + provider + "/" + identity + "/" + version)__" << '\n'
+	stream << "\n\t" << R"__(readonly property string installPath: qpmxdeps.global.cacheDir + "/" + provider + "/" + identity + "/" + version)__" << '\n'
 		   << "\tcpp.includePaths: [installPath + \"/include\"]\n"
 		   << "\tcpp.libraryPaths: [installPath + \"/lib\"]\n"
 		   << "\tcpp.staticLibraries: [qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n"
