@@ -256,7 +256,7 @@ void QbsCommand::qbsGenerate(const QCliParser &parser)
 		// create the actual qbs modules for packages
 		_pkgList = format.dependencies;
 		for(_pkgIndex = 0; _pkgIndex < _pkgList.size(); _pkgIndex++)
-			createNextMod(pDir);
+			createNextMod(pDir, kitId);
 	}
 }
 
@@ -403,6 +403,8 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		   << "Module {\n"
 		   << "\tversion: \"" << QCoreApplication::applicationVersion() << "\"\n"
 		   << "\treadonly property string cacheDir: \"" << buildDir(kitId).absolutePath() << "\"\n"
+		   << "\tproperty stringList hooks: []\n"
+		   << "\tproperty stringList qrcs: []\n"
 		   << "}\n";
 	stream.flush();
 	outFile.close();
@@ -415,7 +417,7 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 	xDebug() << tr("Created qpmxdeps.global qbs module");
 }
 
-void QbsCommand::createNextMod(const QDir &modRoot)
+void QbsCommand::createNextMod(const QDir &modRoot, const BuildId &kitId)
 {
 	auto dep = _pkgList.value(_pkgIndex);
 	auto depName = qbsPkgName(dep);
@@ -430,9 +432,11 @@ void QbsCommand::createNextMod(const QDir &modRoot)
 		return;
 	}
 
-	// load src qpmx.json
+	// load src qpmx.json and build pri
 	auto srcFmDir = srcDir(dep);
 	auto srcFormat = QpmxFormat::readFile(srcFmDir, true);
+	QStringList hooks, qrcs;
+	std::tie(hooks, qrcs) = extractHooks(buildDir(kitId, dep));
 
 	// generate the qbs file
 	modDir.mkdir(QStringLiteral("basemod"));
@@ -442,7 +446,8 @@ void QbsCommand::createNextMod(const QDir &modRoot)
 				.arg(qbsMod.fileName(), qbsMod.errorString());
 	}
 	QTextStream stream(&qbsMod);
-	stream << "import qbs\n\n"
+	stream << "import qbs\n"
+		   << "import qbs.File\n\n"
 		   << "Module {\n"
 		   << "\treadonly property string provider: \"" << dep.provider << "\"\n"
 		   << "\treadonly property string qpmxModuleName: \"" << dep.package << "\"\n"
@@ -470,8 +475,22 @@ void QbsCommand::createNextMod(const QDir &modRoot)
 	stream << "\n\t" << R"__(readonly property string installPath: qpmxdeps.global.cacheDir + "/" + provider + "/" + identity + "/" + version)__" << '\n'
 		   << "\tcpp.includePaths: [installPath + \"/include\"]\n"
 		   << "\tcpp.libraryPaths: [installPath + \"/lib\"]\n"
-		   << "\tcpp.staticLibraries: [qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n"
-		   << "}";
+		   << "\tcpp.staticLibraries: [qbs.targetOS.contains(\"windows\") && qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n\n";
+	// translations
+	stream << "\tGroup {\n"
+		   << "\t\tname: \"qpmx-qm-basefiles\"\n"
+		   << "\t\tfileTags: [\"qpmx-qm-base\"]\n"
+		   << "\t\tfiles: File.directoryEntries(installPath + \"/translations\")\n"
+		   << "\t\tqbs.install: false\n"
+		   << "\t}\n\n";
+	// hooks
+	if(!hooks.isEmpty())
+		stream << "\tqpmxdeps.global.hooks: [\"" << hooks.join(QStringLiteral("\", \"")) << "\"]\n";
+	if(!qrcs.isEmpty())
+		stream << "\tqpmxdeps.global.qrcs: [\"" << qrcs.join(QStringLiteral("\", \"")) << "\"]\n";
+
+
+	stream << "}";
 	stream.flush();
 	qbsMod.close();
 
@@ -514,4 +533,28 @@ QVersionNumber QbsCommand::readVersion(QFile &file)
 QString QbsCommand::qbsPkgName(const QpmxDependency &dep)
 {
 	return QString{pkgEncode(dep.package) + QLatin1Char('@') + dep.version.toString()}.replace(QLatin1Char('.'), QLatin1Char('_'));
+}
+
+std::tuple<QStringList, QStringList> QbsCommand::extractHooks(const QDir &buildDir)
+{
+	QFile incFile(buildDir.absoluteFilePath(QStringLiteral("include.pri")));
+	if(!incFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(incFile.fileName(), incFile.errorString());
+	}
+	QTextStream stream(&incFile);
+
+	QStringList hooks, qrcs;
+	while(!stream.atEnd()) {
+		auto line = stream.readLine().trimmed().split(QStringLiteral("+="));
+		if(line.size() != 2)
+			continue;
+		else if(line[0].simplified() == QStringLiteral("QPMX_STARTUP_HOOKS"))
+			hooks.append(line[1].trimmed().mid(1, line[1].size() - 3).split(QStringLiteral("\" \"")));
+		else if(line[0].simplified() == QStringLiteral("QPMX_RESOURCE_FILES"))
+			qrcs.append(line[1].trimmed().mid(1, line[1].size() - 3).split(QStringLiteral("\" \"")));
+	}
+
+	incFile.close();
+	return std::make_tuple(hooks, qrcs);
 }

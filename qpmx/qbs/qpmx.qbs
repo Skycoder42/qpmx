@@ -10,6 +10,7 @@ Module {
 	version: "%{version}"
 
 	Depends { name: "qbs" }
+	Depends { name: "qpmxdeps.global" }
 
 	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
@@ -70,6 +71,37 @@ Module {
 			var subMods = proc.readStdOut().split("\n");
 			subMods.pop();
 			return subMods;
+		}
+	}
+
+	Rule {
+		//alwaysRun: true
+		multiplex: true
+		condition: qpmxdeps.global.hooks.length > 0 || qpmxdeps.global.qrcs > 0
+		requiresInputs: false
+		outputFileTags: ["cpp"]
+		outputArtifacts: [
+			{
+				filePath: "qpmx_startup_hooks.cpp",
+				fileTags: ["cpp"]
+			}
+		]
+
+		prepare: {
+			var command = new Command();
+			command.description = "Generating qpmx startup hooks";
+			command.highlight = "codegen";
+			command.program = product.qpmx.qpmxBin;
+			var arguments = Qpmx.setBaseArgs(["hook"], product.qpmx.qpmxDir, product.qpmx.logLevel, product.qpmx.colors);
+			arguments.push("--out");
+			arguments.push(product.buildDirectory + "/" + output.fileName);
+			for(var i = 0; i < product.qpmxdeps.global.hooks.length; i++)
+				arguments.push(product.qpmxdeps.global.hooks[i]);
+			arguments.push("%%");
+			for(var i = 0; i < product.qpmxdeps.global.qrcs.length; i++)
+				arguments.push(product.qpmxdeps.global.qrcs[i]);
+			command.arguments = arguments;
+			return command;
 		}
 	}
 }

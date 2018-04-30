@@ -21,7 +21,7 @@ private:
 	QDir _settingsDir;
 
 	QList<QpmxDependency> _pkgList;
-	int _pkgIndex;
+	int _pkgIndex = 0;
 
 	void qbsInit(const QCliParser &parser);
 	void qbsGenerate(const QCliParser &parser);
@@ -34,10 +34,11 @@ private:
 	void createQpmxQbs(const QDir &modRoot);
 	void createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId);
 
-	void createNextMod(const QDir &modRoot);
+	void createNextMod(const QDir &modRoot, const BuildId &kitId);
 
 	QVersionNumber readVersion(QFile &file);
 	QString qbsPkgName(const QpmxDependency &dep);
+	std::tuple<QStringList, QStringList> extractHooks(const QDir &buildDir); //(hooks, qrcs)
 };
 
 #endif // QBSCOMMAND_H
