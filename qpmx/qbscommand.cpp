@@ -239,8 +239,20 @@ void QbsCommand::qbsGenerate(const QCliParser &parser)
 				throw tr("Failed to remove old qpmx module for profile %{bld}%1%{end}").arg(profile);
 			xDebug() << tr("Removed old qpmx module");
 		}
+		if(pDir.exists(QStringLiteral("qpmx-deps")) && recreate) {
+			auto rmDir = pDir;
+			if(!rmDir.cd(QStringLiteral("qpmx-deps")) ||
+			   !rmDir.removeRecursively())
+				throw tr("Failed to remove old qpmx-deps module dir for profile %{bld}%1%{end}").arg(profile);
+			xDebug() << tr("Removed old qpmx-deps module dir");
+		}
 		createQpmxQbs(pDir);
 		createQpmxGlobalQbs(pDir, kitId);
+
+		// create the actual qbs modules for packages
+		_pkgList = format.dependencies;
+		for(_pkgIndex = 0; _pkgIndex < _pkgList.size(); _pkgIndex++)
+			createNextMod(pDir);
 	}
 }
 
@@ -319,8 +331,10 @@ void QbsCommand::createQpmxQbs(const QDir &modRoot)
 	   !modDir.cd(QStringLiteral("qpmx")))
 		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
 	QFile outFile(modDir.absoluteFilePath(QStringLiteral("module.qbs")));
-	if(outFile.exists() && appVer == readVersion(outFile))
+	if(outFile.exists() && appVer == readVersion(outFile)) {
+		xDebug() << tr("qpmx qbs module already exists");
 		return;
+	}
 
 	xDebug() << QStringLiteral("qpmx qbs module needs to be created or updated");
 	QFile inFile(QStringLiteral(":/build/qbs/qpmx.qbs"));
@@ -331,7 +345,7 @@ void QbsCommand::createQpmxQbs(const QDir &modRoot)
 
 	auto content = inFile.readAll();
 	inFile.close();
-	content.replace("%{version}", '"' + appVer.toString().toUtf8() + '"');
+	content.replace("%{version}", appVer.toString().toUtf8());
 
 	if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw tr("Failed to open %1 with error: %2")
@@ -354,6 +368,9 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		if(!modDir.removeRecursively() ||
 		   !modDir.mkpath(QStringLiteral(".")))
 			throw tr("Failed to recreate qpmx.global qbs module: %1").arg(modDir.path());
+	} else {
+		xDebug() << tr("qpmx.global qbs module already exists");
+		return;
 	}
 
 	QFile outFile(modDir.absoluteFilePath(QStringLiteral("module.qbs")));
@@ -369,7 +386,78 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		   << "}\n";
 	stream.flush();
 	outFile.close();
+
+	QFile kitFile(modDir.absoluteFilePath(kitId));
+	if(!kitFile.open(QIODevice::WriteOnly)) {
+		xWarning() <<  tr("Failed to open %1 with error: %2")
+					   .arg(kitFile.fileName(), kitFile.errorString());
+	}
 	xDebug() << tr("Created qpmx.global qbs module");
+}
+
+void QbsCommand::createNextMod(const QDir &modRoot)
+{
+	auto dep = _pkgList.value(_pkgIndex);
+	auto depName = qbsPkgName(dep);
+	QString modPath = QStringLiteral("qpmx-deps/") + dep.provider + QLatin1Char('/') + depName;
+
+	auto modDir = modRoot;
+	if(!modDir.mkpath(modPath) ||
+	   !modDir.cd(modPath))
+		throw tr("Failed to create qpmx module dir in: %1").arg(modDir.path());
+
+	// load src qpmx.json
+	auto srcFmDir = srcDir(dep);
+	auto srcFormat = QpmxFormat::readFile(srcFmDir, true);
+
+	// generate the qbs file
+	QFile qbsMod(modDir.absoluteFilePath(QStringLiteral("QpmxModule.qbs")));
+	if(qbsMod.exists()) {
+		xDebug() << tr("qbs module for package %1 already exists").arg(dep.toString());
+		return;
+	}
+	if(!qbsMod.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		throw tr("Failed to open %1 with error: %2")
+				.arg(qbsMod.fileName(), qbsMod.errorString());
+	}
+	QTextStream stream(&qbsMod);
+	stream << "import qbs\n\n"
+		   << "Module {\n"
+		   << "\treadonly property string provider: \"" << dep.provider << "\"\n"
+		   << "\treadonly property string qpmxModuleName: \"" << dep.package << "\"\n"
+		   << "\tversion: \"" << dep.version.toString() << "\"\n\n";
+	// fixed part
+	stream << '\t' << R"__(readonly property string identity: encodeURIComponent(qpmxModuleName).replace(/\./g, "%2E").replace(/%/g, "."))__" << '\n'
+		   << '\t' << R"__(readonly property string dependencyName : (identity + "@" + version).replace(/\./g, "_"))__" << '\n'
+		   << '\t' << R"__(readonly property string fullDependencyName : "qpmx-deps." + provider + "." + dependencyName)__" << "\n\n"
+		   << "\tDepends { name: \"cpp\" }\n"
+		   << "\tDepends { name: \"qpmx.global\" }\n";
+	// dependencies
+	for(const auto &dependency : srcFormat.dependencies) {
+		if(!_pkgList.contains(dependency)) //TODO take version into account
+			_pkgList.append(dependency);
+		stream << "\tDepends { name: \"qpmx-deps." << dependency.provider << '.' << qbsPkgName(dependency) << "\" }\n";
+	}
+	// includes and the lib
+	auto libName = QFileInfo(srcFormat.priFile).completeBaseName();
+	stream << "\n\t" << R"__(readonly property string installPath: qpmx.global.cacheDir + "/" + provider + "/" + identity + "/" + version)__" << '\n'
+		   << "\tcpp.includePaths: [installPath + \"/include\"]\n"
+		   << "\tcpp.libraryPaths: [installPath + \"/lib\"]\n"
+		   << "\tcpp.staticLibraries: [qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n"
+		   << "}";
+	stream.flush();
+	qbsMod.close();
+
+	//check if prc is given
+	if(!srcFormat.qbsFile.isEmpty()) {
+		if(!QFile::copy(srcFmDir.absoluteFilePath(srcFormat.qbsFile),
+					modDir.absoluteFilePath(QStringLiteral("module.qbs"))))
+			throw tr("Failed to copy qbs file to qbs module dir for package %1").arg(dep.toString());
+	} else {
+		if(!qbsMod.rename(modDir.absoluteFilePath(QStringLiteral("module.qbs"))))
+			throw tr("Failed to generate qbs file for package %1").arg(dep.toString());
+	}
+	xInfo() << tr("Created qbs module for package %1").arg(dep.toString());
 }
 
 QVersionNumber QbsCommand::readVersion(QFile &file)
@@ -394,4 +482,9 @@ QVersionNumber QbsCommand::readVersion(QFile &file)
 	}
 
 	throw tr("Unable to find property binPath in core.qbs");
+}
+
+QString QbsCommand::qbsPkgName(const QpmxDependency &dep)
+{
+	return QString{pkgEncode(dep.package) + QLatin1Char('@') + dep.version.toString()}.replace(QLatin1Char('.'), QLatin1Char('_'));
 }

@@ -20,6 +20,9 @@ private:
 	QString _qbsPath;
 	QDir _settingsDir;
 
+	QList<QpmxDependency> _pkgList;
+	int _pkgIndex;
+
 	void qbsInit(const QCliParser &parser);
 	void qbsGenerate(const QCliParser &parser);
 
@@ -30,7 +33,10 @@ private:
 	void createQpmxQbs(const QDir &modRoot);
 	void createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId);
 
+	void createNextMod(const QDir &modRoot);
+
 	QVersionNumber readVersion(QFile &file);
+	QString qbsPkgName(const QpmxDependency &dep);
 };
 
 #endif // QBSCOMMAND_H

@@ -59,6 +59,7 @@ class QpmxFormat
 
 	Q_PROPERTY(QString priFile MEMBER priFile)
 	Q_PROPERTY(QString prcFile MEMBER prcFile)
+	Q_PROPERTY(QString qbsFile MEMBER qbsFile)
 	Q_PROPERTY(bool source MEMBER source)
 
 	Q_PROPERTY(QList<QpmxDependency> dependencies MEMBER dependencies)
@@ -77,6 +78,7 @@ public:
 
 	QString priFile;
 	QString prcFile;
+	QString qbsFile;
 	bool source = false;
 	QList<QpmxDependency> dependencies;
 	QStringList priIncludes;

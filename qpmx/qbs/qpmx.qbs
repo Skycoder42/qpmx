@@ -6,7 +6,7 @@ import qbs.Process
 Module {
 	id: qpmxModule
 
-	version: %{version}
+	version: "%{version}"
 
 	Depends { name: "qbs" }
 
