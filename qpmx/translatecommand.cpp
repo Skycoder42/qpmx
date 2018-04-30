@@ -134,7 +134,7 @@ void TranslateCommand::binTranslate()
 		return;
 	}
 
-	args = QStringList{
+	args = QStringList {
 		_lconvert,
 		QStringLiteral("-if"), QStringLiteral("qm"),
 		QStringLiteral("-i"), qmBaseFile

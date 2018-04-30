@@ -1,6 +1,7 @@
 import qbs
 import qbs.TextFile
 import qbs.File
+import qbs.FileInfo
 import qbs.Process
 import "qpmx.js" as Qpmx
 
@@ -10,6 +11,7 @@ Module {
 	version: "%{version}"
 
 	Depends { name: "qbs" }
+	Depends { name: "Qt.core" }
 	Depends { name: "qpmxdeps.global" }
 
 	property string qpmxDir: sourceDirectory
@@ -75,7 +77,6 @@ Module {
 	}
 
 	Rule {
-		//alwaysRun: true
 		multiplex: true
 		condition: qpmxdeps.global.hooks.length > 0 || qpmxdeps.global.qrcs > 0
 		requiresInputs: false
@@ -94,7 +95,7 @@ Module {
 			command.program = product.qpmx.qpmxBin;
 			var arguments = Qpmx.setBaseArgs(["hook"], product.qpmx.qpmxDir, product.qpmx.logLevel, product.qpmx.colors);
 			arguments.push("--out");
-			arguments.push(product.buildDirectory + "/" + output.fileName);
+			arguments.push(output.filePath);//product.buildDirectory + "/" + output.fileName);
 			for(var i = 0; i < product.qpmxdeps.global.hooks.length; i++)
 				arguments.push(product.qpmxdeps.global.hooks[i]);
 			arguments.push("%%");
@@ -102,6 +103,56 @@ Module {
 				arguments.push(product.qpmxdeps.global.qrcs[i]);
 			command.arguments = arguments;
 			return command;
+		}
+	}
+
+	Rule {
+		inputs: ["qpmx-ts"]
+
+		Artifact {
+			filePath: input.baseName + ".qm-base"
+			fileTags: ["qpmx-qm-base"]
+		}
+
+		prepare: {
+			var inputFilePaths = [input.filePath];
+			var args = ["-silent", "-qm", output.filePath].concat(inputFilePaths);
+			var cmd = new Command(product.Qt.core.binPath + "/"
+								  + product.Qt.core.lreleaseName, args);
+			cmd.description = "Creating " + output.fileName;
+			cmd.highlight = "filegen";
+			return cmd;
+		}
+	}
+
+	Rule {
+		inputs: ["qpmx-qm-base"]
+
+		Artifact {
+			filePath: FileInfo.joinPaths(product.Qt.core.qmDir, input.baseName + ".qm")
+			fileTags: ["qm"]
+		}
+
+		prepare: {
+			var args = ["-if", "qm", "-i", input.filePath];
+			for(var i = 0; i < product.qpmxdeps.global.qmBaseFiles.length; i++) {
+				var suffix = FileInfo.completeBaseName(product.qpmxdeps.global.qmBaseFiles[i]).split("_")
+				suffix.shift();
+				while(suffix.length > 0) {
+					if(input.baseName.endsWith(suffix.join("_")))
+						break;
+					suffix.shift();
+				}
+				if(suffix.length == 0)
+					continue;
+
+				args = args.concat(["-i", product.qpmxdeps.global.qmBaseFiles[i]]);
+			}
+			args = args.concat(["-of", "qm", "-o", output.filePath])
+			var cmd = new Command(product.Qt.core.binPath + "/lconvert", args);
+			cmd.description = "Combining translations with qpmx package translations " + output.fileName;
+			cmd.highlight = "filegen";
+			return cmd;
 		}
 	}
 }

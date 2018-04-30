@@ -405,6 +405,7 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		   << "\treadonly property string cacheDir: \"" << buildDir(kitId).absolutePath() << "\"\n"
 		   << "\tproperty stringList hooks: []\n"
 		   << "\tproperty stringList qrcs: []\n"
+		   << "\tproperty pathList qmBaseFiles: []\n"
 		   << "}\n";
 	stream.flush();
 	outFile.close();
@@ -447,7 +448,8 @@ void QbsCommand::createNextMod(const QDir &modRoot, const BuildId &kitId)
 	}
 	QTextStream stream(&qbsMod);
 	stream << "import qbs\n"
-		   << "import qbs.File\n\n"
+		   << "import qbs.File\n"
+		   << "import qbs.FileInfo\n\n"
 		   << "Module {\n"
 		   << "\treadonly property string provider: \"" << dep.provider << "\"\n"
 		   << "\treadonly property string qpmxModuleName: \"" << dep.package << "\"\n"
@@ -472,18 +474,18 @@ void QbsCommand::createNextMod(const QDir &modRoot, const BuildId &kitId)
 	}
 	// includes and the lib
 	auto libName = QFileInfo(srcFormat.priFile).completeBaseName();
-	stream << "\n\t" << R"__(readonly property string installPath: qpmxdeps.global.cacheDir + "/" + provider + "/" + identity + "/" + version)__" << '\n'
-		   << "\tcpp.includePaths: [installPath + \"/include\"]\n"
-		   << "\tcpp.libraryPaths: [installPath + \"/lib\"]\n"
+	stream << "\n\t" << R"__(readonly property string installPath: FileInfo.joinPaths(qpmxdeps.global.cacheDir, provider, identity, version))__" << '\n'
+		   << "\tcpp.includePaths: [FileInfo.joinPaths(installPath, \"include\")]\n"
+		   << "\tcpp.libraryPaths: [FileInfo.joinPaths(installPath, \"lib\")]\n"
 		   << "\tcpp.staticLibraries: [qbs.targetOS.contains(\"windows\") && qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n\n";
-	// translations
-	stream << "\tGroup {\n"
-		   << "\t\tname: \"qpmx-qm-basefiles\"\n"
-		   << "\t\tfileTags: [\"qpmx-qm-base\"]\n"
-		   << "\t\tfiles: File.directoryEntries(installPath + \"/translations\")\n"
-		   << "\t\tqbs.install: false\n"
-		   << "\t}\n\n";
-	// hooks
+	// translations, hooks and qrcs
+	stream << "\tqpmxdeps.global.qmBaseFiles: {\n"
+		   << "\t\tvar res = [];\n"
+		   << "\t\tFile.directoryEntries(FileInfo.joinPaths(installPath, \"translations\"), File.Files).forEach(function(file){\n"
+		   << "\t\t\tres.push(FileInfo.joinPaths(installPath, \"translations\", file));\n"
+		   << "\t\t});\n"
+		   << "\t\treturn res;\n"
+		   << "\t}\n";
 	if(!hooks.isEmpty())
 		stream << "\tqpmxdeps.global.hooks: [\"" << hooks.join(QStringLiteral("\", \"")) << "\"]\n";
 	if(!qrcs.isEmpty())
