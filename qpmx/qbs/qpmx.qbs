@@ -15,9 +15,10 @@ Module {
 	Depends { name: "Qt.core" }
 	Depends { name: "qpmxdeps.global" }
 
-	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
-	property bool autoProbe: false
+	property bool autoProbe: true
+	readonly property string qpmxDir: sourceDirectory
+	readonly property string qpmxFile: qpmxDir + "/qpmx.json"
 
 	// general params
 	property string logLevel: "normal"
@@ -33,8 +34,6 @@ Module {
 	property bool forwardStderr: false
 	property bool clean: false
 
-	readonly property string qpmxFile: qpmxDir + "/qpmx.json"
-
 	FileTagger {
 		patterns: ["qpmx.json", "qpmx.user.json"]
 		fileTags: "qpmx-config"
@@ -43,30 +42,31 @@ Module {
 	Probe {
 		id: qpmxDepsProbe
 
+		property string profile: project.profile
+		property string version: qbs.version
+		property string qpmxDir: project.sourceDirectory
+
 		condition: autoProbe && File.exists(qpmxFile)
 		configure: {
 			var proc = new Process();
-			var args = Qpmx.setBaseArgs(["qbs", "init"], qpmxModule.qpmxDir, qpmxModule.logLevel, qpmxModule.colors);
-			qbs.profiles.forEach(function(profile) {
-				args.push("--profile");
-				args.push(profile);
-			});
+			var args = Qpmx.setBaseArgs(["qbs", "init"], qpmxDir, qpmxModule.logLevel, qpmxModule.colors);
+			args.push("--profile");
+			args.push(profile);
 			args.push("--qbs-version");
-			args.push(qbs.version);
+			args.push(version);
 			if(qpmxModule.recreate)
 				args.push("-r");
 			if(qpmxModule.forwardStderr)
 				args.push("--stderr");
 			if(qpmxModule.clean)
 				args.push("--clean");
-			proc.exec(qpmxModule.qpmxBin, args, true);
-			found = true;
+			found = (proc.exec(qpmxModule.qpmxBin, args) == 0);
 		}
 	}
 
 	Depends {
 		name: "qpmxdeps"
-		condition: File.exists(qpmxFile) && (!autoProbe || qpmxDepsProbe.found)
+		condition: File.exists(qpmxFile)
 		submodules: {
 			var proc = new Process();
 			var args = Qpmx.setBaseArgs(["qbs", "load"], qpmxDir, logLevel, colors);
