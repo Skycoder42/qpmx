@@ -406,6 +406,7 @@ void QbsCommand::createQpmxGlobalQbs(const QDir &modRoot, const BuildId &kitId)
 		   << "\tproperty stringList hooks: []\n"
 		   << "\tproperty stringList qrcs: []\n"
 		   << "\tproperty pathList qmBaseFiles: []\n"
+		   << "\tproperty pathList libdeps: []\n"
 		   << "}\n";
 	stream.flush();
 	outFile.close();
@@ -478,6 +479,21 @@ void QbsCommand::createNextMod(const QDir &modRoot, const BuildId &kitId)
 		   << "\tcpp.includePaths: [FileInfo.joinPaths(installPath, \"include\")]\n"
 		   << "\tcpp.libraryPaths: [FileInfo.joinPaths(installPath, \"lib\")]\n"
 		   << "\tcpp.staticLibraries: [qbs.targetOS.contains(\"windows\") && qbs.debugInformation ? \"" << libName << "d\" : \"" << libName << "\"]\n\n";
+	// libdeps
+	stream << "\tqpmxdeps.global.libdeps: {\n"
+		   << "\t\tif(qbs.targetOS.contains(\"windows\")) {\n"
+		   << "\t\t\tvar prefix = \"\";\n"
+		   << "\t\t\tvar suffix = \".lib\";\n"
+		   << "\t\t\tif(qbs.toolchain.contains(\"mingw\")) {\n"
+		   << "\t\t\t\tprefix = \"lib\";\n"
+		   << "\t\t\t\tsuffix = \".a\";\n"
+		   << "\t\t\t}\n"
+		   << "\t\t\tif(qbs.debugInformation)\n"
+		   << "\t\t\t\tsuffix = \"d\" + suffix;\n"
+		   << "\t\t\treturn [FileInfo.joinPaths(installPath, \"lib\", prefix + \"" << libName << "\" + suffix)];\n"
+		   << "\t\t} else\n"
+		   << "\t\t\treturn [FileInfo.joinPaths(installPath, \"lib\", \"lib" << libName << ".a\")];\n"
+		   << "\t}\n";
 	// translations, hooks and qrcs
 	stream << "\tqpmxdeps.global.qmBaseFiles: {\n"
 		   << "\t\tvar res = [];\n"

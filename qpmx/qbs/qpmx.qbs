@@ -3,6 +3,7 @@ import qbs.TextFile
 import qbs.File
 import qbs.FileInfo
 import qbs.Process
+import qbs.PathTools
 import "qpmx.js" as Qpmx
 
 Module {
@@ -17,6 +18,7 @@ Module {
 	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
 	property bool autoProbe: false
+	property bool mergeLibs: false
 
 	// general params
 	property string logLevel: "normal"
@@ -110,7 +112,7 @@ Module {
 		inputs: ["qpmx-ts"]
 
 		Artifact {
-			filePath: input.baseName + ".qm-base"
+			filePath: input.completeBaseName + ".qm-base"
 			fileTags: ["qpmx-qm-base"]
 		}
 
@@ -129,7 +131,7 @@ Module {
 		inputs: ["qpmx-qm-base"]
 
 		Artifact {
-			filePath: FileInfo.joinPaths(product.Qt.core.qmDir, input.baseName + ".qm")
+			filePath: FileInfo.joinPaths(product.Qt.core.qmDir, input.completeBaseName + ".qm")
 			fileTags: ["qm"]
 		}
 
@@ -154,5 +156,69 @@ Module {
 			cmd.highlight = "filegen";
 			return cmd;
 		}
+	}
+
+	readonly property bool doMerge: mergeLibs && qpmxdeps.global.libdeps.length > 0 //TODO only for static builds
+
+	Rule {
+		inputs: [qbs.toolchain.contains("gcc") ? "qpmx-mri-script" : "cpp_staticlibrary"]
+		condition: doMerge
+
+		Artifact {
+			filePath: input.completeBaseName + "-merged" + product.cpp.staticLibrarySuffix
+			fileTags: ["staticlibrary", "staticlibrary-merged"]
+		}
+
+		prepare: {
+			//create command
+			var exec = "";
+			var args = [];
+			if(product.qbs.toolchain.contains("msvc")) {
+				exec = "lib.exe"
+				args = ["/OUT:" + output.filePath, input.filePath]
+				for(var i = 0; i < product.qpmxdeps.global.libdeps.length; i++)
+					args.push(product.qpmxdeps.global.libdeps[i]);
+			} else if(product.qbs.toolchain.contains("clang")) {
+				exec = "libtool"
+				args = ["-static", "-o", output.filePath, input.filePath]
+				for(var i = 0; i < product.qpmxdeps.global.libdeps.length; i++)
+					args.push(product.qpmxdeps.global.libdeps[i]);
+			} else if(product.qbs.toolchain.contains("gcc")) {
+				exec = "sh"
+				args = ["-c", "ar -M < \"" + input.filePath + "\""]
+			}
+			var cmd = new Command(exec, args);
+			cmd.description = "Merging libary with qpmx libraries";
+			cmd.highlight = "linker";
+			return cmd;
+		}
+	}
+
+	Rule {
+		inputs: ["cpp_staticlibrary"]
+		condition: doMerge && qbs.toolchain.contains("gcc")
+
+		Artifact {
+			filePath: input.completeBaseName + ".mri"
+			fileTags: ["qpmx-mri-script"]
+		}
+
+		prepare: {
+			var cmd = new JavaScriptCommand();
+			cmd.description = "Generating mri script to merge libary with qpmx libraries";
+			cmd.highlight = "filegen";
+			cmd.sourceCode = function() {
+				var file = new TextFile(output.filePath, TextFile.WriteOnly);
+				file.writeLine("CREATE " + FileInfo.joinPaths(FileInfo.path(input.filePath),  input.completeBaseName + "-merged" + product.cpp.staticLibrarySuffix));
+				file.writeLine("ADDLIB " + input.filePath);
+				for(var i = 0; i < product.qpmxdeps.global.libdeps.length; i++)
+					file.writeLine("ADDLIB " + product.qpmxdeps.global.libdeps[i]);
+				file.writeLine("SAVE");
+				file.writeLine("END");
+				file.close();
+			};
+			return cmd;
+		}
+	}}
 	}
 }
