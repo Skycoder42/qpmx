@@ -96,13 +96,14 @@ Module {
 			command.program = product.qpmx.qpmxBin;
 			var arguments = Qpmx.setBaseArgs(["hook"], product.qpmx.qpmxDir, product.qpmx.logLevel, product.qpmx.colors);
 			arguments.push("--out");
-			arguments.push(output.filePath);//product.buildDirectory + "/" + output.fileName);
+			arguments.push(output.filePath);
 			for(var i = 0; i < product.qpmxdeps.global.hooks.length; i++)
 				arguments.push(product.qpmxdeps.global.hooks[i]);
 			arguments.push("%%");
 			for(var i = 0; i < product.qpmxdeps.global.qrcs.length; i++)
 				arguments.push(product.qpmxdeps.global.qrcs[i]);
 			command.arguments = arguments;
+			command.stdoutFilePath = product.qbs.nullDevice;
 			return command;
 		}
 	}
