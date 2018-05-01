@@ -18,7 +18,6 @@ Module {
 	property string qpmxDir: sourceDirectory
 	property string qpmxBin: "qpmx"
 	property bool autoProbe: false
-	property bool mergeLibs: false
 
 	// general params
 	property string logLevel: "normal"
@@ -158,15 +157,12 @@ Module {
 		}
 	}
 
-	readonly property bool doMerge: mergeLibs && qpmxdeps.global.libdeps.length > 0 //TODO only for static builds
-
 	Rule {
-		inputs: [qbs.toolchain.contains("gcc") ? "qpmx-mri-script" : "cpp_staticlibrary"]
-		condition: doMerge
+		inputs: [qbs.toolchain.contains("gcc") ? "qpmx-mri-script" : "staticlibrary"]
 
 		Artifact {
-			filePath: input.completeBaseName + "-merged" + product.cpp.staticLibrarySuffix
-			fileTags: ["staticlibrary", "staticlibrary-merged"]
+			filePath: FileInfo.joinPaths("merged", input.completeBaseName + product.cpp.staticLibrarySuffix)
+			fileTags: ["staticlibrary-merged"]
 		}
 
 		prepare: {
@@ -195,11 +191,11 @@ Module {
 	}
 
 	Rule {
-		inputs: ["cpp_staticlibrary"]
-		condition: doMerge && qbs.toolchain.contains("gcc")
+		inputs: ["staticlibrary"]
+		condition: qbs.toolchain.contains("gcc")
 
 		Artifact {
-			filePath: input.completeBaseName + ".mri"
+			filePath: FileInfo.joinPaths("merged", input.completeBaseName + ".mri")
 			fileTags: ["qpmx-mri-script"]
 		}
 
@@ -209,7 +205,7 @@ Module {
 			cmd.highlight = "filegen";
 			cmd.sourceCode = function() {
 				var file = new TextFile(output.filePath, TextFile.WriteOnly);
-				file.writeLine("CREATE " + FileInfo.joinPaths(FileInfo.path(input.filePath),  input.completeBaseName + "-merged" + product.cpp.staticLibrarySuffix));
+				file.writeLine("CREATE " + FileInfo.joinPaths(FileInfo.path(input.filePath), "merged", input.completeBaseName + product.cpp.staticLibrarySuffix));
 				file.writeLine("ADDLIB " + input.filePath);
 				for(var i = 0; i < product.qpmxdeps.global.libdeps.length; i++)
 					file.writeLine("ADDLIB " + product.qpmxdeps.global.libdeps[i]);
@@ -219,6 +215,5 @@ Module {
 			};
 			return cmd;
 		}
-	}}
 	}
 }
