@@ -1,0 +1,120 @@
+#compdef qpmx
+
+typeset -A opt_args
+setopt extendedglob
+
+local optargs cmdargs providers
+
+providers="($(qpmx list providers --short))"
+
+optargs=(
+	'(-h --help)'{-h,--help}'[help]'
+	{-v,--version}'[version]'
+	'--verbose[show more output]'
+	{-q,--quiet}'[show less output]'
+	'--quiet[show less output]'
+	'--no-color[do not use colors for the output]'
+	{-d,--dir}'[qpmx file directory]:directory:_path_files -/'
+	'--dev-cache[the directory to create the dev cache in]:directory:_path_files -/'
+)
+
+cmdargs=(':first command:(clean-caches compile create dev generate init install list prepare publish qbs search uninstall update)')
+
+_arguments -C $cmdargs $optargs "*::arg:->args"
+
+cmdargs=()
+case $line[1] in
+	clean-caches)
+		optargs=($optargs '--no-src[remove compiled cache only]' {-y,--yes}'[skip confirmation]')
+		;;
+	compile)
+		optargs=(
+			$optargs
+			{-m,--qmake}'[qmake executable]:qmake:_files -g "*qmake*"'
+			{-g,--global}'[operate in global mode]'
+			{-r,--recompile}'[recompile already cached depepencies]'
+			{-e,--stderr}'[forward stderr]'
+			{-c,--clean}'[enforce clean dev builds]'
+		)
+		;;
+	create)
+		optargs=($optargs {-p,--prepare}"[prepare provider]:provider:$providers")
+		;;
+	dev)
+		cmdargs=(':subcommands for dev:(add alias commit remove)')
+		;;
+	generate)
+		optargs=($optargs {-m,--qmake}'[qmake executable]:qmake:_files -g "*qmake*"' {-r,--recreate}'[always create file]')
+		;;
+	init)
+		optargs=(
+			$optargs
+			'-r[pass flag to subcommands]'
+			{-e,--stderr}'[forward stderr]'
+			{-c,--clean}'[enforce clean dev builds]'
+			'--qpmx-prepare[prepare with qpmx deps]:profile:_files -g "*.pro"'
+			'--ts-prepare[prepare for translation]:profile:_files -g "*.pro"'
+		)
+		;;
+	install)
+		optargs=($optargs {-r,--renew}'[download existing again]' {-c,--cache}'[cache deps only]' '--no-prepare[dont prepare profile]')
+		;;
+	list)
+		optargs=($optargs '--short[print short version]')
+		cmdargs=(':subcommands for list:(kits providers)')
+		;;
+	publish)
+		optargs=($optargs {-p,--provider}"[select provider]:provider:$providers")
+		;;
+	qbs)
+		optargs=(
+			$optargs
+			'--path[qbs binary]:qbs:_files -g "*qbs*"'
+			{-s,--settings-dir}"[qbs settings dir]:directory:_path_files -/"
+		)
+		cmdargs=(':subcommands for qbs:(init generate load)')
+		;;
+	search)
+		optargs=($optargs {-p,--provider}"[select provider]:provider:$providers" '--short[print short version]')
+		;;
+	uninstall)
+		optargs=($optargs {-c,--cache}'[remove from cache]')
+		;;
+	update)
+		optargs=($optargs {-i,--install}'[install updates]' {-y,--yes}'[skip confirmation]')
+		;;
+esac
+
+_arguments -C $optargs $cmdargs "*::arg:->args"
+
+if [ -n "$cmdargs" ]; then
+	case $line[2] in	
+		commit)
+			optargs=($optargs '--no-add[dont add to qpmx.json]' {-p,--provider}"[select provider]:provider:$providers")
+			;;
+		remove)
+			optargs=($optargs '--alias[remove an alias]')
+			;;
+		init)
+			optargs=(
+				$optargs
+				'-r[pass flag to subcommands]'
+				{-e,--stderr}'[forward stderr]'
+				{-c,--clean}'[enforce clean dev builds]'
+				{-p,--profile}'[qbs profiles]:name:'
+				'--qbs-version[qbs version]'
+			)
+			;;
+		generate)
+			optargs=(
+				$optargs
+				'-r[recreated modules]'
+				{-p,--profile}'[qbs profiles]:name:'
+				'--qbs-version[qbs version]'
+			)
+			;;
+	esac
+
+	_arguments $optargs $cmdargs
+fi
+

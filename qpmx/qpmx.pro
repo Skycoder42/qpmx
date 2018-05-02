@@ -44,7 +44,7 @@ HEADERS += $$PUBLIC_HEADERS \
 	hookcommand.h \
 	clearcachescommand.h \
 	updatecommand.h \
-    qbscommand.h
+	qbscommand.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -65,7 +65,7 @@ SOURCES += main.cpp \
 	hookcommand.cpp \
 	clearcachescommand.cpp \
 	updatecommand.cpp \
-    qbscommand.cpp
+	qbscommand.cpp
 
 RESOURCES += \
 	qpmx.qrc
@@ -74,7 +74,7 @@ DISTFILES += \
 	completitions/bash/qpmx \
 	qbs/module.qbs \
 	qbs/dep-base.qbs \
-    qbs/MergedStaticLibrary.qbs
+	qbs/MergedStaticLibrary.qbs
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../install.pri)
@@ -87,6 +87,8 @@ INSTALLS += target tHeaders
 unix {
 	bashcomp.path = $${INSTALL_SHARE}/bash-completion/completions/
 	bashcomp.files = completitions/bash/qpmx
-	INSTALLS += bashcomp
+	zshcomp.path = $${INSTALL_SHARE}/zsh/site-functions/
+	zshcomp.files = completitions/zsh/_qpmx
+	INSTALLS += bashcomp zshcomp
 }
 

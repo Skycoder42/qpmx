@@ -31,7 +31,7 @@ function _qpmx {
 			;;
 		*) ##default: normal completition
 			optargs='-h --help -v --version --verbose -q --quiet --no-color -d --dir --dev-cache'
-			prefix='clean-caches compile create dev generate init install list prepare publish search uninstall update'
+			prefix='clean-caches compile create dev generate init install list prepare publish qbs search uninstall update'
 			for arg in "${prev[@]}"; do
 				## collect all opt args
 				case "$arg" in
@@ -48,10 +48,10 @@ function _qpmx {
 						optargs="$optargs --no-add -p --provider"
 						;;
 					generate)
-						optargs="$optargs -m --qmake -r --recreate"
+						optargs="$optargs -m --qmake -r --recreate -p --profile --qbs-version"
 						;;
 					init)
-						optargs="$optargs -r -e --stderr -c --clean --qpmx-prepare --ts-prepare"
+						optargs="$optargs -r -e --stderr -c --clean --qpmx-prepare --ts-prepare -p --profile --qbs-version"
 						;;
 					install)
 						optargs="$optargs -r --renew -c --cache --no-prepare"
@@ -61,6 +61,9 @@ function _qpmx {
 						;;
 					publish)
 						optargs="$optargs -p --provider"
+						;;
+					remove)
+						optargs="$optargs --alias"
 						;;
 					search)
 						optargs="$optargs -p --provider --short"
@@ -77,10 +80,13 @@ function _qpmx {
 				if _qpm_contains_element $arg $prefix; then
 					case "$arg" in
 						dev)
-							prefix="add commit remove"
+							prefix="add alias commit remove"
 							;;
 						list)
 							prefix="kits providers"
+							;;
+						qbs)
+							prefix="init generate load"
 							;;
 						*)
 							prefix=""
