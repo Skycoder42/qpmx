@@ -11,16 +11,10 @@ Module {
 
 	version: "%{version}"
 
-	Depends { name: "qbs" }
-	Depends { name: "Qt.core" }
-	Depends { name: "qpmxdeps.global" }
-
 	property string qpmxBin: "qpmx"
-	property bool autoProbe: true
-	readonly property string qpmxDir: sourceDirectory
-	readonly property string qpmxFile: qpmxDir + "/qpmx.json"
+	property string qpmxDir: sourceDirectory
+	readonly property string qpmxFile: FileInfo.joinPaths(qpmxDir, "qpmx.json")
 
-	// general params
 	property string logLevel: "normal"
 	PropertyOptions {
 		name: "logLevel"
@@ -28,41 +22,10 @@ Module {
 		allowedValues: ["quiet", "warn-only", "normal", "verbose"]
 	}
 	property bool colors: true
-	property string devCache: ""
-	// probe params
-	property bool recreate: false
-	property bool forwardStderr: false
-	property bool clean: false
 
-	FileTagger {
-		patterns: ["qpmx.json", "qpmx.user.json"]
-		fileTags: "qpmx-config"
-	}
-
-	Probe {
-		id: qpmxDepsProbe
-
-		property string profile: project.profile
-		property string version: qbs.version
-		property string qpmxDir: project.sourceDirectory
-
-		condition: autoProbe && File.exists(qpmxFile)
-		configure: {
-			var proc = new Process();
-			var args = Qpmx.setBaseArgs(["qbs", "init"], qpmxDir, qpmxModule.logLevel, qpmxModule.colors);
-			args.push("--profile");
-			args.push(profile);
-			args.push("--qbs-version");
-			args.push(version);
-			if(qpmxModule.recreate)
-				args.push("-r");
-			if(qpmxModule.forwardStderr)
-				args.push("--stderr");
-			if(qpmxModule.clean)
-				args.push("--clean");
-			found = (proc.exec(qpmxModule.qpmxBin, args) == 0);
-		}
-	}
+	Depends { name: "qbs" }
+	Depends { name: "Qt.core" }
+	Depends { name: "qpmxdeps.global" }
 
 	Depends {
 		name: "qpmxdeps"
@@ -77,15 +40,25 @@ Module {
 		}
 	}
 
+	FileTagger {
+		patterns: ["qpmx.json"]
+		fileTags: "qpmx-config"
+	}
+
+	FileTagger {
+		patterns: ["qpmx.user.json"]
+		fileTags: "qpmx-config-user"
+	}
+
 	Rule {
 		multiplex: true
 		condition: qpmxdeps.global.hooks.length > 0 || qpmxdeps.global.qrcs > 0
 		requiresInputs: false
-		outputFileTags: ["cpp"]
+		outputFileTags: ["cpp", "qpmx-startup-hooks"]
 		outputArtifacts: [
 			{
 				filePath: "qpmx_startup_hooks.cpp",
-				fileTags: ["cpp"]
+				fileTags: ["cpp", "qpmx-startup-hooks"]
 			}
 		]
 
@@ -132,7 +105,7 @@ Module {
 
 		Artifact {
 			filePath: FileInfo.joinPaths(product.Qt.core.qmDir, input.completeBaseName + ".qm")
-			fileTags: ["qm"]
+			fileTags: ["qm", "qpmx-qm-merged"]
 		}
 
 		prepare: {
@@ -163,7 +136,7 @@ Module {
 
 		Artifact {
 			filePath: FileInfo.joinPaths("merged", input.completeBaseName + product.cpp.staticLibrarySuffix)
-			fileTags: ["staticlibrary-merged"]
+			fileTags: ["qpmx-staticlibrary-merged"]
 		}
 
 		prepare: {

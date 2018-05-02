@@ -373,6 +373,10 @@ void QbsCommand::createQpmxQbs(const QDir &modRoot)
 	if(!QFile::copy(QStringLiteral(":/build/qbs/qpmx.js"),
 					modDir.absoluteFilePath(QStringLiteral("qpmx.js"))))
 		throw tr("Failed to copy module script to module dir");
+	if(!modRoot.mkpath(QStringLiteral("../imports")) ||
+	   !QFile::copy(QStringLiteral(":/build/qbs/MergedStaticLibrary.qbs"),
+					modRoot.absoluteFilePath(QStringLiteral("../imports/MergedStaticLibrary.qbs"))))
+		throw tr("Failed to copy module script to module dir");
 	xDebug() << tr("Created qpmx qbs module");
 }
 

@@ -73,7 +73,8 @@ RESOURCES += \
 DISTFILES += \
 	completitions/bash/qpmx \
 	qbs/module.qbs \
-	qbs/dep-base.qbs
+	qbs/dep-base.qbs \
+    qbs/MergedStaticLibrary.qbs
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../install.pri)
