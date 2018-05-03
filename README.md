@@ -37,8 +37,7 @@ The git/github plugin supports any git repository. The urls are the package name
 ## Installation
 - **Arch-Users:** [qpmx](https://aur.archlinux.org/packages/qpmx/), [qpmx-gitsource](https://aur.archlinux.org/packages/qpmx-gitsource/), [qpmx-qpmsource](https://aur.archlinux.org/packages/qpmx-qpmsource/)
 - **Ubuntu:** Launchpad-PPA:
-	- Artful: [ppa:skycoder42/qt-modules](https://launchpad.net/~skycoder42/+archive/ubuntu/qt-modules), package `qpmx`
-	- Xenial: [ppa:skycoder42/qt-modules-opt](https://launchpad.net/~skycoder42/+archive/ubuntu/qt-modules-opt), package `qpmx-opt`
+	- Bionic: [ppa:skycoder42/qt-modules](https://launchpad.net/~skycoder42/+archive/ubuntu/qt-modules), package `qpmx`
 - **MacOs:**
 	- Tap: [`brew tap Skycoder42/qt-modules`](https://github.com/Skycoder42/homebrew-qt-modules)
 	- Package: `qpmx`
