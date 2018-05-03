@@ -7,6 +7,9 @@ unset QPMX_CACHE_DIR
 
 if [[ "$PLATFORM" == "clang_64" ]]; then
 	export MAKEFLAGS="-j$(sysctl -n hw.ncpu)"
+	sudo mkdir -p /private || true
+	sudo ln -s /tmp /private/tmp || true
+	sudo ln -s /Users /private/Users || true
 else
 	export MAKEFLAGS="-j$(nproc)"
 fi
