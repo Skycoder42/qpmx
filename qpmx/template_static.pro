@@ -5,6 +5,7 @@ win32: CONFIG += debug_and_release
 else: CONFIG += release
 
 # add modules (from qtbase, qtdeclerative, but only if available)
+QT = 
 QT_WANTS *= core gui widgets network xml sql concurrent dbus qml quick quickwidgets particles
 for(mod, QT_WANTS):qtHaveModule($$mod): QT *= $$mod
 
