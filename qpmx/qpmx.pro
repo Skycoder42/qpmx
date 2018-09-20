@@ -77,6 +77,7 @@ DISTFILES += \
 	qbs/MergedStaticLibrary.qbs
 
 include(../submodules/qcliparser/qcliparser.pri)
+include(../submodules/qpluginfactory/qpluginfactory.pri)
 include(../install.pri)
 
 target.path = $$INSTALL_BINS

@@ -91,4 +91,6 @@ inline uint qHash(const PackageInfo &t, uint seed) {
 
 }
 
+Q_DECLARE_METATYPE(qpmx::PackageInfo)
+
 #endif // PACKAGEINFO_H

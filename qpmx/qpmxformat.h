@@ -66,7 +66,7 @@ class QpmxFormat
 	Q_PROPERTY(QStringList priIncludes MEMBER priIncludes)
 
 	Q_PROPERTY(QpmxFormatLicense license MEMBER license)
-	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers)
+	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers);
 
 public:
 	virtual ~QpmxFormat();

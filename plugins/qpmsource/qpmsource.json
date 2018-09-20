@@ -1,4 +1,4 @@
 {
-	"Providers": ["qpm"],
+	"Keys": ["qpm"],
 	"Translations": ["qpmx_qpmsource"]
 }

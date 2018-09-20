@@ -42,8 +42,6 @@ Q_SIGNALS:
 
 }
 
-Q_DECLARE_METATYPE(qpmx::PackageInfo)
-
 #define SourcePlugin_iid "de.skycoder42.qpmx.SourcePlugin"
 Q_DECLARE_INTERFACE(qpmx::SourcePlugin, SourcePlugin_iid)
 

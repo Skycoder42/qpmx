@@ -1,11 +1,8 @@
 #ifndef PLUGINREGISTRY_H
 #define PLUGINREGISTRY_H
 
-#include <QObject>
-#include <QHash>
-#include <QPluginLoader>
-
 #include "sourceplugin.h"
+#include "qpluginfactory.h"
 
 class PluginRegistry : public QObject
 {
@@ -22,10 +19,8 @@ public:
 	void cancelAll();
 
 private:
-	QHash<QString, QPluginLoader*> _srcCache;
+	QPluginFactory<qpmx::SourcePlugin> *_factory;
 	QHash<QString, qpmx::SourcePlugin*> _loadCache;
-
-	void initSrcCache();
 };
 
 #endif // PLUGINREGISTRY_H
