@@ -1,4 +1,3 @@
 {
-	"Keys": ["git", "github"],
-	"Translations": ["qpmx_gitsource"]
+	"Keys": ["git", "github"]
 }
