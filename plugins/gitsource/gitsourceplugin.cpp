@@ -179,57 +179,71 @@ void GitSourcePlugin::getPackageSource(const qpmx::PackageInfo &package, const Q
 
 void GitSourcePlugin::publishPackage(const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo)
 {
-//	QString url;
-//	if(provider == QStringLiteral("git"))
-//		url = publisherInfo[QStringLiteral("url")].toString();
-//	else if(provider == QStringLiteral("github")) {
-//		url = QStringLiteral("https://github.com/%1/%2.git")
-//			  .arg(publisherInfo[QStringLiteral("user")].toString())
-//			  .arg(publisherInfo[QStringLiteral("repository")].toString());
-//	} else {
-//		emit sourceError(requestId, tr("Unsupported provider"));
-//	}
+	QString url;
+	if(provider == QStringLiteral("git"))
+		url = publisherInfo[QStringLiteral("url")].toString();
+	else if(provider == QStringLiteral("github")) {
+		url = QStringLiteral("https://github.com/%1/%2.git")
+			  .arg(publisherInfo[QStringLiteral("user")].toString(), publisherInfo[QStringLiteral("repository")].toString());
+	} else
+		throw qpmx::SourcePluginException{tr("Unsupported provider")};
 
-//	auto tag = version.toString();
-//	auto prefix = publisherInfo[QStringLiteral("prefix")].toString();
-//	if(!prefix.isEmpty())
-//		tag.prepend(prefix);
+	auto tag = version.toString();
+	auto prefix = publisherInfo[QStringLiteral("prefix")].toString();
+	if(!prefix.isEmpty())
+		tag.prepend(prefix);
 
-//	//verify the url and get the origin
-//	QString remote;
-//	QSettings gitConfig(qpmxDir.absoluteFilePath(QStringLiteral(".git/config")), QSettings::IniFormat);
-//	QRegularExpression regex(QStringLiteral(R"__(remote\s*"(.+)")__"));
-//	for(auto group : gitConfig.childGroups()) {
-//		auto match = regex.match(group);
-//		if(match.hasMatch()) {
-//			gitConfig.beginGroup(group);
-//			if(gitConfig.value(QStringLiteral("url")).toString() == url) {
-//				gitConfig.endGroup();
-//				remote = match.captured(1);
-//				break;
-//			}
-//			gitConfig.endGroup();
-//		}
-//	}
+	//verify the url and get the origin
+	QString remote;
+	QSettings gitConfig{qpmxDir.absoluteFilePath(QStringLiteral(".git/config")), QSettings::IniFormat};
+	QRegularExpression regex(QStringLiteral(R"__(remote\s*"(.+)")__"));
+	for(const auto &group : gitConfig.childGroups()) {
+		auto match = regex.match(group);
+		if(match.hasMatch()) {
+			gitConfig.beginGroup(group);
+			if(gitConfig.value(QStringLiteral("url")).toString() == url) {
+				gitConfig.endGroup();
+				remote = match.captured(1);
+				break;
+			}
+			gitConfig.endGroup();
+		}
+	}
+	if(remote.isEmpty()) {
+		qWarning().noquote() << tr("Unable to determine remote based of url. Pushing to url directly");
+		remote = url;
+	}
 
-//	if(remote.isEmpty()) {
-//		qWarning().noquote() << tr("Unable to determine remote based of url. Pushing to url directly");
-//		remote = url;
-//	}
+	//create the tag
+	QStringList arguments {
+		QStringLiteral("tag"),
+		tag
+	};
+	auto proc = createProcess(arguments);
+	_processCache.insert(proc);
+	qDebug().noquote() << tr("Create new tag %{bld}%1%{end}").arg(tag);
+	auto res = QtCoroutine::await(proc);
+	_processCache.remove(proc);
+	proc->deleteLater();
+	if(res != EXIT_SUCCESS)
+		throw qpmx::SourcePluginException{formatProcError(tr("create tag"), proc)};
 
-//	//create the tag
-//	QStringList arguments {
-//		QStringLiteral("tag"),
-//		tag
-//	};
-
-//	auto proc = createProcess(arguments);
-//	QVariantHash params;
-//	params.insert(QStringLiteral("remote"), remote);
-//	params.insert(QStringLiteral("tag"), tag);
-//	_processCache.insert(proc, std::make_tuple(requestId, Tag, params));
-//	qDebug().noquote() << tr("Create new tag %{bld}%1%{end}").arg(tag);
-//	proc->start();
+	//push the tag to origin
+	arguments = QStringList {
+		QStringLiteral("push"),
+		remote,
+		tag
+	};
+	proc = createProcess(arguments, true);
+	proc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
+	proc->setInputChannelMode(QProcess::ForwardedInputChannel);
+	_processCache.insert(proc);
+	qDebug().noquote() << tr("Pushing tag to remote \"%1\"").arg(remote);
+	res = QtCoroutine::await(proc);
+	_processCache.remove(proc);
+	proc->deleteLater();
+	if(res != EXIT_SUCCESS)
+		throw qpmx::SourcePluginException{formatProcError(tr("push tag to remote"), proc)};
 }
 
 void GitSourcePlugin::cancelAll(int timeout)
@@ -255,73 +269,6 @@ void GitSourcePlugin::cancelAll(int timeout)
 	}
 }
 
-void GitSourcePlugin::finished(int exitCode, QProcess::ExitStatus exitStatus)
-{
-//	if(exitStatus == QProcess::CrashExit)
-//		errorOccurred(QProcess::Crashed);
-//	else {
-//		auto proc = qobject_cast<QProcess*>(sender());
-//		auto data = _processCache.value(proc, std::make_tuple(-1, Invalid, QVariantHash{}));
-//		if(std::get<0>(data) != -1) {
-//			_processCache.remove(proc);
-//			switch (std::get<1>(data)) {
-//			case GitSourcePlugin::Invalid:
-//				break;//ignore
-//			case GitSourcePlugin::LsRemote:
-//				lsRemoteDone(std::get<0>(data), proc, exitCode);
-//				break;
-//			case GitSourcePlugin::Clone:
-//				cloneDone(std::get<0>(data), proc, exitCode, std::get<2>(data));
-//				break;
-//			case GitSourcePlugin::Tag:
-//				tagDone(std::get<0>(data), proc, exitCode, std::get<2>(data));
-//				break;
-//			case GitSourcePlugin::Push:
-//				pushDone(std::get<0>(data), proc, exitCode);
-//				break;
-//			default:
-//				Q_UNREACHABLE();
-//				break;
-//			}
-//		}
-//		proc->deleteLater();
-//	}
-}
-
-void GitSourcePlugin::errorOccurred(QProcess::ProcessError error)
-{
-//	Q_UNUSED(error)
-//	auto proc = qobject_cast<QProcess*>(sender());
-//	auto data = _processCache.value(proc, std::make_tuple(-1, Invalid, QVariantHash{}));
-//	if(std::get<0>(data) != -1) {
-//		_processCache.remove(proc);
-//		QString op;
-//		switch (std::get<1>(data)) {
-//		case GitSourcePlugin::Invalid:
-//			break;//ignore
-//		case GitSourcePlugin::LsRemote:
-//			op = tr("list versions");
-//			break;
-//		case GitSourcePlugin::Clone:
-//			op = tr("clone sources");
-//			break;
-//		case GitSourcePlugin::Tag:
-//			op = tr("create version tag");
-//			break;
-//		case GitSourcePlugin::Push:
-//			op = tr("push version tag");
-//			break;
-//		default:
-//			Q_UNREACHABLE();
-//			break;
-//		}
-//		emit sourceError(std::get<0>(data),
-//						 tr("Failed to %1 with process error: %2")
-//						 .arg(op)
-//						 .arg(proc->errorString()));
-//	}
-//	proc->deleteLater();
-}
 
 QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package, QString *prefix)
 {
@@ -333,8 +280,7 @@ QString GitSourcePlugin::pkgUrl(const qpmx::PackageInfo &package, QString *prefi
 		if(!match.hasMatch())
 			throw qpmx::SourcePluginException{tr("The Package %1 is not a valid github package").arg(package.toString())};
 		pkgUrl = QStringLiteral("https://github.com/%1/%2.git")
-				 .arg(match.captured(1))
-				 .arg(match.captured(2));
+				 .arg(match.captured(1), match.captured(2));
 		if(!match.captured(3).isEmpty())
 			pkgUrl += QLatin1Char('#') + match.captured(3);
 	} else
@@ -380,46 +326,13 @@ QProcess *GitSourcePlugin::createProcess(const QStringList &arguments, bool keep
 
 QString GitSourcePlugin::formatProcError(const QString &type, QProcess *proc)
 {
-//	auto res = tr("Failed to %1 with exit code %2 and stderr:")
-//			   .arg(type)
-//			   .arg(proc->exitCode());
-//	proc->setReadChannel(QProcess::StandardError);
-//	while(!proc->atEnd()) {
-//		auto line = QString::fromUtf8(proc->readLine()).trimmed();
-//		res.append(QStringLiteral("\n\t%1").arg(line));
-//	}
-//	return res;
-}
-
-void GitSourcePlugin::tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params)
-{
-//	if(exitCode != EXIT_SUCCESS) {
-//		emit sourceError(requestId, formatProcError(tr("create tag"), proc));
-//		return;
-//	}
-
-//	auto remote = params.value(QStringLiteral("remote")).toString();
-//	auto tag = params.value(QStringLiteral("tag")).toString();
-
-//	//push the tag to origin
-//	QStringList arguments {
-//		QStringLiteral("push"),
-//		remote,
-//		tag
-//	};
-
-//	auto nProc = createProcess(arguments, true, false);
-//	nProc->setProcessChannelMode(QProcess::ForwardedOutputChannel);
-//	nProc->setInputChannelMode(QProcess::ForwardedInputChannel);
-//	_processCache.insert(nProc, std::make_tuple(requestId, Push, QVariantHash{}));
-//	qDebug().noquote() << tr("Pushing tag to remote \"%1\"").arg(remote);
-//	nProc->start();
-}
-
-void GitSourcePlugin::pushDone(int requestId, QProcess *proc, int exitCode)
-{
-//	if(exitCode == EXIT_SUCCESS)
-//		emit packagePublished(requestId);
-//	else
-//		emit sourceError(requestId, formatProcError(tr("push tag to remote"), proc));
+	auto res = tr("Failed to %1 with exit code %2 and stderr:")
+			   .arg(type)
+			   .arg(proc->exitCode());
+	proc->setReadChannel(QProcess::StandardError);
+	while(!proc->atEnd()) {
+		auto line = QString::fromUtf8(proc->readLine()).trimmed();
+		res.append(QStringLiteral("\n\t%1").arg(line));
+	}
+	return res;
 }

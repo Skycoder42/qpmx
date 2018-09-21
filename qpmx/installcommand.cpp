@@ -130,12 +130,39 @@ void InstallCommand::getPackages()
 	}
 
 	if(_addPkgCount > 0)
-		;//TODO completeInstall();
+		completeInstall();
 	else
 		xDebug() << tr("Skipping add to qpmx.json, only cache installs");
 	xDebug() << tr("Package installation completed");
 	qApp->quit();
 	return;
+}
+
+void InstallCommand::completeInstall()
+{
+	auto prepare = false;
+	if(!_noPrepare) {
+		try {
+			QpmxFormat::readDefault(true);
+		} catch(QString &) {
+			//file does not exist -> prepare if possible
+			prepare = true;
+		}
+	}
+
+	auto format = QpmxFormat::readDefault();
+	for(const auto &pkg : _pkgList.mid(0, _addPkgCount))
+		format.putDependency(pkg);
+	QpmxFormat::writeDefault(format);
+	xInfo() << "Added all packages to qpmx.json";
+
+	if(prepare) {
+		auto dir = QDir::current();
+		dir.setFilter(QDir::Files);
+		dir.setNameFilters({QStringLiteral("*.pro")});
+		for(const auto &proFile : dir.entryList())
+			InitCommand::prepare(proFile, true);
+	}
 }
 
 bool InstallCommand::getVersion(QpmxDevDependency &current, SourcePlugin *plugin, bool mustWork)
@@ -280,7 +307,7 @@ void InstallCommand::verifyDeps(const QList<QpmxDevDependency> &list, const Qpmx
 		throw tr("Unable to find any provider for package %1").arg(base.toString());
 	else if(list.size() > 1) {
 		QStringList provList;
-		for(const auto &data : qAsConst(_resCache))
+		for(const auto &data : qAsConst(list))
 			provList.append(data.provider);
 		throw tr("Found more then one provider for package %1. Providers are: %2")
 				.arg(base.toString(), provList.join(tr(", ")));
@@ -307,47 +334,4 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 			_pkgList.append(dep);
 		}
 	}
-}
-
-//void InstallCommand::completeInstall()
-//{
-//	auto prepare = false;
-//	if(!_noPrepare) {
-//		try {
-//			QpmxFormat::readDefault(true);
-//		} catch(QString &) {
-//			//file does not exist -> prepare if possible
-//			prepare = true;
-//		}
-//	}
-
-//	auto format = QpmxFormat::readDefault();
-//	for(const auto &pkg : _pkgList.mid(0, _addPkgCount))
-//		format.putDependency(pkg);
-//	QpmxFormat::writeDefault(format);
-//	xInfo() << "Added all packages to qpmx.json";
-
-//	if(prepare) {
-//		auto dir = QDir::current();
-//		dir.setFilter(QDir::Files);
-//		dir.setNameFilters({QStringLiteral("*.pro")});
-//		for(const auto &proFile : dir.entryList())
-//			InitCommand::prepare(proFile, true);
-//	}
-//}
-
-
-
-InstallCommand::SrcAction::SrcAction(ResType type, QString provider, QTemporaryDir *tDir, bool mustWork, SourcePlugin *plugin, const SharedCacheLock &lock) :
-	type(type),
-	provider(std::move(provider)),
-	tDir(tDir),
-	mustWork(mustWork),
-	plugin(plugin),
-	lock(lock)
-{}
-
-InstallCommand::SrcAction::operator bool() const
-{
-	return plugin;
 }

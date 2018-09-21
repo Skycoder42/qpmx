@@ -39,10 +39,6 @@ public:
 
 	void cancelAll(int timeout) override;
 
-private slots:
-	void finished(int exitCode, QProcess::ExitStatus exitStatus);
-	void errorOccurred(QProcess::ProcessError error);
-
 private:
 	static QRegularExpression _githubRegex;
 	QSet<QProcess*> _processCache;
@@ -52,10 +48,6 @@ private:
 
 	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false);
 	QString formatProcError(const QString &type, QProcess *proc);
-
-	void cloneDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
-	void tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
-	void pushDone(int requestId, QProcess *proc, int exitCode);
 };
 
 #endif // GITSOURCEPLUGIN_H
