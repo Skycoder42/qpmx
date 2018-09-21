@@ -14,6 +14,8 @@ HEADERS += \
 SOURCES += \
 		qpmsourceplugin.cpp
 
+include(../../lib.pri)
+
 DISTFILES += qpmsource.json
 json_target.target = moc_qpmsourceplugin.o
 json_target.depends += $$PWD/qpmsource.json

@@ -55,7 +55,7 @@ bool GitSourcePlugin::packageValid(const qpmx::PackageInfo &package) const
 		return false;
 }
 
-QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider) const
+QJsonObject GitSourcePlugin::createPublisherInfo(const QString &provider)
 {
 	QFile console;
 	if(!console.open(stdin, QIODevice::ReadOnly | QIODevice::Text))

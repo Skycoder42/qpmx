@@ -5,6 +5,7 @@
 
 #include <QProcess>
 #include <QHash>
+#include <QSet>
 
 class QpmSourcePlugin : public QObject, public qpmx::SourcePlugin
 {
@@ -29,39 +30,23 @@ public:
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 
-	QJsonObject createPublisherInfo(const QString &provider) const override;
+	QJsonObject createPublisherInfo(const QString &provider) override;
+
+	QStringList searchPackage(const QString &provider, const QString &query) override;
+	QVersionNumber findPackageVersion(const qpmx::PackageInfo &package) override;
+	void getPackageSource(const qpmx::PackageInfo &package, const QDir &targetDir) override;
+	void publishPackage(const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) override;
 
 	void cancelAll(int timeout) override;
 
-public slots:
-	void searchPackage(int requestId, const QString &provider, const QString &query) override;
-	void findPackageVersion(int requestId, const qpmx::PackageInfo &package) override;
-	void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) override;
-	void publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) override;
-
-signals:
-	void searchResult(int requestId, const QStringList &packageNames) final;
-	void versionResult(int requestId, const QVersionNumber &version) final;
-	void sourceFetched(int requestId) final;
-	void packagePublished(int requestId) final;
-	void sourceError(int requestId, const QString &error) final;
-
-private slots:
-	void finished(int exitCode, QProcess::ExitStatus exitStatus);
-	void errorOccurred(QProcess::ProcessError error);
-
 private:
-	QHash<QProcess*, std::tuple<int, Mode, QVariantHash>> _processCache;
+	QSet<QProcess*> _processCache;
 	QHash<qpmx::PackageInfo, QString> _cachedDownloads;
 
 	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false, bool timeout = true);
 	QString formatProcError(const QString &type, QProcess *proc);
 
-	void completeSearch(int id, QProcess *proc);
-	void completeVersion(int id, QProcess *proc, const QVariantHash &params);
 	bool completeCopyInstall(const qpmx::PackageInfo &package, QDir targetDir, QDir sourceDir);
-	void completeInstall(int id, QProcess *proc, const QVariantHash &params);
-	void completePublish(int id, QProcess *proc);
 
 	void cleanCache(const qpmx::PackageInfo &package);
 	void cleanCaches();

@@ -30,7 +30,7 @@ public:
 	QString packageSyntax(const QString &provider) const override;
 	bool packageValid(const qpmx::PackageInfo &package) const override;
 
-	QJsonObject createPublisherInfo(const QString &provider) const override;
+	QJsonObject createPublisherInfo(const QString &provider) override;
 
 	QStringList searchPackage(const QString &provider, const QString &query) override;
 	QVersionNumber findPackageVersion(const qpmx::PackageInfo &package) override;

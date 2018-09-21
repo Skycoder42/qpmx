@@ -23,7 +23,7 @@ public:
 	virtual QString packageSyntax(const QString &provider) const = 0;
 	virtual bool packageValid(const qpmx::PackageInfo &package) const = 0;
 
-	virtual QJsonObject createPublisherInfo(const QString &provider) const = 0;
+	virtual QJsonObject createPublisherInfo(const QString &provider) = 0;
 	virtual QStringList searchPackage(const QString &provider, const QString &query) = 0;
 	virtual QVersionNumber findPackageVersion(const qpmx::PackageInfo &package) = 0;
 	virtual void getPackageSource(const qpmx::PackageInfo &package, const QDir &targetDir) = 0;
