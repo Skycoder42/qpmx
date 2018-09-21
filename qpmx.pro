@@ -2,7 +2,11 @@ TEMPLATE = subdirs
 
 SUBDIRS += \
 	qpmx \
-	plugins
+	plugins \
+	lib
+
+qpmx.depends += lib
+plugins.depends += lib
 
 DISTFILES += .qmake.conf \
 	README.md

@@ -7,6 +7,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QVariantHash>
 #include <QtCore/QJsonObject>
+#include <QtCore/QException>
 
 namespace qpmx { //qpmx public namespace
 
@@ -23,21 +24,43 @@ public:
 	virtual bool packageValid(const qpmx::PackageInfo &package) const = 0;
 
 	virtual QJsonObject createPublisherInfo(const QString &provider) const = 0;
+	virtual QStringList searchPackage(const QString &provider, const QString &query) = 0;
+	virtual QVersionNumber findPackageVersion(const qpmx::PackageInfo &package) = 0;
+	virtual void getPackageSource(const qpmx::PackageInfo &package, const QDir &targetDir) = 0;
+	virtual void publishPackage(const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) = 0;
 
 	virtual void cancelAll(int timeout) = 0;
+};
 
-public Q_SLOTS:
-	virtual void searchPackage(int requestId, const QString &provider, const QString &query) = 0;
-	virtual void findPackageVersion(int requestId, const qpmx::PackageInfo &package) = 0;
-	virtual void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) = 0;
-	virtual void publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) = 0;
+class SourcePluginException : public QException
+{
+public:
+	inline SourcePluginException(QByteArray errorMessage) :
+		_message{std::move(errorMessage)}
+	{}
+	inline SourcePluginException(const QString &errorMessage) :
+		SourcePluginException{errorMessage.toUtf8()}
+	{}
+	inline SourcePluginException(const char *errorMessage) :
+		SourcePluginException{QByteArray{errorMessage}}
+	{}
 
-Q_SIGNALS:
-	virtual void searchResult(int requestId, const QStringList &packageNames) = 0;
-	virtual void versionResult(int requestId, const QVersionNumber &version) = 0;
-	virtual void sourceFetched(int requestId) = 0;
-	virtual void packagePublished(int requestId) = 0;
-	virtual void sourceError(int requestId, const QString &error) = 0;
+	inline const char *what() const noexcept override {
+		return _message.constData();
+	}
+	inline QString qWhat() const {
+		return QString::fromUtf8(_message);
+	}
+
+	inline void raise() const override {
+		throw *this;
+	}
+	inline QException *clone() const override {
+		return new SourcePluginException{_message};
+	}
+
+protected:
+	const QByteArray _message;
 };
 
 }

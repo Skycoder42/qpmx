@@ -4,7 +4,6 @@ QT += core
 QT -= gui
 
 TARGET = qpmsource
-VERSION = $$QPMXVER
 CONFIG += plugin
 
 DESTDIR = $$OUT_PWD/../qpmx

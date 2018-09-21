@@ -26,6 +26,8 @@
 
 #include <QStandardPaths>
 #include <iostream>
+
+#include <qtcoroutine.h>
 using namespace qpmx;
 
 static bool colored = false;
@@ -130,8 +132,10 @@ int main(int argc, char *argv[])
 	QObject::connect(qApp, &QCoreApplication::aboutToQuit,
 					 cmd, &Command::fin);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
-		cmd->init(parser);
-		parser.leaveContext();
+		QtCoroutine::createAndRun([&parser, cmd](){
+			cmd->init(parser);
+			parser.leaveContext();
+		});
 	});
 	return a.exec();
 }

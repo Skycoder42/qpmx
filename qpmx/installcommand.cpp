@@ -2,19 +2,11 @@
 #include "installcommand.h"
 #include <QDebug>
 #include <QStandardPaths>
+#include <qtcoroutine.h>
 using namespace qpmx;
 
 InstallCommand::InstallCommand(QObject *parent) :
-	Command(parent),
-	_renew(false),
-	_noPrepare(false),
-	_pkgList(),
-	_addPkgCount(0),
-	_pkgIndex(-1),
-	_current(),
-	_actionCache(),
-	_resCache(),
-	_connectCache()
+	Command{parent}
 {}
 
 QString InstallCommand::commandName() const
@@ -79,342 +71,180 @@ void InstallCommand::initialize(QCliParser &parser)
 			xDebug() << tr("Installing %n package(s) from qpmx.json file", "", _pkgList.size());
 		}
 
-		getNext();
+		getPackages();
 	} catch(QString &s) {
 		xCritical() << s;
 	}
 }
 
-void InstallCommand::sourceFetched(int requestId)
+void InstallCommand::getPackages()
 {
-	//scope to drop reference before completing
-	{
-		auto data = _actionCache.take(requestId);
-		if(!data)
-			return;
+	for(auto i = 0; i < _pkgList.size(); ++i) {
+		auto &currentDep = _pkgList[i];
+		if(currentDep.isDev() && !currentDep.isComplete())
+			throw tr("dev dependencies cannot be used without a provider/version");
 
-		if(data.mustWork)
-			xDebug() << tr("Downloaded sources");
-		else {
-			xDebug() << tr("Downloaded sources from provider %{bld}%1%{end}")
-						.arg(data.provider);
-		}
-		_resCache.append(data);
-	}
-	completeSource();
-}
-
-void InstallCommand::versionResult(int requestId, const QVersionNumber &version)
-{
-	auto data = _actionCache.take(requestId);
-	if(!data)
-		return;
-
-	if(version.isNull()) {
-		auto str = tr("Package%2does not exist for provider %{bld}%1%{end}")
-				   .arg(data.provider);
-		if(data.mustWork)
-			xCritical() << str.arg(tr(" %1 ").arg(_current.toString()));
-		else {
-			xDebug() << str.arg(tr(" "));
-			completeSource();
-		}
-	} else {
-		if(data.mustWork)
-			xDebug() << tr("Fetched latest version as %1").arg(version.toString());
-		else {
-			xDebug() << tr("Fetched latest version as %1 from provider %{bld}%2%{end}")
-						.arg(version.toString(), data.provider);
+		// first: find the correct version if nothing but the name was specified
+		// this will either yield a single package, set to currentDep, or fail in an exception
+		if(currentDep.version.isNull() && currentDep.provider.isEmpty()) {
+			const auto allProvs = registry()->providerNames();
+			QList<QpmxDevDependency> foundDeps;
+			QtCoroutine::awaitEach(allProvs, [this, currentDep, &foundDeps](const QString &prov) {
+				auto plugin = registry()->sourcePlugin(prov);
+				if(plugin->packageValid(currentDep.pkg(prov))) {
+					auto cpDep = currentDep;
+					cpDep.provider = prov;
+					if(getVersion(cpDep, plugin, false))
+						foundDeps.append(cpDep);
+				}
+			});
+			verifyDeps(foundDeps, currentDep);
+			currentDep = foundDeps.takeFirst();
 		}
 
-		_current.version = version;
-		_pkgList[_pkgIndex] = _current;
-		_resCache.append(data);
-		completeSource();
-	}
-}
-
-void InstallCommand::existsResult(int requestId)
-{
-	//scope to drop reference before completing
-	{
-		auto data = _actionCache.take(requestId);
-		if(!data)
-			return;
-		_resCache.append(data);
-	}
-	completeSource();
-}
-
-void InstallCommand::sourceError(int requestId, const QString &error)
-{
-	auto data = _actionCache.take(requestId);
-	if(!data)
-		return;
-
-	//remove any active locks, after error nothing more will happen
-	data.lock->free();
-
-	QString str;
-	if(data.type == SrcAction::Install)
-		str = tr("Failed to get sources%3from provider %{bld}%1%{end} with error:\n%2");
-	else
-		str = tr("Failed to fetch version%3from provider %{bld}%1%{end} with error:\n%2");
-	str = str.arg(data.provider, error);
-
-	if(data.mustWork)
-		xCritical() << str.arg(tr(" for %1 ").arg(_current.toString()));
-	else {
-		xWarning() << str.arg(tr(" "));
-		completeSource();
-	}
-}
-
-void InstallCommand::getNext()
-{
-	if(++_pkgIndex >= _pkgList.size()) {
-		if(_addPkgCount > 0)
-			completeInstall();
-		else
-			xDebug() << tr("Skipping add to qpmx.json, only cache installs");
-		xDebug() << tr("Package installation completed");
-		qApp->quit();
-		return;
-	}
-
-	_current = _pkgList[_pkgIndex];
-	if(_current.isDev() && !_current.isComplete())
-		throw tr("dev dependencies cannot be used without a provider/version");
-
-	if(_current.provider.isEmpty()) {
-		auto allProvs = registry()->providerNames();
-		auto any = false;
-		for(const auto &prov : allProvs) {
-			auto plugin = registry()->sourcePlugin(prov);
-			if(plugin->packageValid(_current.pkg(prov))) {
-				any = true;
-				getSource(prov, plugin, false);
+		// second: provider is not set (but version is)
+		if(currentDep.provider.isEmpty()) {
+			Q_ASSERT(!currentDep.version.isNull());
+			const auto allProvs = registry()->providerNames();
+			QList<QpmxDevDependency> foundDeps;
+			QtCoroutine::awaitEach(allProvs, [this, currentDep, &foundDeps](const QString &prov) {
+				auto plugin = registry()->sourcePlugin(prov);
+				if(plugin->packageValid(currentDep.pkg(prov))) {
+					auto cpDep = currentDep;
+					cpDep.provider = prov;
+					if(installPackage(cpDep, plugin, false))
+						foundDeps.append(cpDep);
+				}
+			});
+			verifyDeps(foundDeps, currentDep);
+			currentDep = foundDeps.takeFirst();
+		} else { // third: provider provider set, version may or may not be set
+			Q_ASSERT(!currentDep.provider.isEmpty());
+			auto plugin = registry()->sourcePlugin(currentDep.provider);
+			if(!plugin->packageValid(currentDep.pkg())) {
+				throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
+						.arg(currentDep.package, currentDep.provider);
 			}
-		}
-
-		if(!any) {
-			throw tr("Unable to get sources for package %1: "
-					 "Package is not valid for any provider")
-					.arg(_current.toString());
-		}
-	} else {
-		auto plugin = registry()->sourcePlugin(_current.provider);
-		if(!plugin->packageValid(_current.pkg())) {
-			throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
-					.arg(_current.package, _current.provider);
-		}
-		getSource(_current.provider, plugin, true);
-	}
-}
-
-void InstallCommand::getSource(const QString &provider, SourcePlugin *plugin, bool mustWork)
-{
-	//no version -> fetch first
-	if(_current.version.isNull()) {
-		xDebug() << tr("Searching for latest version of %1").arg(_current.toString());
-		//use the latest version -> query for it
-		auto id = randId(_actionCache);
-		_actionCache.insert(id, {
-								SrcAction::Version,
-								provider,
-								nullptr,
-								mustWork,
-								plugin
-							});
-		connectPlg(plugin);
-		plugin->findPackageVersion(id, _current.pkg(provider));
-		return;
-	}
-
-	//dev dep -> skip to completed
-	if(_current.isDev()) {
-		xInfo() << tr("Skipping download of dev dependency %1").arg(_current.toString());
-		auto id = randId(_actionCache);
-		_actionCache.insert(id, {
-								SrcAction::Exists,
-								provider,
-								nullptr,
-								mustWork,
-								plugin,
-								pkgLock(_current)//aquire dev lock
-							});
-		QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
-								  Q_ARG(int, id));
-		return;
-	}
-
-	//aquire the lock for the package
-	SharedCacheLock lock = pkgLock(_current.pkg(provider));
-
-	auto sDir = srcDir(_current.pkg(provider));
-	if(sDir.exists()) {
-		if(_renew || !sDir.exists(QStringLiteral("qpmx.json"))) //no qpmx.json -> remove and download again
-			cleanCaches(_current.pkg(provider), lock);
-		else {
-			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(_current.toString());
-			auto id = randId(_actionCache);
-			_actionCache.insert(id, {
-									SrcAction::Exists,
-									provider,
-									nullptr,
-									mustWork,
-									plugin,
-									lock
-								});
-			QMetaObject::invokeMethod(this, "existsResult", Qt::QueuedConnection,
-									  Q_ARG(int, id));
-			return;
+			installPackage(currentDep, plugin, true);
 		}
 	}
 
-	auto tDir = new QTemporaryDir(tmpDir().absoluteFilePath(QStringLiteral("src.XXXXXX")));
-	if(!tDir->isValid())
-		throw tr("Failed to create temporary directory with error: %1").arg(tDir->errorString());
-
-	xDebug() << tr("Gettings sources for package %1").arg(_current.toString());
-	auto id = randId(_actionCache);
-	_actionCache.insert(id, {
-							SrcAction::Install,
-							provider,
-							tDir,
-							mustWork,
-							plugin,
-							lock
-						});
-	connectPlg(plugin);
-	plugin->getPackageSource(id, _current.pkg(provider), tDir->path());
+	if(_addPkgCount > 0)
+		;//TODO completeInstall();
+	else
+		xDebug() << tr("Skipping add to qpmx.json, only cache installs");
+	xDebug() << tr("Package installation completed");
+	qApp->quit();
 	return;
 }
 
-void InstallCommand::completeSource()
+bool InstallCommand::getVersion(QpmxDevDependency &current, SourcePlugin *plugin, bool mustWork)
 {
-	if(!_actionCache.isEmpty())
-		return;
+	try {
+		xDebug() << tr("Searching for latest version of %1").arg(current.toString());
+		auto version = plugin->findPackageVersion(current.pkg());
+		if(version.isNull()) {
+			auto str = tr("Package%1does not exist for the given provider");
+			if(mustWork)
+				xCritical() << str.arg(tr(" %1 ").arg(current.toString()));
+			else
+				xDebug() << str.arg(tr(" "));
+			return false;
+		} else {
+			xDebug() << tr("Fetched latest version as %1").arg(version.toString());
+			current.version = version;
+			return true;
+		}
+	} catch(SourcePluginException &e) {
+		const auto str = tr("Failed to get version for package%1with error:");
+		if(mustWork)
+			xCritical() << str.arg(tr(" %1 ").arg(current.toString())) << e.what();
+		else
+			xWarning() << str.arg(tr(" ")) << e.what();
+		return false;
+	}
+}
+
+bool InstallCommand::installPackage(QpmxDevDependency &current, SourcePlugin *plugin, bool mustWork)
+{
+	CacheLock lock; // lock is acquired by getSource method
+	if(!getSource(current, plugin, mustWork, lock))
+		return false;
+
+	Q_ASSERT(lock.isLocked());
+	auto format = QpmxFormat::readFile(srcDir(current), true);
+	//create the src_include in the build dir
+	createSrcInclude(current, format, lock);
+	//add new dependencies
+	detectDeps(format);
+	return true;
+}
+
+bool InstallCommand::getSource(QpmxDevDependency &current, SourcePlugin *plugin, bool mustWork, CacheLock &lock)
+{
+	//no version -> fetch first
+	if(current.version.isNull()) {
+		//unlock again, then check the version
+		if(!getVersion(current, plugin, mustWork))
+			return false;
+		// if version was found, lock again and continue the install
+	}
+
+	//acquire the lock for the package
+	lock = pkgLock(current);
+
+	//dev dep -> skip to completed
+	if(current.isDev()) {
+		xInfo() << tr("Skipping download of dev dependency %1").arg(current.toString());
+		return true;
+	}
+
+	auto sDir = srcDir(current);
+	if(sDir.exists()) {
+		if(_renew || !sDir.exists(QStringLiteral("qpmx.json"))) //no qpmx.json -> remove and download again
+			cleanCaches(current.pkg(), lock);
+		else {
+			xDebug() << tr("Sources for package %1 already exist. Skipping download").arg(current.toString());
+			return true;
+		}
+	}
 
 	try {
-		if(_resCache.isEmpty())
-			throw tr("Unable to find any provider for package %1").arg(_current.toString());
-		else if(_resCache.size() > 1) {
-			QStringList provList;
-			for(const auto &data : qAsConst(_resCache))
-				provList.append(data.provider);
-			_resCache.clear();//to unlock
-			throw tr("Found more then one provider for package %1. Providers are: %2")
-					.arg(_current.toString(), provList.join(tr(", ")));
-		}
+		QTemporaryDir tDir {tmpDir().absoluteFilePath(QStringLiteral("src.XXXXXX"))};
+		if(!tDir.isValid())
+			throw tr("Failed to create temporary directory with error: %1").arg(tDir.errorString());
+		xDebug() << tr("Gettings sources for package %1").arg(current.toString());
+		plugin->getPackageSource(current.pkg(), tDir.path());
 
-		auto data = _resCache.first();
-		_resCache.clear();
-		//store choosen provider!
-		_current.provider = data.provider;
-		_pkgList[_pkgIndex] = _current;
-
-		QpmxFormat format;
-		switch(data.type) {
-		case SrcAction::Version:
-			getSource(data.provider, data.plugin, data.mustWork);
-			return;
-		case SrcAction::Exists:
-			format = QpmxFormat::readFile(srcDir(_current), true);
-			break;
-		case SrcAction::Install:
-		{
-			auto str = tr("Using provider %{bld}%1%{end}")
-					   .arg(data.provider);
-			xDebug() << str;
-
-			//load the format from the temp dir
-			format = QpmxFormat::readFile(data.tDir->path(), true);
-
-			//move the sources to cache
-			auto wp = data.tDir.toWeakRef();
-			data.tDir->setAutoRemove(false);
-			QFileInfo path = data.tDir->path();
-			data.tDir.reset();
-			Q_ASSERT(wp.isNull());
-
-			auto tDir = srcDir(_current.provider, _current.package, {}, true);
-			auto vSubDir = tDir.absoluteFilePath(_current.version.toString());
-			if(!path.dir().rename(path.fileName(), vSubDir))
-				throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(_current.toString());
-			xDebug() << tr("Moved sources to cache directory");
-			xInfo() << tr("Installed package %1").arg(_current.toString());
-			break;
-		}
-		default:
-			Q_UNREACHABLE();
-			break;
-		}
-
-		//create the src_include in the build dir
-		createSrcInclude(format);
-		//add new dependencies
-		detectDeps(format);
-		//unlock & next
-		data.lock->free();
-		getNext();
-	} catch(QString &s) {
-		_resCache.clear();
-		xCritical() << s;
+		//load the format from the temp dir
+		auto format = QpmxFormat::readFile(tDir.path(), true);
+		//move the sources to cache
+		tDir.setAutoRemove(false);
+		QFileInfo path = tDir.path();
+		auto oDir = srcDir(current.provider, current.package, {}, true);
+		auto vSubDir = oDir.absoluteFilePath(current.version.toString());
+		if(!path.dir().rename(path.fileName(), vSubDir))
+			throw tr("Failed to move downloaded sources of %1 from temporary directory to cache directory!").arg(current.toString());
+		xDebug() << tr("Moved sources to cache directory");
+		xInfo() << tr("Installed package %1").arg(current.toString());
+		return true;
+	} catch(SourcePluginException &e) {
+		const auto str = tr("Failed to get sources for package%1with error:");
+		if(mustWork)
+			xCritical() << str.arg(tr(" %1 ").arg(current.toString())) << e.what();
+		else
+			xWarning() << str.arg(tr(" ")) << e.what();
+		return false;
 	}
 }
 
-void InstallCommand::completeInstall()
+void InstallCommand::createSrcInclude(const QpmxDevDependency &current, const QpmxFormat &format, const Command::CacheLock &lock)
 {
-	auto prepare = false;
-	if(!_noPrepare) {
-		try {
-			QpmxFormat::readDefault(true);
-		} catch(QString &) {
-			//file does not exist -> prepare if possible
-			prepare = true;
-		}
-	}
+	Q_ASSERT(lock.isLocked());
+	auto sDir = srcDir(current);
+	auto bDir = buildDir(QStringLiteral("src"), current, true);
 
-	auto format = QpmxFormat::readDefault();
-	for(const auto &pkg : _pkgList.mid(0, _addPkgCount))
-		format.putDependency(pkg);
-	QpmxFormat::writeDefault(format);
-	xInfo() << "Added all packages to qpmx.json";
-
-	if(prepare) {
-		auto dir = QDir::current();
-		dir.setFilter(QDir::Files);
-		dir.setNameFilters({QStringLiteral("*.pro")});
-		for(const auto &proFile : dir.entryList())
-			InitCommand::prepare(proFile, true);
-	}
-}
-
-void InstallCommand::connectPlg(SourcePlugin *plugin)
-{
-	if(_connectCache.contains(plugin))
-	   return;
-
-	auto plgobj = dynamic_cast<QObject*>(plugin);
-	connect(plgobj, SIGNAL(sourceFetched(int)),
-			this, SLOT(sourceFetched(int)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(versionResult(int,QVersionNumber)),
-			this, SLOT(versionResult(int,QVersionNumber)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(sourceError(int,QString)),
-			this, SLOT(sourceError(int,QString)),
-			Qt::QueuedConnection);
-	_connectCache.insert(plugin);
-}
-
-void InstallCommand::createSrcInclude(const QpmxFormat &format)
-{
-	auto sDir = srcDir(_current);
-	auto bDir = buildDir(QStringLiteral("src"), _current, true);
-
-	QFile srcPriFile(bDir.absoluteFilePath(QStringLiteral("include.pri")));
+	QFile srcPriFile{bDir.absoluteFilePath(QStringLiteral("include.pri"))};
 	if(srcPriFile.exists()) {
 		qDebug() << "source include.pri already exists. Skipping generation";
 		return;
@@ -422,9 +252,9 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 
 	if(!srcPriFile.open(QIODevice::WriteOnly | QIODevice::Text))
 		throw tr("Failed to open src_include.pri with error: %1").arg(srcPriFile.errorString());
-	QTextStream stream(&srcPriFile);
-	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << _current.package << "\") {\n\n"
-		   << "\tQPMX_INCLUDE_GUARDS += \"" << _current.package << "\"\n"
+	QTextStream stream{&srcPriFile};
+	stream << "!contains(QPMX_INCLUDE_GUARDS, \"" << current.package << "\") {\n\n"
+		   << "\tQPMX_INCLUDE_GUARDS += \"" << current.package << "\"\n"
 		   << "\t#dependencies\n";
 	for(auto dep : format.dependencies) {
 		// replace alias
@@ -442,6 +272,19 @@ void InstallCommand::createSrcInclude(const QpmxFormat &format)
 	stream.flush();
 	srcPriFile.close();
 	xInfo() << tr("Generated source include.pri");
+}
+
+void InstallCommand::verifyDeps(const QList<QpmxDevDependency> &list, const QpmxDevDependency &base) const
+{
+	if(list.isEmpty())
+		throw tr("Unable to find any provider for package %1").arg(base.toString());
+	else if(list.size() > 1) {
+		QStringList provList;
+		for(const auto &data : qAsConst(_resCache))
+			provList.append(data.provider);
+		throw tr("Found more then one provider for package %1. Providers are: %2")
+				.arg(base.toString(), provList.join(tr(", ")));
+	}
 }
 
 void InstallCommand::detectDeps(const QpmxFormat &format)
@@ -465,6 +308,33 @@ void InstallCommand::detectDeps(const QpmxFormat &format)
 		}
 	}
 }
+
+//void InstallCommand::completeInstall()
+//{
+//	auto prepare = false;
+//	if(!_noPrepare) {
+//		try {
+//			QpmxFormat::readDefault(true);
+//		} catch(QString &) {
+//			//file does not exist -> prepare if possible
+//			prepare = true;
+//		}
+//	}
+
+//	auto format = QpmxFormat::readDefault();
+//	for(const auto &pkg : _pkgList.mid(0, _addPkgCount))
+//		format.putDependency(pkg);
+//	QpmxFormat::writeDefault(format);
+//	xInfo() << "Added all packages to qpmx.json";
+
+//	if(prepare) {
+//		auto dir = QDir::current();
+//		dir.setFilter(QDir::Files);
+//		dir.setNameFilters({QStringLiteral("*.pro")});
+//		for(const auto &proFile : dir.entryList())
+//			InitCommand::prepare(proFile, true);
+//	}
+//}
 
 
 

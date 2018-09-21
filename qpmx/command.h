@@ -70,11 +70,14 @@ protected:
 
 		bool isLocked() const;
 		void free();
+		void relock();
 
 	private:
 		CacheLock(const QString &path, int timeout);
 		QString _path;
 		QScopedPointer<QLockFile> _lock;
+
+		void doLock();
 	};
 
 	class SharedCacheLock : public QSharedPointer<CacheLock>

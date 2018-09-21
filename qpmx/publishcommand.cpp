@@ -106,7 +106,7 @@ void PublishCommand::publishNext()
 
 	auto id = randId(_providerCache);
 	_providerCache.insert(id, provider);
-	plugin->publishPackage(id, provider, QDir::current(), _version, _format.publishers.value(provider));
+	//TODO plugin->publishPackage(id, provider, QDir::current(), _version, _format.publishers.value(provider));
 }
 
 void PublishCommand::connectPlg(SourcePlugin *plugin)

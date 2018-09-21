@@ -20,20 +20,18 @@ protected slots:
 	void initialize(QCliParser &parser) override;
 
 private slots:
-	void sourceFetched(int requestId);
-	void versionResult(int requestId, const QVersionNumber &version);
-	void existsResult(int requestId);
-	void sourceError(int requestId, const QString &error);
+//	void sourceFetched(int requestId);
+//	void versionResult(int requestId, const QVersionNumber &version);
+//	void existsResult(int requestId);
+//	void sourceError(int requestId, const QString &error);
 
 private:
-	bool _renew;
-	bool _noPrepare;
+	bool _renew = false;
+	bool _noPrepare = false;
 
 	QList<QpmxDevDependency> _pkgList;
 	QList<QpmxDevAlias> _aliases;
-	int _addPkgCount;
-	int _pkgIndex;
-	QpmxDevDependency _current;
+	int _addPkgCount = 0;
 
 	struct SrcAction {
 		enum ResType {
@@ -60,14 +58,25 @@ private:
 	QList<SrcAction> _resCache;
 	QSet<qpmx::SourcePlugin*> _connectCache;
 
-	void getNext();
-	void getSource(const QString &provider, qpmx::SourcePlugin *plugin, bool mustWork);
-	void completeSource();
-	void completeInstall();
+	void getPackages();
 
-	void connectPlg(qpmx::SourcePlugin *plugin);
-	void createSrcInclude(const QpmxFormat &format);
+	bool getVersion(QpmxDevDependency &current, qpmx::SourcePlugin *plugin, bool mustWork);
+
+	bool installPackage(QpmxDevDependency &current, qpmx::SourcePlugin *plugin, bool mustWork);
+	bool getSource(QpmxDevDependency &current, qpmx::SourcePlugin *plugin, bool mustWork, CacheLock &lock);
+	void createSrcInclude(const QpmxDevDependency &current, const QpmxFormat &format, const CacheLock &lock);
+
+	void verifyDeps(const QList<QpmxDevDependency> &list, const QpmxDevDependency &base) const;
 	void detectDeps(const QpmxFormat &format);
+
+//	void getNext();
+//	void getSource(const QString &provider, qpmx::SourcePlugin *plugin, bool mustWork);
+//	void completeSource();
+//	void completeInstall();
+
+//	void connectPlg(qpmx::SourcePlugin *plugin);
+//	void createSrcInclude(const QpmxFormat &format);
+//	void detectDeps(const QpmxFormat &format);
 };
 
 #endif // INSTALLCOMMAND_H

@@ -105,7 +105,7 @@ void UpdateCommand::checkNext()
 		auto id = randId(_actionCache);
 		_actionCache.insert(id, nextDep);
 		connectPlg(plugin);
-		plugin->findPackageVersion(id, nextDep.pkg());
+		//TODO plugin->findPackageVersion(id, nextDep.pkg());
 		_currentLoad++;
 	}
 }

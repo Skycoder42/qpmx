@@ -77,7 +77,7 @@ void SearchCommand::initialize(QCliParser &parser)
 
 			auto id = randId(_providerCache);
 			_providerCache.insert(id, provider);
-			plg->searchPackage(id, provider, query);
+			//TODO plg->searchPackage(id, provider, query);
 		}
 	} catch(QString &s) {
 		xCritical() << s;

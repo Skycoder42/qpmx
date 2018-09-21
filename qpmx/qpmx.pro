@@ -7,7 +7,6 @@ CONFIG += c++11 console
 CONFIG -= app_bundle
 
 TARGET = qpmx
-VERSION = $$QPMXVER
 
 QMAKE_TARGET_COMPANY = "Skycoder42"
 QMAKE_TARGET_PRODUCT = $$TARGET
@@ -78,6 +77,7 @@ DISTFILES += \
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../submodules/qpluginfactory/qpluginfactory.pri)
+include(../lib.pri)
 include(../install.pri)
 
 target.path = $$INSTALL_BINS
@@ -92,4 +92,3 @@ unix {
 	zshcomp.files = completitions/zsh/_qpmx
 	INSTALLS += bashcomp zshcomp
 }
-

@@ -4,7 +4,7 @@
 #include "../../qpmx/sourceplugin.h"
 
 #include <QProcess>
-#include <QHash>
+#include <QSet>
 #include <tuple>
 
 class GitSourcePlugin : public QObject, public qpmx::SourcePlugin
@@ -32,20 +32,12 @@ public:
 
 	QJsonObject createPublisherInfo(const QString &provider) const override;
 
+	QStringList searchPackage(const QString &provider, const QString &query) override;
+	QVersionNumber findPackageVersion(const qpmx::PackageInfo &package) override;
+	void getPackageSource(const qpmx::PackageInfo &package, const QDir &targetDir) override;
+	void publishPackage(const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) override;
+
 	void cancelAll(int timeout) override;
-
-public slots:
-	void searchPackage(int requestId, const QString &provider, const QString &query) override;
-	void findPackageVersion(int requestId, const qpmx::PackageInfo &package) override;
-	void getPackageSource(int requestId, const qpmx::PackageInfo &package, const QDir &targetDir) override;
-	void publishPackage(int requestId, const QString &provider, const QDir &qpmxDir, const QVersionNumber &version, const QJsonObject &publisherInfo) override;
-
-signals:
-	void searchResult(int requestId, const QStringList &packageNames) final;
-	void versionResult(int requestId, const QVersionNumber &version) final;
-	void sourceFetched(int requestId) final;
-	void packagePublished(int requestId) final;
-	void sourceError(int requestId, const QString &error) final;
 
 private slots:
 	void finished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -53,15 +45,14 @@ private slots:
 
 private:
 	static QRegularExpression _githubRegex;
-	QHash<QProcess*, std::tuple<int, ProcessMode, QVariantHash>> _processCache;
+	QSet<QProcess*> _processCache;
 
 	QString pkgUrl(const qpmx::PackageInfo &package, QString *prefix = nullptr);
 	QString pkgTag(const qpmx::PackageInfo &package);
 
-	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false, bool timeout = true);
+	QProcess *createProcess(const QStringList &arguments, bool keepStdout = false);
 	QString formatProcError(const QString &type, QProcess *proc);
 
-	void lsRemoteDone(int requestId, QProcess *proc, int exitCode);
 	void cloneDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
 	void tagDone(int requestId, QProcess *proc, int exitCode, const QVariantHash &params);
 	void pushDone(int requestId, QProcess *proc, int exitCode);

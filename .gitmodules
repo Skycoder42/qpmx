@@ -7,3 +7,6 @@
 [submodule "submodules/qpluginfactory"]
 	path = submodules/qpluginfactory
 	url = https://github.com/Skycoder42/QPluginFactory.git
+[submodule "submodules/qtcoroutines"]
+	path = submodules/qtcoroutines
+	url = https://github.com/Skycoder42/QtCoroutines.git

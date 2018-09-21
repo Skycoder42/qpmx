@@ -4,16 +4,17 @@ QT += core
 QT -= gui
 
 TARGET = gitsource
-VERSION = $$QPMXVER
 CONFIG += plugin
 
 DESTDIR = $$OUT_PWD/../qpmx
 
 HEADERS += \
-		gitsourceplugin.h
+	gitsourceplugin.h
 
 SOURCES += \
-		gitsourceplugin.cpp
+	gitsourceplugin.cpp
+
+include(../../lib.pri)
 
 DISTFILES += gitsource.json
 json_target.target = moc_gitsourceplugin.o

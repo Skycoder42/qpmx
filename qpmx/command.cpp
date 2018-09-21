@@ -243,7 +243,7 @@ void Command::cleanCaches(const PackageInfo &package, const Command::SharedCache
 
 void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRef) const
 {
-	Q_UNUSED(srcLockRef)
+	Q_ASSERT(srcLockRef.isLocked());
 
 	auto sDir = srcDir(package);
 	if(!sDir.removeRecursively())
@@ -497,7 +497,7 @@ Command::CacheLock Command::lock(const QString &name, bool asDev) const
 									  static_cast<int>(duration_cast<milliseconds>(minutes(2)).count()))
 					 .toInt();
 
-	return CacheLock(fName, staleLock);
+	return CacheLock{fName, staleLock};
 }
 
 
@@ -530,6 +530,42 @@ Command::CacheLock::CacheLock(const QString &path, int timeout) :
 	if(timeout >= 0)
 		_lock->setStaleLockTime(timeout);
 
+	doLock();
+	xDebug() << tr("Created lock %{bld}%1%{end}").arg(path);
+}
+
+Command::CacheLock::~CacheLock()
+{
+	free();
+}
+
+bool Command::CacheLock::isLocked() const
+{
+	return _lock && _lock->isLocked();
+}
+
+void Command::CacheLock::free()
+{
+	if(_lock) {
+		if(_lock->isLocked()) {
+			_lock->unlock();
+			xDebug() << tr("Freed lock %{bld}%1%{end}").arg(_path);
+		}
+	}
+}
+
+void Command::CacheLock::relock()
+{
+	if(_lock) {
+		if(!_lock->isLocked()) {
+			doLock();
+			xDebug() << tr("Relocked %{bld}%1%{end}").arg(_path);
+		}
+	}
+}
+
+void Command::CacheLock::doLock()
+{
 	if(!_lock->lock()) {
 		QString errorStr;
 		switch (_lock->error()) {
@@ -560,32 +596,8 @@ Command::CacheLock::CacheLock(const QString &path, int timeout) :
 						.arg(hostname, appname);
 		}
 
-		_lock.reset();
 		throw tr("Lockfile-error on file %{bld}%1%{end}: %2")
-				.arg(path, errorStr);
-	}
-
-	xDebug() << tr("Created lock %{bld}%1%{end}").arg(path);
-}
-
-Command::CacheLock::~CacheLock()
-{
-	free();
-}
-
-bool Command::CacheLock::isLocked() const
-{
-	return _lock && _lock->isLocked();
-}
-
-void Command::CacheLock::free()
-{
-	if(_lock) {
-		if(_lock->isLocked()) {
-			_lock->unlock();
-			xDebug() << tr("Freed lock %{bld}%1%{end}").arg(_path);
-		}
-		_lock.reset();
+				.arg(_path, errorStr);
 	}
 }
 

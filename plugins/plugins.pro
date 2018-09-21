@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    gitsource \
-    qpmsource
+	gitsource \
+#    qpmsource
