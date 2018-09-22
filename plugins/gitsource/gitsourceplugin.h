@@ -1,7 +1,7 @@
 #ifndef GITSOURCEPLUGIN_H
 #define GITSOURCEPLUGIN_H
 
-#include "../../qpmx/sourceplugin.h"
+#include <sourceplugin.h>
 
 #include <QProcess>
 #include <QSet>

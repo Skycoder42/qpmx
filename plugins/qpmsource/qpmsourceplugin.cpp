@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <qtcoawaitables.h>
+#include <libqpmx.h>
 
 QpmSourcePlugin::QpmSourcePlugin(QObject *parent) :
 	QObject(parent),
@@ -138,10 +139,7 @@ QVersionNumber QpmSourcePlugin::findPackageVersion(const qpmx::PackageInfo &pack
 		throw qpmx::SourcePluginException{tr("Unsupported provider \"%1\"").arg(package.provider())};
 
 	//run qpm install, to a cached temp dir, only "safe" way
-	QDir dir{QStandardPaths::writableLocation(QStandardPaths::CacheLocation)}; //TODO use qpmx tmp dir instead -> provide via libqpmx
-	auto name = QStringLiteral("tmp");
-	if(!dir.mkpath(name) || !dir.cd(name))
-		throw qpmx::SourcePluginException{tr("Failed to create temporary directory")};
+	auto dir = qpmx::tmpDir();
 	QTemporaryDir tmpDir{dir.absoluteFilePath(QStringLiteral("qpm.XXXXXX"))};
 
 	//run the install process

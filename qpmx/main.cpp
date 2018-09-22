@@ -28,6 +28,8 @@
 #include <iostream>
 
 #include <qtcoroutine.h>
+
+#include "bridge.h"
 using namespace qpmx;
 
 static bool colored = false;
@@ -133,6 +135,7 @@ int main(int argc, char *argv[])
 					 cmd, &Command::fin);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
 		QtCoroutine::createAndRun([&parser, cmd](){
+			qpmx::priv::QpmxBridge::registerInstance(new qpmx::priv::Bridge{cmd});
 			cmd->init(parser);
 			parser.leaveContext();
 		});

@@ -19,11 +19,7 @@ DEFINES += "VERSION=\\\"$$VERSION\\\""
 DEFINES += "COMPANY=\"\\\"$$QMAKE_TARGET_COMPANY\\\"\""
 DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 
-PUBLIC_HEADERS += \
-	sourceplugin.h \
-	packageinfo.h
-
-HEADERS += $$PUBLIC_HEADERS \
+HEADERS += \
 	installcommand.h \
 	command.h \
 	pluginregistry.h \
@@ -43,7 +39,8 @@ HEADERS += $$PUBLIC_HEADERS \
 	hookcommand.h \
 	clearcachescommand.h \
 	updatecommand.h \
-	qbscommand.h
+	qbscommand.h \
+    bridge.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -64,7 +61,8 @@ SOURCES += main.cpp \
 	hookcommand.cpp \
 	clearcachescommand.cpp \
 	updatecommand.cpp \
-	qbscommand.cpp
+	qbscommand.cpp \
+    bridge.cpp
 
 RESOURCES += \
 	qpmx.qrc
@@ -81,9 +79,7 @@ include(../lib.pri)
 include(../install.pri)
 
 target.path = $$INSTALL_BINS
-tHeaders.path = $${INSTALL_HEADERS}/qpmx
-tHeaders.files = $$PUBLIC_HEADERS
-INSTALLS += target tHeaders
+INSTALLS += target
 
 unix {
 	bashcomp.path = $${INSTALL_SHARE}/bash-completion/completions/

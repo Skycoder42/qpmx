@@ -16,17 +16,9 @@ using namespace qpmx;
 int Command::_ExitCode = EXIT_FAILURE;
 
 Command::Command(QObject *parent) :
-	QObject(parent),
+	QObject{parent},
 	_registry(PluginRegistry::instance()),
-	_settings(new QSettings(this)),
-	_devMode(false),
-	_verbose(false),
-	_quiet(false),
-#ifndef Q_OS_WIN
-	_noColor(false),
-#endif
-	_qmakeRun(false),
-	_cacheDir()
+	_settings{new QSettings{this}}
 {}
 
 void Command::setupParser(QCliParser &parser, const QHash<QString, Command *> &commands)
@@ -234,11 +226,6 @@ void Command::replaceAlias(QpmxDependency &original, const QList<QpmxDevAlias> &
 		xDebug() << tr("Replacing dependency %1 by alias %2").arg(original.toString(), aliases[aIndex].alias.toString());
 		original = aliases[aIndex].alias;
 	}
-}
-
-void Command::cleanCaches(const PackageInfo &package, const Command::SharedCacheLock &sharedSrcLockRef) const
-{
-	cleanCaches(package, sharedSrcLockRef.lockRef());
 }
 
 void Command::cleanCaches(const PackageInfo &package, const CacheLock &srcLockRef) const
@@ -600,36 +587,4 @@ void Command::CacheLock::doLock()
 		throw tr("Lockfile-error on file %{bld}%1%{end}: %2")
 				.arg(_path, errorStr);
 	}
-}
-
-
-
-Command::SharedCacheLock::SharedCacheLock() :
-	QSharedPointer(new CacheLock())
-{}
-
-Command::SharedCacheLock &Command::SharedCacheLock::operator=(const Command::SharedCacheLock &other)
-{
-	auto cp = other;
-	swap(cp);
-	return (*this);
-}
-
-const Command::CacheLock &Command::SharedCacheLock::lockRef() const
-{
-	return (*data());
-}
-
-Command::SharedCacheLock::SharedCacheLock(Command::CacheLock &&mv) :
-	QSharedPointer(new CacheLock())
-{
-	data()->_path = mv._path;
-	data()->_lock.swap(mv._lock);
-}
-
-Command::SharedCacheLock &Command::SharedCacheLock::operator=(Command::CacheLock &&mv)
-{
-	data()->_path = mv._path;
-	data()->_lock.swap(mv._lock);
-	return (*this);
 }

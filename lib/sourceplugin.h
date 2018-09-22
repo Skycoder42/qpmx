@@ -11,12 +11,12 @@
 
 namespace qpmx { //qpmx public namespace
 
-class SourcePlugin
+class LIBQPMX_EXPORT SourcePlugin
 {
 	Q_DISABLE_COPY(SourcePlugin)
 public:
-	inline SourcePlugin() = default;
-	virtual inline ~SourcePlugin() = default;
+	SourcePlugin();
+	virtual ~SourcePlugin();
 
 	virtual bool canSearch(const QString &provider) const = 0;
 	virtual bool canPublish(const QString &provider) const = 0;
@@ -32,32 +32,18 @@ public:
 	virtual void cancelAll(int timeout) = 0;
 };
 
-class SourcePluginException : public QException
+class LIBQPMX_EXPORT SourcePluginException : public QException
 {
 public:
-	inline SourcePluginException(QByteArray errorMessage) :
-		_message{std::move(errorMessage)}
-	{}
-	inline SourcePluginException(const QString &errorMessage) :
-		SourcePluginException{errorMessage.toUtf8()}
-	{}
-	inline SourcePluginException(const char *errorMessage) :
-		SourcePluginException{QByteArray{errorMessage}}
-	{}
+	SourcePluginException(QByteArray errorMessage);
+	SourcePluginException(const QString &errorMessage);
+	SourcePluginException(const char *errorMessage);
 
-	inline const char *what() const noexcept override {
-		return _message.constData();
-	}
-	inline QString qWhat() const {
-		return QString::fromUtf8(_message);
-	}
+	const char *what() const noexcept override;
+	QString qWhat() const;
 
-	inline void raise() const override {
-		throw *this;
-	}
-	inline QException *clone() const override {
-		return new SourcePluginException{_message};
-	}
+	void raise() const override;
+	QException *clone() const override;
 
 protected:
 	const QByteArray _message;

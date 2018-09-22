@@ -1,4 +1,4 @@
-#ifndef COMMAND_H
+﻿#ifndef COMMAND_H
 #define COMMAND_H
 
 #include <QObject>
@@ -12,6 +12,12 @@
 #include "packageinfo.h"
 #include "pluginregistry.h"
 #include "qpmxformat.h"
+
+namespace qpmx {
+namespace priv {
+class Bridge;
+}
+}
 
 class Command : public QObject
 {
@@ -43,17 +49,20 @@ protected:
 
 	struct BuildId : public QString
 	{
-		inline BuildId() :
-			QString()
-		{}
+		inline BuildId() = default;
 		inline BuildId(const QString &other) :
-			QString(other)
+			QString{other}
 		{}
 		inline BuildId(QUuid other) :
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+			QString{other.toString(QUuid::WithoutBraces)}
+		{}
+#else
 			QString(other.toString())
 		{
 			*this = mid(1, size() - 2);
 		}
+#endif
 	};
 
 	class CacheLock
@@ -80,18 +89,6 @@ protected:
 		void doLock();
 	};
 
-	class SharedCacheLock : public QSharedPointer<CacheLock>
-	{
-	public:
-		SharedCacheLock();
-		SharedCacheLock(const SharedCacheLock &other) = default;
-		SharedCacheLock &operator=(const SharedCacheLock &other);
-		SharedCacheLock(CacheLock &&mv);
-		SharedCacheLock &operator=(CacheLock &&mv);
-
-		const CacheLock &lockRef() const;
-	};
-
 	PluginRegistry *registry() const;
 	QSettings *settings() const;
 
@@ -107,10 +104,7 @@ protected:
 	static QList<QpmxDependency> depList(const QList<qpmx::PackageInfo> &pkgList);
 	static QList<QpmxDevDependency> devDepList(const QList<qpmx::PackageInfo> &pkgList);
 	static void replaceAlias(QpmxDependency &original, const QList<QpmxDevAlias> &aliases);
-	template <typename T>
-	int randId(QHash<int, T> &cache) const;
 
-	void cleanCaches(const qpmx::PackageInfo &package, const SharedCacheLock &sharedSrcLockRef) const;
 	void cleanCaches(const qpmx::PackageInfo &package, const CacheLock &srcLockRef) const;
 
 	bool readBool(const QString &message, QTextStream &stream, bool defaultValue) const;
@@ -137,31 +131,23 @@ protected:
 	static QString dashed(const QString &option);
 
 private:
+	friend class qpmx::priv::Bridge;
+
 	PluginRegistry *_registry;
 	QSettings *_settings;
-	bool _devMode;
+	bool _devMode = false;
 
-	bool _verbose;
-	bool _quiet;
+	bool _verbose = false;
+	bool _quiet = false;
 #ifndef Q_OS_WIN
-	bool _noColor;
+	bool _noColor = false;
 #endif
-	bool _qmakeRun;
+	bool _qmakeRun = false;
 	QString _cacheDir;
 
 	QDir cacheDir() const;
 	Q_REQUIRED_RESULT CacheLock lock(const QString &name, bool asDev = false) const;
 };
-
-template <typename T>
-int Command::randId(QHash<int, T> &cache) const
-{
-	int id;
-	do {
-		id = qrand();
-	} while(cache.contains(id));
-	return id;
-}
 
 #define xDebug(...) qDebug(__VA_ARGS__).noquote()
 #define xInfo(...) qInfo(__VA_ARGS__).noquote()
