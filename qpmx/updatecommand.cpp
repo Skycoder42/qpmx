@@ -1,14 +1,8 @@
 #include "updatecommand.h"
+#include <qtcoroutine.h>
 
 UpdateCommand::UpdateCommand(QObject *parent) :
-	Command(parent),
-	_install(false),
-	_skipYes(false),
-	_pkgList(),
-	_updateList(),
-	_currentLoad(0),
-	_actionCache(),
-	_connectCache()
+	Command{parent}
 {}
 
 QString UpdateCommand::commandName() const
@@ -51,49 +45,22 @@ void UpdateCommand::initialize(QCliParser &parser)
 		}
 
 		xDebug() << tr("Searching for updates for %n package(s) from qpmx.json file", "", _pkgList.size());
-		_currentLoad = 1;//to trigger the loop
-		checkNext();
+		checkPackages();
 	} catch(QString &s) {
 		xCritical() << s;
 	}
 }
 
-void UpdateCommand::versionResult(int requestId, const QVersionNumber &version)
+void UpdateCommand::checkPackages()
 {
-	if(!_actionCache.contains(requestId))
-	   return;
-	auto dep = _actionCache.take(requestId);
+	quint32 currentLoad = 0;
+	QQueue<QtCoroutine::RoutineId> checkQueue;
+	QtCoroutine::awaitEach(_pkgList, [this, &checkQueue, &currentLoad](const QpmxDependency &nextDep){
+		if(currentLoad >= LoadLimit) {
+			checkQueue.enqueue(QtCoroutine::current());
+			QtCoroutine::yield();
+		}
 
-	if(dep.version != version)
-		_updateList.append({dep, version});
-
-	checkNext();
-}
-
-void UpdateCommand::sourceError(int requestId, const QString &error)
-{
-	if(!_actionCache.contains(requestId))
-	   return;
-	auto dep = _actionCache.take(requestId);
-
-	xCritical() << tr("Failed to fetch latest version of %1 with error:\n%2")
-				   .arg(dep.toString(), error);
-	checkNext();
-}
-
-void UpdateCommand::checkNext()
-{
-	if(--_currentLoad == 0 && _pkgList.isEmpty()) {
-		if(!_updateList.isEmpty())
-			completeUpdate();
-		else
-			xInfo() << tr("All packages are up to date");
-		qApp->quit();
-		return;
-	}
-
-	while(_currentLoad < LoadLimit && !_pkgList.isEmpty()) {
-		auto nextDep = _pkgList.takeFirst();
 		auto plugin = registry()->sourcePlugin(nextDep.provider);
 		if(!plugin->packageValid(nextDep.pkg())) {
 			throw tr("The package name %1 is not valid for provider %{bld}%2%{end}")
@@ -102,12 +69,26 @@ void UpdateCommand::checkNext()
 
 		xDebug() << tr("Searching for latest version of %1").arg(nextDep.toString());
 		//use the latest version -> query for it
-		auto id = randId(_actionCache);
-		_actionCache.insert(id, nextDep);
-		connectPlg(plugin);
-		//TODO plugin->findPackageVersion(id, nextDep.pkg());
-		_currentLoad++;
-	}
+		++currentLoad;
+		try {
+			auto version = plugin->findPackageVersion(nextDep.pkg());
+			if(version > nextDep.version)
+				_updateList.append({nextDep, version});
+		} catch (qpmx::SourcePluginException &e) {
+			xWarning() << tr("Failed to fetch latest version of %1 with error: %2").arg(nextDep.toString())
+					   << e.what();
+		}
+		--currentLoad;
+
+		if(!checkQueue.isEmpty())
+			QtCoroutine::resume(checkQueue.dequeue());
+	});
+
+	if(!_updateList.isEmpty())
+		completeUpdate();
+	else
+		xInfo() << tr("All packages are up to date");
+	qApp->quit();
 }
 
 void UpdateCommand::completeUpdate()
@@ -146,19 +127,4 @@ void UpdateCommand::completeUpdate()
 
 	if(_install)
 		subCall({QStringLiteral("install")});
-}
-
-void UpdateCommand::connectPlg(qpmx::SourcePlugin *plugin)
-{
-	if(_connectCache.contains(plugin))
-	   return;
-
-	auto plgobj = dynamic_cast<QObject*>(plugin);
-	connect(plgobj, SIGNAL(versionResult(int,QVersionNumber)),
-			this, SLOT(versionResult(int,QVersionNumber)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(sourceError(int,QString)),
-			this, SLOT(sourceError(int,QString)),
-			Qt::QueuedConnection);
-	_connectCache.insert(plugin);
 }

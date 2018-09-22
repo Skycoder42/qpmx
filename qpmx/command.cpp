@@ -312,6 +312,7 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 
 void Command::subCall(QStringList arguments, const QString &workingDir) const
 {
+	//TODO use coroutines
 	if(!_cacheDir.isEmpty()) {
 		arguments.prepend(_cacheDir);
 		arguments.prepend(QStringLiteral("--dev-cache"));

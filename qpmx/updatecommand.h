@@ -19,26 +19,17 @@ public:
 protected slots:
 	void initialize(QCliParser &parser) override;
 
-private slots:
-	void versionResult(int requestId, const QVersionNumber &version);
-	void sourceError(int requestId, const QString &error);
-
 private:
 	static const int LoadLimit = 5;
-	bool _install;
-	bool _skipYes;
+	bool _install = false;
+	bool _skipYes = false;
 
 	QList<QpmxDependency> _pkgList;
 	QList<QPair<QpmxDependency, QVersionNumber>> _updateList;
-	quint32 _currentLoad;
-	QHash<int, QpmxDependency> _actionCache;
 
-	QSet<qpmx::SourcePlugin*> _connectCache;
-
+	void checkPackages();
 	void checkNext();
 	void completeUpdate();
-
-	void connectPlg(qpmx::SourcePlugin *plugin);
 };
 
 #endif // UPDATECOMMAND_H
