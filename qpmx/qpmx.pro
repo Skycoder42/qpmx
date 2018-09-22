@@ -3,7 +3,7 @@ TEMPLATE = app
 QT += core jsonserializer
 QT -= gui
 
-CONFIG += c++11 console
+CONFIG += console
 CONFIG -= app_bundle
 
 TARGET = qpmx
@@ -40,7 +40,7 @@ HEADERS += \
 	clearcachescommand.h \
 	updatecommand.h \
 	qbscommand.h \
-    bridge.h
+	bridge.h
 
 SOURCES += main.cpp \
 	installcommand.cpp \
@@ -62,7 +62,7 @@ SOURCES += main.cpp \
 	clearcachescommand.cpp \
 	updatecommand.cpp \
 	qbscommand.cpp \
-    bridge.cpp
+	bridge.cpp
 
 RESOURCES += \
 	qpmx.qrc

@@ -11,6 +11,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #endif
+
+#include <qtcoawaitables.h>
 using namespace qpmx;
 
 int Command::_ExitCode = EXIT_FAILURE;
@@ -299,7 +301,6 @@ void Command::printTable(const QStringList &headers, const QList<int> &minimals,
 
 void Command::subCall(QStringList arguments, const QString &workingDir) const
 {
-	//TODO use coroutines
 	if(!_cacheDir.isEmpty()) {
 		arguments.prepend(_cacheDir);
 		arguments.prepend(QStringLiteral("--dev-cache"));
@@ -318,22 +319,19 @@ void Command::subCall(QStringList arguments, const QString &workingDir) const
 	xDebug() << tr("Running subcommand with arguments: %1")
 				.arg(arguments.join(QLatin1Char(' ')));
 
-	QProcess p;
-	p.setProgram(QCoreApplication::applicationFilePath());
-	p.setArguments(arguments);
+	auto proc = new QProcess{const_cast<Command*>(this)};
+	proc->setProgram(QCoreApplication::applicationFilePath());
+	proc->setArguments(arguments);
 	if(!workingDir.isNull())
-		p.setWorkingDirectory(workingDir);
-	p.setProcessChannelMode(QProcess::ForwardedChannels);
-	p.setInputChannelMode(QProcess::ForwardedInputChannel);
-	p.start();
-	p.waitForFinished(-1);
-
-	if(p.error() != QProcess::UnknownError)
-		throw tr("Failed to run qpmx subprocess with process error: %1").arg(p.errorString());
-	if(p.exitStatus() != QProcess::NormalExit)
-		throw tr("Failed to run qpmx subprocess - it crashed");
-	else if(p.exitCode() != EXIT_SUCCESS) {
-		_ExitCode = p.exitCode();
+		proc->setWorkingDirectory(workingDir);
+	proc->setProcessChannelMode(QProcess::ForwardedChannels);
+	proc->setInputChannelMode(QProcess::ForwardedInputChannel);
+	auto res = QtCoroutine::await(proc);
+	proc->deleteLater();
+	if(proc->error() != QProcess::UnknownError)
+		throw tr("Failed to run qpmx subprocess with process error: %1").arg(proc->errorString());
+	else if(res != EXIT_SUCCESS) {
+		_ExitCode = proc->exitCode();
 		throw tr("qpmx subprocess failed.");
 	}
 }
