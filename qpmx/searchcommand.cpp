@@ -1,14 +1,12 @@
 #include "searchcommand.h"
 #include <iostream>
+#include <qtcoroutine.h>
 using namespace qpmx;
 
 #define print(x) std::cout << QString(x).toStdString() << std::endl
 
 SearchCommand::SearchCommand(QObject *parent) :
-	Command(parent),
-	_short(false),
-	_providerCache(),
-	_searchResults()
+	Command{parent}
 {}
 
 QString SearchCommand::commandName() const
@@ -65,46 +63,28 @@ void SearchCommand::initialize(QCliParser &parser)
 			xDebug() << tr("Searching providers: %1").arg(providers.join(tr(", ")));
 		}
 
-		for(const auto &provider : providers) {
-			auto plg = registry()->sourcePlugin(provider);
-			auto plgobj = dynamic_cast<QObject*>(plg);
-			connect(plgobj, SIGNAL(searchResult(int,QStringList)),
-					this, SLOT(searchResult(int,QStringList)),
-					Qt::QueuedConnection);
-			connect(plgobj, SIGNAL(sourceError(int,QString)),
-					this, SLOT(sourceError(int,QString)),
-					Qt::QueuedConnection);
-
-			auto id = randId(_providerCache);
-			_providerCache.insert(id, provider);
-			//TODO plg->searchPackage(id, provider, query);
-		}
+		performSearch(query, providers);
 	} catch(QString &s) {
 		xCritical() << s;
 	}
 }
 
-void SearchCommand::searchResult(int requestId, const QStringList &packageNames)
+void SearchCommand::performSearch(const QString &query, const QStringList &providers)
 {
-	auto provider = _providerCache.take(requestId);
-	if(provider.isNull())
-		return;
+	QtCoroutine::awaitEach(providers, [this, query](const QString &provider){
+		try {
+			auto plg = registry()->sourcePlugin(provider);
+			auto packageNames = plg->searchPackage(provider, query);
+			xDebug() << tr("Found %n result(s) for provider %{bld}%1%{end}", "", packageNames.size()).arg(provider);
+			if(!packageNames.isEmpty())
+				_searchResults.append({provider, packageNames});
+		} catch(qpmx::SourcePluginException &e) {
+			throw tr("Failed to search provider %{bld}%1%{end} with error: %2")
+					.arg(provider, e.qWhat());
+		}
+	});
 
-	xDebug() << tr("Found %n result(s) for provider %{bld}%1%{end}", "", packageNames.size()).arg(provider);
-	if(!packageNames.isEmpty())
-		_searchResults.append({provider, packageNames});
-	if(_providerCache.isEmpty())
-		printResult();
-}
-
-void SearchCommand::sourceError(int requestId, const QString &error)
-{
-   auto provider = _providerCache.take(requestId);
-   if(provider.isNull())
-	   return;
-
-   xCritical() << tr("Failed to search provider %{bld}%1%{end} with error:\n%2")
-				  .arg(provider, error);
+	printResult();
 }
 
 void SearchCommand::printResult()

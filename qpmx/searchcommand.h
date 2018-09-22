@@ -17,15 +17,11 @@ public:
 protected slots:
 	void initialize(QCliParser &parser) override;
 
-private slots:
-	void searchResult(int requestId, const QStringList &packageNames);
-	void sourceError(int requestId, const QString &error);
-
 private:
-	bool _short;
-	QHash<int, QString> _providerCache;
+	bool _short = false;
 	QList<QPair<QString, QStringList>> _searchResults;
 
+	void performSearch(const QString &query, const QStringList &providers);
 	void printResult();
 };
 
