@@ -19,21 +19,11 @@ public:
 protected slots:
 	void initialize(QCliParser &parser) override;
 
-private slots:
-	void packagePublished(int requestId);
-	void sourceError(int requestId, const QString &error);
-
 private:
 	QVersionNumber _version;
-	QQueue<QString> _providers;
 	QpmxFormat _format;
 
-	QSet<qpmx::SourcePlugin*> _connectCache;
-	QHash<int, QString> _providerCache;
-
-	void publishNext();
-
-	void connectPlg(qpmx::SourcePlugin *plugin);
+	void publishPackages(const QStringList &providers);
 };
 
 #endif // PUBLISHCOMMAND_H

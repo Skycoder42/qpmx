@@ -2,12 +2,7 @@
 using namespace qpmx;
 
 PublishCommand::PublishCommand(QObject *parent) :
-	Command(parent),
-	_version(),
-	_providers(),
-	_format(),
-	_connectCache(),
-	_providerCache()
+	Command{parent}
 {}
 
 QString PublishCommand::commandName() const
@@ -47,79 +42,44 @@ void PublishCommand::initialize(QCliParser &parser)
 
 		xInfo() << tr("Publishing package for version %1").arg(_version.toString());
 
-		_providers.append(parser.values(QStringLiteral("provider")));
-		if(_providers.isEmpty()) {
-			_providers.append(_format.publishers.keys());
-			if(_providers.isEmpty()) {
+		QStringList providers;
+		providers.append(parser.values(QStringLiteral("provider")));
+		if(providers.isEmpty()) {
+			providers.append(_format.publishers.keys());
+			if(providers.isEmpty()) {
 				throw tr("Unable to publish package without any providers. "
 						 "Run qpmx prepare <provider> to prepare a package for publishing");
 			}
 		}
 
-		publishNext();
+		publishPackages(providers);
 	} catch (QString &s) {
 		xCritical() << s;
 	}
 }
 
-void PublishCommand::packagePublished(int requestId)
+void PublishCommand::publishPackages(const QStringList &providers)
 {
-	auto provider = _providerCache.take(requestId);
-	if(provider.isNull())
-		return;
+	for(const auto &provider : providers) {
+		auto plugin = registry()->sourcePlugin(provider);
 
-	xDebug() << tr("Successfully published package");
-	publishNext();
-}
+		if(!plugin->canPublish(provider))
+			throw tr("Provider %{bld}%1%{end} cannot publish packages via qpmx!").arg(provider);
+		if(!_format.publishers.contains(provider)) {
+			throw tr("Package has not been prepare for provider %{bld}%1%{end}. "
+					 "Run the following command to prepare it: qpmx prepare %1")
+					.arg(provider);
+		}
 
-void PublishCommand::sourceError(int requestId, const QString &error)
-{
-	auto provider = _providerCache.take(requestId);
-	if(provider.isNull())
-		return;
-
-	xCritical() << tr("Failed to publish package for provider %{bld}%1%{end} with error:\n%2")
-				   .arg(provider, error);
-}
-
-void PublishCommand::publishNext()
-{
-	if(_providers.isEmpty()) {
-		xDebug() << tr("Package publishing completed");
-		qApp->quit();
-		return;
+		try {
+			xInfo() << tr("Publishing for provider %{bld}%1%{end}").arg(provider);
+			plugin->publishPackage(provider, QDir::current(), _version, _format.publishers.value(provider));
+		} catch (qpmx::SourcePluginException &e) {
+			throw tr("Failed to publish package for provider %{bld}%1%{end} with error: %2")
+					.arg(provider, e.qWhat());
+		}
 	}
 
-	auto provider = _providers.dequeue();
-	auto plugin = registry()->sourcePlugin(provider);
-
-	if(!plugin->canPublish(provider))
-		throw tr("Provider %{bld}%1%{end} cannot publish packages via qpmx!").arg(provider);
-	if(!_format.publishers.contains(provider)) {
-		throw tr("Package has not been prepare for provider %{bld}%1%{end}. "
-				 "Run the following command to prepare it: qpmx prepare %1")
-				.arg(provider);
-	}
-
-	connectPlg(plugin);
-	xInfo() << tr("Publishing for provider %{bld}%1%{end}").arg(provider);
-
-	auto id = randId(_providerCache);
-	_providerCache.insert(id, provider);
-	//TODO plugin->publishPackage(id, provider, QDir::current(), _version, _format.publishers.value(provider));
-}
-
-void PublishCommand::connectPlg(SourcePlugin *plugin)
-{
-	if(_connectCache.contains(plugin))
-	   return;
-
-	auto plgobj = dynamic_cast<QObject*>(plugin);
-	connect(plgobj, SIGNAL(packagePublished(int)),
-			this, SLOT(packagePublished(int)),
-			Qt::QueuedConnection);
-	connect(plgobj, SIGNAL(sourceError(int,QString)),
-			this, SLOT(sourceError(int,QString)),
-			Qt::QueuedConnection);
-	_connectCache.insert(plugin);
+	xDebug() << tr("Package publishing completed");
+	qApp->quit();
 }
