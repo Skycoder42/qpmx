@@ -4,8 +4,9 @@ setlocal enabledelayedexpansion
 @echo off
 
 set qtplatform=%PLATFORM%
-set "PATH=%CD%\build-%qtplatform%\qpmx\release;C:\projects\;C:\projects\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
-where.exe qpmx.exe
+set "PATH=%CD%\build-%qtplatform%\qpmx\release;%CD%\build-%qtplatform%\lib\release;C:\projects\;C:\projects\Qt\%QT_VER%\%qtplatform%\bin;%PATH%;"
+set "QT_PLUGIN_PATH=%CD%\build-%qtplatform%\plugins;%QT_PLUGIN_PATH%"
+where qpmx.exe
 
 if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 	set PATH=C:\projects\Qt\Tools\mingw530_32\bin;%PATH%;
@@ -18,8 +19,8 @@ if "%qtplatform%" == "msvc2017_64" goto :setup_vc
 :setup_done
 
 :: install plugins into qt
-mkdir C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
-xcopy /s build-%qtplatform%\plugins\qpmx C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
+:: mkdir C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
+:: xcopy /s build-%qtplatform%\plugins\qpmx C:\projects\Qt\%QT_VER%\%qtplatform%\plugins\qpmx || exit /B 1
 qpmx list providers || (
    echo Failed to run qpmx with error code %errorlevel%
    exit /B %errorlevel%
