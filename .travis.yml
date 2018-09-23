@@ -9,6 +9,7 @@ osx_image: xcode10
 
 env:
   global:
+    - QPMX_CACHE_DIR=$HOME/.qpmx-cache  # needs to be set for ci scripts
     - QT_VER=5.11.2
     - DOCKER_IMAGE=common
     - NO_TESTS=true
@@ -31,3 +32,10 @@ before_install:
 script:
   - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh
   - if [ "$PLATFORM" != "gcc_64" ]; then ./ci/travis_test.sh sudo; fi
+
+before_cache:
+  - sudo rm -rf flatpak-build/.flatpak-builder/build
+  - sudo rm -rf flatpak-build/.flatpak-builder/rofiles
+cache:
+  directories:
+    - flatpak-build/.flatpak-builder
