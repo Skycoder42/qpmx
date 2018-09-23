@@ -3,16 +3,12 @@
 #include <QStandardPaths>
 #include <QProcess>
 #include <iostream>
+
+#include <qtcoawaitables.h>
 using namespace qpmx;
 
 TranslateCommand::TranslateCommand(QObject *parent) :
-	Command(parent),
-	_outDir(),
-	_qmake(),
-	_lconvert(),
-	_tsFile(),
-	_lrelease(),
-	_qpmxTsFiles()
+	Command{parent}
 {}
 
 QString TranslateCommand::commandName() const
@@ -187,22 +183,23 @@ void TranslateCommand::execute(QStringList command)
 {
 	xDebug() << tr("Running subcommand: %1").arg(command.join(QLatin1Char(' ')));
 
-	auto pName = command.takeFirst();
-	auto res = QProcess::execute(pName, command);
+	QProcess proc;
+	proc.setProgram(command.takeFirst());
+	proc.setArguments(command);
+	proc.setProcessChannelMode(QProcess::ForwardedChannels);
+	auto res = QtCoroutine::await(&proc);
+
 	switch (res) {
-	case -2://not started
-		throw tr("Failed to start \"%1\" to compile \"%2\"")
-				.arg(pName, _tsFile);
 	case -1://crashed
-		throw tr("Failed to run \"%1\" to compile \"%2\" - it crashed")
-				.arg(pName, _tsFile);
+		throw tr("Failed to run \"%1\" to compile \"%2\" with error: %3")
+				.arg(proc.program(), _tsFile, proc.errorString());
 	case 0://success
 		xDebug() << tr("Successfully ran \"%1\" to compile \"%2\"")
-					.arg(pName, _tsFile);
+					.arg(proc.program(), _tsFile);
 		break;
 	default:
 		throw tr("Running \"%1\" to compile \"%2\" failed with exit code: %3")
-				.arg(pName, _tsFile)
+				.arg(proc.program(), _tsFile)
 				.arg(res);
 	}
 }

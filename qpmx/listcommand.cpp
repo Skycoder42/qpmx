@@ -56,8 +56,10 @@ void ListCommand::listProviders(const QCliParser &parser)
 	if(parser.isSet(QStringLiteral("short")))
 		print(registry()->providerNames().join(QLatin1Char(' ')));
 	else {
+		const auto providers = registry()->providerNames();
 		QList<QStringList> rows;
-		for(const auto &provider : registry()->providerNames()) {
+		rows.reserve(providers.size());
+		for(const auto &provider : providers) {
 			auto plugin = registry()->sourcePlugin(provider);
 			rows.append({
 							provider,
@@ -79,11 +81,13 @@ void ListCommand::listKits(const QCliParser &parser)
 
 	if(parser.isSet(QStringLiteral("short"))) {
 		QStringList paths;
+		paths.reserve(kits.size());
 		for(const auto &kit : kits)
 			paths.append(kit.path);
 		print(paths.join(QLatin1Char(' ')));
 	} else {
 		QList<QStringList> rows;
+		rows.reserve(kits.size());
 		for(const auto &kit : kits) {
 			rows.append({
 							kit.qtVer.toString(),

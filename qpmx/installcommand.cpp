@@ -89,6 +89,7 @@ void InstallCommand::getPackages()
 		if(currentDep.version.isNull() && currentDep.provider.isEmpty()) {
 			const auto allProvs = registry()->providerNames();
 			QList<QpmxDevDependency> foundDeps;
+			foundDeps.reserve(allProvs.size());
 			QtCoroutine::awaitEach(allProvs, [this, currentDep, &foundDeps](const QString &prov) {
 				auto plugin = registry()->sourcePlugin(prov);
 				if(plugin->packageValid(currentDep.pkg(prov))) {
@@ -107,6 +108,7 @@ void InstallCommand::getPackages()
 			Q_ASSERT(!currentDep.version.isNull());
 			const auto allProvs = registry()->providerNames();
 			QList<QpmxDevDependency> foundDeps;
+			foundDeps.reserve(allProvs.size());
 			QtCoroutine::awaitEach(allProvs, [this, currentDep, &foundDeps](const QString &prov) {
 				auto plugin = registry()->sourcePlugin(prov);
 				if(plugin->packageValid(currentDep.pkg(prov))) {
@@ -307,6 +309,7 @@ void InstallCommand::verifyDeps(const QList<QpmxDevDependency> &list, const Qpmx
 		throw tr("Unable to find any provider for package %1").arg(base.toString());
 	else if(list.size() > 1) {
 		QStringList provList;
+		provList.reserve(list.size());
 		for(const auto &data : qAsConst(list))
 			provList.append(data.provider);
 		throw tr("Found more then one provider for package %1. Providers are: %2")

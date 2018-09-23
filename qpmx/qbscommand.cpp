@@ -5,6 +5,8 @@
 #include <QStandardPaths>
 #include <iostream>
 
+#include <qtcoawaitables.h>
+
 QbsCommand::QbsCommand(QObject *parent) :
 	Command(parent)
 {}
@@ -267,7 +269,7 @@ void QbsCommand::qbsLoad()
 	auto format = QpmxUserFormat::readDefault(true);
 	if(format.hasDevOptions())
 		throw tr("For now, qbs builds do not support the dev mode!");
-	for(const auto &dep : format.dependencies)
+	for(const auto &dep : qAsConst(format.dependencies))
 		print(dep.provider + QLatin1Char('.') + qbsPkgName(dep));
 }
 
@@ -278,14 +280,13 @@ QVersionNumber QbsCommand::findQbsVersion()
 	QProcess p;
 	p.setProgram(_qbsPath);
 	p.setArguments({QStringLiteral("--version")});
-	p.start();
-	p.waitForFinished(-1);
+	auto res = QtCoroutine::await(&p);
 
 	if(p.error() != QProcess::UnknownError)
 		throw tr("Failed to run qbs subprocess with process error: %1").arg(p.errorString());
 	if(p.exitStatus() != QProcess::NormalExit)
 		throw tr("Failed to run qbs subprocess - it crashed");
-	else if(p.exitCode() != EXIT_SUCCESS) {
+	else if(res != EXIT_SUCCESS) {
 		_ExitCode = p.exitCode();
 		throw tr("qbs subprocess failed.");
 	}

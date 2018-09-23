@@ -9,7 +9,7 @@ using namespace qpmx;
 } while(false)
 
 CreateCommand::CreateCommand(QObject *parent) :
-	Command(parent)
+	Command{parent}
 {}
 
 QString CreateCommand::commandName() const
