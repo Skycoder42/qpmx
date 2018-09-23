@@ -10,3 +10,6 @@
 [submodule "submodules/qtcoroutines"]
 	path = submodules/qtcoroutines
 	url = https://github.com/Skycoder42/QtCoroutines.git
+[submodule "submodules/deployment"]
+	path = submodules/deployment
+	url = https://github.com/Skycoder42/deployment.git
