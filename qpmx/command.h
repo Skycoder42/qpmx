@@ -73,8 +73,8 @@ protected:
 
 	public:
 		CacheLock();
-		CacheLock(CacheLock &&mv);
-		CacheLock &operator=(CacheLock &&mv);
+		CacheLock(CacheLock &&mv) noexcept;
+		CacheLock &operator=(CacheLock &&mv) noexcept;
 		~CacheLock();
 
 		bool isLocked() const;

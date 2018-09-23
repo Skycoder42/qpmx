@@ -8,29 +8,12 @@
 #include <QQueue>
 #include <QStandardPaths>
 #include <QUrl>
+
+#include <qtcoawaitables.h>
 using namespace qpmx;
 
 CompileCommand::CompileCommand(QObject *parent) :
-	Command(parent),
-	_recompile(false),
-	_fwdStderr(false),
-	_clean(false),
-	_pkgList(),
-	_explicitPkg(),
-	_aliases(),
-	_qtKits(),
-#ifndef QPMX_NO_MAKEBUG
-	_procEnv(),
-#endif
-	_current(),
-	_kitIndex(-1),
-	_kit(),
-	_buildLock(),
-	_compileDir(nullptr),
-	_format(),
-	_stage(None),
-	_process(nullptr),
-	_hasBinary(true)
+	Command{parent}
 {}
 
 QString CompileCommand::commandName() const
@@ -150,9 +133,8 @@ void CompileCommand::initialize(QCliParser &parser)
 		setupEnv();
 #endif
 		initKits(parser.values(QStringLiteral("qmake")));
-
-		_kitIndex = _qtKits.size();//to trigger the loop
-		compileNext();
+		// start compiling
+		compilePackages();
 	} catch(QString &s) {
 		xCritical() << s;
 	}
@@ -169,126 +151,65 @@ void CompileCommand::finalize()
 	}
 }
 
-void CompileCommand::finished(int exitCode, QProcess::ExitStatus exitStatus)
+void CompileCommand::compilePackages()
 {
-	if(exitStatus == QProcess::CrashExit)
-		errorOccurred(QProcess::Crashed);
-	else {
-		if(exitCode != EXIT_SUCCESS) {
-			_compileDir->setAutoRemove(false);
-			xCritical() << tr("Failed to run %1 step for %2 compilation with exit code %3. Check the error logs at \"%4\"")
-						   .arg(stage(), _current.toString())
-						   .arg(exitCode)
-						   .arg(_compileDir->path());
-			_process->deleteLater();
-			_process = nullptr;
-		} else
-			makeStep();
-	}
-}
-
-void CompileCommand::errorOccurred(QProcess::ProcessError error)
-{
-	Q_UNUSED(error)
-	_compileDir->setAutoRemove(false);
-	xCritical() << tr("Failed to run %1 step for %2 compilation. Error: %3")
-				   .arg(stage(), _current.toString(), _process->errorString());
-	_process->deleteLater();
-	_process = nullptr;
-}
-
-void CompileCommand::compileNext()
-{
-	if(++_kitIndex >= _qtKits.size()) {
-		if(_pkgList.isEmpty()) {
-			xDebug() << tr("Package compilation completed");
-			qApp->quit();
-			return;
-		}
-
-		_kitIndex = 0;
-		_current = _pkgList.takeFirst();
-	}
-	_kit = _qtKits[_kitIndex];
-
-	//lock the package
-	_buildLock = pkgLock(_current);
-
-	//check if include.pri exists
-	auto bDir = buildDir(_kit.id, _current);
-	if(bDir.exists()) {
-		if(_current.isDev() || //always recompile dev deps
-		   !bDir.exists(QStringLiteral("include.pri")) || //no include.pri -> invalid -> delete and recompile
-		   (_recompile && _explicitPkg.contains(_current))) { //only recompile explicitly specified (which is all except if passing as arguments)
-			xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
-					   .arg(_current.toString(), _kit.path);
-			if(!bDir.removeRecursively()) {
-				throw tr("Failed to remove previous build of %1 with \"%2\"")
-				.arg(_current.toString(), _kit.path);
+	for(const auto &current : _pkgList) {
+		auto lock = pkgLock(current);
+		for(const auto &kit : _qtKits) {
+			//check if include.pri exists
+			auto bDir = buildDir(kit.id, current);
+			if(bDir.exists()) {
+				if(current.isDev() || //always recompile dev deps
+				   !bDir.exists(QStringLiteral("include.pri")) || //no include.pri -> invalid -> delete and recompile
+				   (_recompile && _explicitPkg.contains(current))) { //only recompile explicitly specified (which is all except if passing as arguments)
+					xInfo() << tr("Recompiling package %1 with qmake \"%2\"")
+							   .arg(current.toString(), kit.path);
+					if(!bDir.removeRecursively()) {
+						throw tr("Failed to remove previous build of %1 with \"%2\"")
+						.arg(current.toString(), kit.path);
+					}
+					xDebug() << tr("Removed previous build of %1 with \"%2\"")
+								.arg(current.toString(), kit.path);
+				} else {
+					xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
+								.arg(current.toString(), kit.path);
+					continue;
+				}
+			} else {
+				xInfo() << tr("Compiling package %1 with qmake \"%2\"")
+						   .arg(current.toString(), kit.path);
 			}
-			xDebug() << tr("Removed previous build of %1 with \"%2\"")
-						.arg(_current.toString(), _kit.path);
-		} else {
-			xDebug() << tr("Package %1 already has compiled binaries for \"%2\"")
-						.arg(_current.toString(), _kit.path);
-			//done -> unlock
-			_buildLock.free();
-			compileNext();
-			return;
-		}
-	} else {
-		xInfo() << tr("Compiling package %1 with qmake \"%2\"")
-				   .arg(_current.toString(), _kit.path);
-	}
 
-	//create temp dir and load qpmx.json
-	if(_current.isDev() && !_clean)
-		_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), _current, true)));
-	else
-		_compileDir.reset(new BuildDir());
+			//prepare build vars, create temp dir and load qpmx.json
+			_current = current;
+			_kit = kit;
+			if(current.isDev() && !_clean)
+				_compileDir.reset(new BuildDir(buildDir(QStringLiteral("build"), current, true)));
+			else
+				_compileDir.reset(new BuildDir());
+			_compileDir->setAutoRemove(false);
 
-	_format = QpmxFormat::readFile(srcDir(_current), true);
-	_stage = None;
-	if(_format.source)
-		xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(_current.toString());
+			_format = QpmxFormat::readFile(srcDir(current), true);
+			if(_format.source)
+				xWarning() << tr("Compiling a source-only package %1. This can lead to unexpected behaviour").arg(current.toString());
 
-	makeStep();
-}
-
-void CompileCommand::makeStep()
-{
-	try {
-		switch (_stage) {
-		case None:
-			_stage = QMake;
+			//make steps
 			xDebug() << tr("Setting up build via qmake");
 			qmake();
-			break;
-		case QMake:
-			_stage = Make;
 			xDebug() << tr("Completed setup. Continuing with compile (make)");
 			make();
-			break;
-		case Make:
-			_stage = Source;
 			xDebug() << tr("Completed compile. Installing to cache directory");
 			install();
-			break;
-		case Source:
-			_stage = PriGen;
 			priGen();
 			xDebug() << tr("Completed installation. Compliation succeeded");
-			//done -> unlock everything
-			_buildLock.free();
-			compileNext();
-			break;
-		default:
-			Q_UNREACHABLE();
-			break;
+
+			_compileDir->setAutoRemove(true);
+			_compileDir.reset();
 		}
-	} catch(QString &s) {
-		xCritical() << s;
 	}
+
+	xDebug() << tr("Package compilation completed");
+	qApp->quit();
 }
 
 void CompileCommand::qmake()
@@ -331,12 +252,12 @@ void CompileCommand::qmake()
 	stream.flush();
 	confFile.close();
 
-	initProcess();
-	_process->setProgram(_kit.path);
+	initProcess(_kit.path, QStringLiteral("qmake"));
 	QStringList args;
 	args.append(proFile);
 	_process->setArguments(args);
-	_process->start();
+	if(QtCoroutine::await(_process) != EXIT_SUCCESS)
+		raiseError(QStringLiteral("qmake"));
 }
 
 void CompileCommand::make()
@@ -346,24 +267,24 @@ void CompileCommand::make()
 		//skip to the install step, and cache information for generatePri
 		xDebug() << tr("No sources to compile detected. skipping make step");
 		_hasBinary = false;
-		makeStep();
 	} else {
 		_hasBinary = true;
 		//just run make
-		initProcess();
-		_process->setProgram(findMake());
+		initProcess(findMake(), QStringLiteral("make"));
 		_process->setArguments({QStringLiteral("all")});
-		_process->start();
+		if(QtCoroutine::await(_process) != EXIT_SUCCESS)
+			raiseError(QStringLiteral("make"));
 	}
 }
 
 void CompileCommand::install()
 {
 	//just run make install
-	initProcess();
+	initProcess(findMake(), QStringLiteral("install"));
 	_process->setProgram(findMake());
 	_process->setArguments({QStringLiteral("all-install")});
-	_process->start();
+	if(QtCoroutine::await(_process) != EXIT_SUCCESS)
+		raiseError(QStringLiteral("install"));
 }
 
 void CompileCommand::priGen()
@@ -422,25 +343,6 @@ void CompileCommand::priGen()
 	stream << "}\n";
 	stream.flush();
 	metaFile.close();
-}
-
-QString CompileCommand::stage()
-{
-	switch (_stage) {
-	case None:
-		return tr("none");
-	case QMake:
-		return tr("qmake");
-	case Make:
-		return tr("make");
-	case Source:
-		return tr("install");
-	case PriGen:
-		return tr("pri-generate");
-	default:
-		Q_UNREACHABLE();
-		return {};
-	}
 }
 
 void CompileCommand::depCollect()
@@ -526,31 +428,13 @@ QStringList CompileCommand::readVar(const QString &fileName)
 	return resList;
 }
 
-void CompileCommand::initProcess()
+void CompileCommand::initProcess(const QString &program, const QString &logBase)
 {
 	if(_process)
 		_process->deleteLater();
 	_process = new QProcess(this);
+	_process->setProgram(program);
 	_process->setWorkingDirectory(_compileDir->path());
-
-	QString logBase;
-	switch (_stage) {
-	case CompileCommand::QMake:
-		logBase = QStringLiteral("qmake");
-		break;
-	case CompileCommand::Make:
-		logBase = QStringLiteral("make");
-		break;
-	case CompileCommand::Source:
-		logBase = QStringLiteral("install");
-		break;
-	case CompileCommand::PriGen:
-		logBase = QStringLiteral("generate");
-		break;
-	default:
-		Q_UNREACHABLE();
-		break;
-	}
 	_process->setStandardOutputFile(_compileDir->filePath(QStringLiteral("%1.stdout.log").arg(logBase)));
 	if(_fwdStderr)
 		_process->setProcessChannelMode(QProcess::ForwardedErrorChannel);
@@ -560,13 +444,19 @@ void CompileCommand::initProcess()
 #ifndef QPMX_NO_MAKEBUG
 	_process->setProcessEnvironment(_procEnv);
 #endif
+}
 
-	connect(_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-			this, &CompileCommand::finished,
-			Qt::QueuedConnection);
-	connect(_process, &QProcess::errorOccurred,
-			this, &CompileCommand::errorOccurred,
-			Qt::QueuedConnection);
+void CompileCommand::raiseError(const QString &logBase)
+{
+	if(_process->exitStatus() == QProcess::CrashExit) {
+		throw tr("Failed to run %1 step for %2 compilation. Error: %3")
+				.arg(logBase, _current.toString(), _process->errorString());
+	} else {
+		throw tr("Failed to run %1 step for %2 compilation with exit code %3. Check the error logs at \"%4\"")
+				.arg(logBase, _current.toString())
+				.arg(_process->exitCode())
+				.arg(_compileDir->path());
+	}
 }
 
 #ifndef QPMX_NO_MAKEBUG
@@ -739,21 +629,14 @@ QtKitInfo CompileCommand::updateKit(QtKitInfo oldKit, bool mustWork)
 
 
 QtKitInfo::QtKitInfo(QString path) :
-	id(QUuid::createUuid()),
-	path(std::move(path)),
-	qmakeVer(),
-	qtVer(),
-	spec(),
-	xspec(),
-	hostPrefix(),
-	installPrefix(),
-	sysRoot()
+	id{QUuid::createUuid()},
+	path{std::move(path)}
 {}
 
 QUuid QtKitInfo::findKitId(const QDir &buildDir, const QString &qmake)
 {
 	QUuid id;
-	QSettings settings(buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat);
+	QSettings settings{buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat};
 
 	auto kitCnt = settings.beginReadArray(QStringLiteral("qt-kits"));
 	for(auto i = 0; i < kitCnt; i++) {
@@ -771,7 +654,7 @@ QUuid QtKitInfo::findKitId(const QDir &buildDir, const QString &qmake)
 
 QList<QtKitInfo> QtKitInfo::readFromSettings(const QDir &buildDir)
 {
-	QSettings settings(buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat);
+	QSettings settings{buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat};
 
 	QList<QtKitInfo> allKits;
 	auto kitCnt = settings.beginReadArray(QStringLiteral("qt-kits"));
@@ -795,7 +678,7 @@ QList<QtKitInfo> QtKitInfo::readFromSettings(const QDir &buildDir)
 
 void QtKitInfo::writeToSettings(const QDir &buildDir, const QList<QtKitInfo> &kitInfos)
 {
-	QSettings settings(buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat);
+	QSettings settings{buildDir.absoluteFilePath(QStringLiteral("qt-kits.ini")), QSettings::IniFormat};
 
 	auto kitCnt = kitInfos.size();
 	settings.remove(QStringLiteral("qt-kits"));
@@ -838,16 +721,16 @@ bool QtKitInfo::operator ==(const QtKitInfo &other) const
 
 
 BuildDir::BuildDir() :
-	_tDir(),
-	_pDir(_tDir.path())
+	_tDir{},
+	_pDir{_tDir.path()}
 {
 	if(!_tDir.isValid())
 		throw CompileCommand::tr("Failed to create temporary directory for compilation with error: %1").arg(_tDir.errorString());
 }
 
 BuildDir::BuildDir(const QDir &buildDir) :
-	_tDir(),
-	_pDir(buildDir)
+	_tDir{},
+	_pDir{buildDir}
 {
 	_tDir.setAutoRemove(false);
 	_tDir.remove();

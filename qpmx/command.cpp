@@ -493,18 +493,18 @@ Command::CacheLock::CacheLock() :
 	_lock(nullptr)
 {}
 
-Command::CacheLock::CacheLock(CacheLock &&mv) :
-	_path(mv._path),
+Command::CacheLock::CacheLock(CacheLock &&mv) noexcept :
+	_path(std::move(mv._path)),
 	_lock(nullptr)
 {
 	_lock.swap(mv._lock);
 }
 
-Command::CacheLock &Command::CacheLock::operator=(Command::CacheLock &&mv)
+Command::CacheLock &Command::CacheLock::operator=(Command::CacheLock &&mv) noexcept
 {
 	//free before swapping, to make shure the old lock gets removed before we take over the new one
 	free();
-	_path = mv._path;
+	_path = std::move(mv._path);
 	_lock.swap(mv._lock);
 	return (*this);
 }

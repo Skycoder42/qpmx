@@ -40,7 +40,6 @@ void ClearCachesCommand::initialize(QCliParser &parser)
 			console.readLine();
 		}
 
-		//clean temporary files
 		if(!tmpDir().removeRecursively())
 			xWarning() << tr("Failed to completly remove temporary files");
 		else

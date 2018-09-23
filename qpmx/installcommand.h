@@ -19,12 +19,6 @@ public:
 protected slots:
 	void initialize(QCliParser &parser) override;
 
-private slots:
-//	void sourceFetched(int requestId);
-//	void versionResult(int requestId, const QVersionNumber &version);
-//	void existsResult(int requestId);
-//	void sourceError(int requestId, const QString &error);
-
 private:
 	bool _renew = false;
 	bool _noPrepare = false;

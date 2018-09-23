@@ -66,7 +66,9 @@ class QpmxFormat
 	Q_PROPERTY(QStringList priIncludes MEMBER priIncludes)
 
 	Q_PROPERTY(QpmxFormatLicense license MEMBER license)
+#ifdef Q_MOC_RUN //workaround for clang code model
 	Q_PROPERTY(QMap<QString, QJsonObject> publishers MEMBER publishers);
+#endif
 
 public:
 	virtual ~QpmxFormat();

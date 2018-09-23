@@ -71,14 +71,10 @@ protected slots:
 	void initialize(QCliParser &parser) override;
 	void finalize() override;
 
-private slots:
-	void finished(int exitCode, QProcess::ExitStatus exitStatus);
-	void errorOccurred(QProcess::ProcessError error);
-
 private:
-	bool _recompile;
-	bool _fwdStderr;
-	bool _clean;
+	bool _recompile = false;
+	bool _fwdStderr = false;
+	bool _clean = false;
 
 	QList<QpmxDevDependency> _pkgList;
 	QList<QpmxDevDependency> _explicitPkg;
@@ -88,29 +84,26 @@ private:
 	QProcessEnvironment _procEnv;
 #endif
 
+	// temporary vars for compile steps
 	QpmxDevDependency _current;
-	int _kitIndex;
 	QtKitInfo _kit;
-	CacheLock _buildLock;
 	QScopedPointer<BuildDir> _compileDir;
 	QpmxFormat _format;
-	Stage _stage;
-	QProcess *_process;
-	bool _hasBinary;
+	QProcess *_process = nullptr;
+	bool _hasBinary = true;
 
-	void compileNext();
-	void makeStep();
+	void compilePackages();
 	void qmake();
 	void make();
 	void install();
 	void priGen();
 
-	QString stage();
 	void depCollect();
 	QString findMake();
 	QStringList readMultiVar(const QString &dirName, bool recursive = false);
 	QStringList readVar(const QString &fileName);
-	void initProcess();
+	void initProcess(const QString &program, const QString &logBase);
+	Q_NORETURN void raiseError(const QString &logBase);
 #ifndef QPMX_NO_MAKEBUG
 	void setupEnv();
 #endif
