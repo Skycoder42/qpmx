@@ -10,7 +10,7 @@ osx_image: xcode10
 env:
   global:
     - QT_VER=5.11.2
-    - DOCKER_IMAGE=json
+    - DOCKER_IMAGE=common
     - NO_TESTS=true
     - EXTRA_MODULES=".skycoder42.jsonserializer"
 
