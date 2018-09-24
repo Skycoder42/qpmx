@@ -132,7 +132,7 @@ void HookCommand::createHookCompile(const QString &inFile, QIODevice *out)
 
 		stream << "\nnamespace __qpmx_startup_hooks {";
 		for(const auto &fn : functions) {
-			auto fnId = QCryptographicHash::hash(fn.toUtf8() + QByteArray::number(qrand()), QCryptographicHash::Sha3_256)
+			auto fnId = QCryptographicHash::hash(inFile.toUtf8() + fn.toUtf8(), QCryptographicHash::Sha3_256)
 						.toHex();
 			stream << "\n\tvoid hook_" << fnId << "() {\n"
 				   << "\t\t" << fn << "_ctor_function();\n"
