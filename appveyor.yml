@@ -27,9 +27,7 @@ after_build:
   - .\ci\appveyor_deploy.bat
 
 artifacts:
-  - path: install
-    name: qpmx_win_deployed
-    type: zip
+  - path: install\qpmx-*.zip
 
 deploy:
   provider: GitHub

@@ -1,13 +1,14 @@
-:: deploy
+@echo off
 setlocal
 
-:: "normal" deployment
-cd install
-move bin\qpmx.exe qpmx.exe || exit \b 1
-rmdir bin
-C:\projects\Qt\%QT_VER%\%PLATFORM%\bin\windeployqt.exe --release --no-translations qpmx.exe || exit \b 1
+set qtplatform=%PLATFORM%
+for %%* in (.) do set CurrDirName=%%~nx*
 
-:: create qt.conf & license
-echo [Paths] > qt.conf || exit \b 1
-echo Prefix=. >> qt.conf || exit \b 1
-copy ..\LICENSE .\LICENSE.txt || exit \b 1
+call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 || exit /B 1
+
+cd build-%qtplatform%
+nmake INSTALL_ROOT=\projects\%CurrDirName%\install deploy || exit /B 1
+nmake INSTALL_ROOT=\projects\%CurrDirName%\install package || exit /B 1
+cd ..
+
+dir /s install\
