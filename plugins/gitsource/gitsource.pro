@@ -2,9 +2,10 @@ TEMPLATE = lib
 
 QT += core
 QT -= gui
+CONFIG += plugin
 
 TARGET = gitsource
-CONFIG += plugin
+QMAKE_TARGET_DESCRIPTION = "qpmx git Plug-In"
 
 DESTDIR = $$OUT_PWD/../qpmx
 
@@ -21,6 +22,6 @@ json_target.target = moc_gitsourceplugin.o
 json_target.depends += $$PWD/gitsource.json
 QMAKE_EXTRA_TARGETS += json_target
 
-include(../../install.pri)
+include(../../submodules/deployment/install.pri)
 target.path = $${INSTALL_PLUGINS}/qpmx
 INSTALLS += target

@@ -18,7 +18,7 @@ public:
 	{}
 
 	PackageInfoData(const PackageInfoData &other) = default;
-	PackageInfoData(PackageInfoData &&other) noexcept = default;
+	PackageInfoData(PackageInfoData &&other) = default;
 
 	bool operator==(const PackageInfoData &other) const
 	{

@@ -7,17 +7,7 @@ CONFIG += console
 CONFIG -= app_bundle
 
 TARGET = qpmx
-
-QMAKE_TARGET_COMPANY = "Skycoder42"
-QMAKE_TARGET_PRODUCT = $$TARGET
 QMAKE_TARGET_DESCRIPTION = "qpmx package manager"
-QMAKE_TARGET_COPYRIGHT = "Felix Barz"
-QMAKE_TARGET_BUNDLE_PREFIX = de.skycoder42
-
-DEFINES += "TARGET=\\\"$$TARGET\\\""
-DEFINES += "VERSION=\\\"$$VERSION\\\""
-DEFINES += "COMPANY=\"\\\"$$QMAKE_TARGET_COMPANY\\\"\""
-DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 
 HEADERS += \
 	installcommand.h \
@@ -76,8 +66,8 @@ DISTFILES += \
 include(../submodules/qcliparser/qcliparser.pri)
 include(../submodules/qpluginfactory/qpluginfactory.pri)
 include(../lib.pri)
-include(../install.pri)
 
+include(../submodules/deployment/install.pri)
 target.path = $$INSTALL_BINS
 INSTALLS += target
 

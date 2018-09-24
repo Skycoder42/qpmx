@@ -117,7 +117,7 @@ QList<T> TopSort<T>::sort() const
 template<typename T>
 int TopSort<T>::indexOf(const T &data) const
 {
-	for(auto i = 0, m = _data.size(); i < m; i++) {
+	for(int i = 0, m = _data.size(); i < m; i++) {
 		if(_comparator(data, _data[i]))
 			return i;
 	}

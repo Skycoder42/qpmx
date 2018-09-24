@@ -347,7 +347,10 @@ void QpmSourcePlugin::cancelAll(int timeout)
 QProcess *QpmSourcePlugin::createProcess(const QStringList &arguments, bool keepStdout, bool timeout)
 {
 	auto proc = new QProcess{this};
-	proc->setProgram(QStandardPaths::findExecutable(QStringLiteral("qpm")));
+	auto qpmPath = QStandardPaths::findExecutable(QStringLiteral("qpm"));
+	if(qpmPath.isEmpty())
+		throw qpmx::SourcePluginException{"Unable to find qpm executable. Make shure it is in your path!"};
+	proc->setProgram(qpmPath);
 	if(!keepStdout)
 		proc->setStandardOutputFile(QProcess::nullDevice());
 	proc->setArguments(arguments);

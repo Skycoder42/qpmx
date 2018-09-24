@@ -2,17 +2,18 @@ TEMPLATE = lib
 
 QT += core
 QT -= gui
+CONFIG += plugin
 
 TARGET = qpmsource
-CONFIG += plugin
+QMAKE_TARGET_DESCRIPTION = "qpmx qpm Plug-In"
 
 DESTDIR = $$OUT_PWD/../qpmx
 
 HEADERS += \
-		qpmsourceplugin.h
+	qpmsourceplugin.h
 
 SOURCES += \
-		qpmsourceplugin.cpp
+	qpmsourceplugin.cpp
 
 include(../../lib.pri)
 
@@ -21,7 +22,7 @@ json_target.target = moc_qpmsourceplugin.o
 json_target.depends += $$PWD/qpmsource.json
 QMAKE_EXTRA_TARGETS += json_target
 
-include(../../install.pri)
+include(../../submodules/deployment/install.pri)
 target.path = $${INSTALL_PLUGINS}/qpmx
 INSTALLS += target
 

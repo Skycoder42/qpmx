@@ -42,7 +42,7 @@ static void qpmxMessageHandler(QtMsgType type, const QMessageLogContext &context
 int main(int argc, char *argv[])
 {
 	QCoreApplication a(argc, argv);
-	QCoreApplication::setApplicationName(QStringLiteral(TARGET));
+	QCoreApplication::setApplicationName(QStringLiteral(PROJECT_TARGET));
 	QCoreApplication::setApplicationVersion(QStringLiteral(VERSION));
 	QCoreApplication::setOrganizationName(QStringLiteral(COMPANY));
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));

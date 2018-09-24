@@ -3,6 +3,7 @@ TEMPLATE = lib
 QT  -= gui
 
 TARGET = qpmx
+QMAKE_TARGET_DESCRIPTION = "qpmx connection library"
 
 DEFINES += QPMX_LIBRARY
 
@@ -13,18 +14,20 @@ QPMX_PUBLIC_HEADERS = \
 	sourceplugin.h
 
 HEADERS += $$QPMX_PUBLIC_HEADERS \
-    qpmxbridge_p.h
+	qpmxbridge_p.h
 
 SOURCES += \
 	packageinfo.cpp \
 	sourceplugin.cpp \
-    libqpmx.cpp \
-    qpmxbridge.cpp
+	libqpmx.cpp \
+	qpmxbridge.cpp
 
 CONFIG += qtcoroutines_exported
 include(../submodules/qtcoroutines/qtcoroutines.pri)
 
-target.path = $${INSTALL_LIBS}
+include(../submodules/deployment/install.pri)
+target.path = $$INSTALL_LIBS
+dlltarget.path = $$INSTALL_BINS
 tHeaders.path = $${INSTALL_HEADERS}/qpmx
 tHeaders.files = $$QPMX_PUBLIC_HEADERS $$PUBLIC_HEADERS
-INSTALLS += target tHeaders
+INSTALLS += target dlltarget tHeaders

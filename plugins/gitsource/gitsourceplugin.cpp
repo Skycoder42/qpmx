@@ -8,6 +8,7 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QSettings>
+#include <QThread>
 #include <iostream>
 #include <qtcoawaitables.h>
 
@@ -155,6 +156,7 @@ void GitSourcePlugin::getPackageSource(const qpmx::PackageInfo &package, const Q
 	QStringList arguments {
 		QStringLiteral("clone"),
 		QStringLiteral("--recurse-submodules"),
+		QStringLiteral("-j%1").arg(QThread::idealThreadCount()),
 		QStringLiteral("--depth"),
 		QStringLiteral("1"),
 		QStringLiteral("--branch"),
