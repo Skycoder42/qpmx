@@ -13,3 +13,8 @@
 [submodule "submodules/deployment"]
 	path = submodules/deployment
 	url = https://github.com/Skycoder42/deployment.git
+[submodule "submodules/QCtrlSignals"]
+	path = submodules/QCtrlSignals
+	url = https://github.com/Skycoder42/QCtrlSignals.git
+	path = submodules/qctrlsignals
+	url = https://github.com/Skycoder42/QCtrlSignals.git

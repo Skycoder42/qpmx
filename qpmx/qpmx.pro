@@ -65,6 +65,7 @@ DISTFILES += \
 
 include(../submodules/qcliparser/qcliparser.pri)
 include(../submodules/qpluginfactory/qpluginfactory.pri)
+include(../submodules/qctrlsignals/qctrlsignals.pri)
 include(../lib.pri)
 
 include(../submodules/deployment/install.pri)

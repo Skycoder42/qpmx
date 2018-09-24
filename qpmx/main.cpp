@@ -23,6 +23,7 @@
 #include <QTimer>
 #include <QJsonSerializer>
 #include <qcliparser.h>
+#include <QCtrlSignals>
 
 #include <QStandardPaths>
 #include <iostream>
@@ -133,6 +134,7 @@ int main(int argc, char *argv[])
 
 	QObject::connect(qApp, &QCoreApplication::aboutToQuit,
 					 cmd, &Command::fin);
+	QCtrlSignalHandler::instance()->setAutoQuitActive(true);
 	QTimer::singleShot(0, qApp, [&parser, cmd](){
 		QtCoroutine::createAndRun([&parser, cmd](){
 			qpmx::priv::QpmxBridge::registerInstance(new qpmx::priv::Bridge{cmd});
