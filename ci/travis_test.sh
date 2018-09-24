@@ -25,10 +25,6 @@ if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
 fi
 qpmx list providers
 
-# install plugins into qt
-$SUDO mkdir /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx
-$SUDO cp build-$PLATFORM/plugins/qpmx/* /opt/qt/$QT_VER/$PLATFORM/plugins/qpmx/
-
 # build tests (bin and src)
 for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 	if [[ "$i" == "1" ]]; then
