@@ -1,11 +1,13 @@
 TEMPLATE = lib
 
 QT  -= gui
+CONFIG += skip_target_version_ext
 
 TARGET = qpmx
 QMAKE_TARGET_DESCRIPTION = "qpmx connection library"
 
 DEFINES += QPMX_LIBRARY
+mac: DEFINES += _XOPEN_SOURCE
 
 QPMX_PUBLIC_HEADERS = \
 	libqpmx_global.h \
