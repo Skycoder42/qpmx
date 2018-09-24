@@ -17,6 +17,7 @@ fi
 export PATH="$PWD/build-$PLATFORM/qpmx:$PATH"
 export QT_PLUGIN_PATH="$PWD/build-$PLATFORM/plugins:$QT_PLUGIN_PATH"
 export LD_LIBRARY_PATH="$PWD/build-$PLATFORM/lib:$LD_LIBRARY_PATH"
+export DYLD_LIBRARY_PATH="$PWD/build-$PLATFORM/lib:$DYLD_LIBRARY_PATH"
 which qpmx
 if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
 	echo wrong qpmx executable found
