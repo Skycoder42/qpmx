@@ -2,6 +2,7 @@ TEMPLATE = lib
 
 QT  -= gui
 CONFIG += skip_target_version_ext
+mac: CONFIG += static
 
 TARGET = qpmx
 QMAKE_TARGET_DESCRIPTION = "qpmx connection library"
