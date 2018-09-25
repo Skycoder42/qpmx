@@ -12,6 +12,7 @@ env:
     - QPMX_CACHE_DIR=$HOME/.qpmx-cache  # needs to be set for ci scripts
     - QT_VER=5.11.2
     - DOCKER_IMAGE=common
+    - QMAKE_FLAGS="PREFIX=/"
     - NO_TESTS=true
     - EXTRA_MODULES=".skycoder42.jsonserializer"
 
@@ -32,10 +33,3 @@ before_install:
 script:
   - ./qtmodules-travis/ci/$TRAVIS_OS_NAME/build.sh
   - if [ "$PLATFORM" != "gcc_64" ]; then ./ci/travis_test.sh sudo; fi
-
-before_cache:
-  - sudo rm -rf flatpak-build/.flatpak-builder/build
-  - sudo rm -rf flatpak-build/.flatpak-builder/rofiles
-cache:
-  directories:
-    - flatpak-build/.flatpak-builder
