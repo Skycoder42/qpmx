@@ -25,6 +25,11 @@ if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
 fi
 qpmx list providers
 
+# install lib into qt
+if [[ "$PLATFORM" == "clang_64" ]]; then
+	$SUDO cp build-$PLATFORM/lib/* /opt/qt/$QT_VER/$PLATFORM/lib/
+fi
+
 # build tests (bin and src)
 for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 	if [[ "$i" == "1" ]]; then
@@ -52,7 +57,6 @@ for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
 		mkdir build-$PLATFORM/tests-$i-$j
 		pushd build-$PLATFORM/tests-$i-$j
 
-		echo $DYLD_LIBRARY_PATH
 		/opt/qt/$QT_VER/$PLATFORM/bin/qmake $M_FLAGS ../../submodules/qpmx-sample-package/qpmx-test/
 		make qmake_all
 		make
