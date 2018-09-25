@@ -14,21 +14,15 @@ else
 	export MAKEFLAGS="-j$(nproc)"
 fi
 
-export PATH="$PWD/build-$PLATFORM/qpmx:$PATH"
-export QT_PLUGIN_PATH="$PWD/build-$PLATFORM/plugins:$QT_PLUGIN_PATH"
-export LD_LIBRARY_PATH="$PWD/build-$PLATFORM/lib:$LD_LIBRARY_PATH"
-export DYLD_LIBRARY_PATH="$PWD/build-$PLATFORM/lib:$DYLD_LIBRARY_PATH"
+export PATH="$PWD/install/bin:$PATH"
+export QT_PLUGIN_PATH="$PWD/install/plugins:$QT_PLUGIN_PATH"
+export LD_LIBRARY_PATH="$PWD/install/lib:$LD_LIBRARY_PATH"
 which qpmx
-if [[ "$(which qpmx)" != "$PWD/build-$PLATFORM/qpmx/qpmx" ]]; then
+if [[ "$(which qpmx)" != "$PWD/install/qpmx/qpmx" ]]; then
 	echo wrong qpmx executable found
 	exit 1
 fi
 qpmx list providers
-
-# install lib into qt
-if [[ "$PLATFORM" == "clang_64" ]]; then
-	$SUDO cp build-$PLATFORM/lib/* /opt/qt/$QT_VER/$PLATFORM/lib/
-fi
 
 # build tests (bin and src)
 for i in 0 1 2 3; do #compile, compile-dev, src-dev, src
