@@ -18,7 +18,7 @@ export PATH="$PWD/install/bin:$PATH"
 export QT_PLUGIN_PATH="$PWD/install/plugins:$QT_PLUGIN_PATH"
 export LD_LIBRARY_PATH="$PWD/install/lib:$LD_LIBRARY_PATH"
 which qpmx
-if [[ "$(which qpmx)" != "$PWD/install/qpmx/qpmx" ]]; then
+if [[ "$(which qpmx)" != "$PWD/install/bin/qpmx" ]]; then
 	echo wrong qpmx executable found
 	exit 1
 fi
