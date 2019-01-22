@@ -1,5 +1,9 @@
-# qpmx
+# [DEPRECATED] qpmx
 The Advanced Qt package manager - a frontend/replacement for qpm.
+
+> This project has been deprecated in favor of [qdep](https://github.com/Skycoder42/qdep). Please migrate all you packages and project to qdep as qpmx will not be maintained anymore.
+
+----------------------
 
 [![Travis Build Status](https://travis-ci.org/Skycoder42/qpmx.svg?branch=master)](https://travis-ci.org/Skycoder42/qpmx)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/xve94rbg8ewsg59s?svg=true)](https://ci.appveyor.com/project/Skycoder42/qpmx)
